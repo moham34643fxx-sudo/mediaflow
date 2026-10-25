@@ -1,0 +1,13 @@
+# MediaFlow Custom Netlify Headers
+/downloads/*
+  Content-Disposition: attachment; filename="MediaFlow-latest.apk"
+  Content-Type: application/vnd.android.package-archive
+  Cache-Control: public, max-age=86400
+
+/assets/*
+  Cache-Control: public, max-age=604800, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  X-XSS-Protection: 1; mode=block

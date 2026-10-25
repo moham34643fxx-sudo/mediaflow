@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#080D14" />
+  <title>MediaFlow - حمّل أي فيديو من أي منصة بأعلى جودة 4K | أندرويد</title>
+  
+  <!-- SEO & Open Graph -->
+  <meta name="description" content="MediaFlow هو تطبيق أندرويد الفائق لتنزيل وتشغيل الوسائط من أكثر من 1800 موقع ومنصة بدقة تصل إلى 4K، مع متصفح مدمج واستئناف فوري بدون إعلانات." />
+  <meta property="og:title" content="MediaFlow - أسرع وأقوى تطبيق تنزيل وسائط للأندرويد" />
+  <meta property="og:description" content="حمّل أي فيديو من يوتيوب، إنستغرام، تيك توك، فيسبوك وأكثر من 1800 منصة بأعلى جودة وبدون إعلانات." />
+  <meta property="og:image" content="assets/app-icon.png" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+  <link rel="apple-touch-icon" href="assets/app-icon.png" />
+
+  <!-- Google Fonts: Cairo, IBM Plex Sans Arabic, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#080D14',
+            'obsidian-surface': '#111C2C',
+            'obsidian-elevated': '#18273D',
+            'neon-teal': '#76E5DF',
+            'electric-blue': '#92B8FF',
+            lavender: '#B7A9EA',
+            'light-text': '#F0F5FC',
+            'muted-text': '#9AAABD',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body class="bg-obsidian text-light-text selection:bg-neon-teal selection:text-obsidian">
+
+  <!-- Ambient Animated Glows -->
+  <div class="ambient-glow-1"></div>
+  <div class="ambient-glow-2"></div>
+  <div class="ambient-glow-3"></div>
+
+  <!-- ==================== HEADER / NAVBAR ==================== -->
+  <header class="sticky top-0 z-50 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Logo & Brand -->
+        <a href="#" class="flex items-center gap-3 group">
+          <div class="w-11 h-11 rounded-2xl p-1 bg-obsidian-surface border border-neon-teal/30 flex items-center justify-center shadow-lg shadow-neon-teal/10 group-hover:border-neon-teal group-hover:shadow-neon-teal/30 transition-all duration-300">
+            <img src="assets/logo.svg" alt="MediaFlow Logo" class="w-full h-full object-contain" />
+          </div>
+          <div class="flex flex-col">
+            <span class="text-xl font-extrabold tracking-tight gradient-text font-['Inter']">MediaFlow</span>
+            <span class="text-[10px] tracking-wider text-muted-text uppercase font-semibold" data-i18n="header.logoSubtitle">تطبيق وسائط أندرويد الفائق</span>
+          </div>
+        </a>
+
+        <!-- Desktop Navigation Links -->
+        <nav class="hidden md:flex items-center gap-8 text-sm font-semibold text-muted-text">
+          <a href="#features" class="hover:text-neon-teal transition-colors" data-i18n="nav.features">الميزات</a>
+          <a href="#platforms" class="hover:text-neon-teal transition-colors" data-i18n="nav.platforms">المنصات المدعومة</a>
+          <a href="#screenshots" class="hover:text-neon-teal transition-colors" data-i18n="nav.screenshots">لقطات التطبيق</a>
+          <a href="#how-it-works" class="hover:text-neon-teal transition-colors" data-i18n="nav.howItWorks">طريقة الاستخدام</a>
+          <a href="#faq" class="hover:text-neon-teal transition-colors" data-i18n="nav.faq">الأسئلة الشائعة</a>
+        </nav>
+
+        <!-- Actions: Language switch + Download CTA -->
+        <div class="hidden sm:flex items-center gap-3">
+          <!-- Language Toggle Button -->
+          <button class="lang-toggle-btn px-3.5 py-2 rounded-xl text-xs font-bold text-light-text bg-obsidian-surface border border-neon-teal/20 hover:border-neon-teal/60 hover:text-neon-teal transition-all flex items-center gap-1.5 shadow-sm">
+            <svg class="w-4 h-4 text-neon-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+            </svg>
+            <span data-i18n="nav.toggleLang">English</span>
+          </button>
+
+          <!-- Direct Download CTA -->
+          <a href="downloads/MediaFlow-latest.apk" download class="btn-primary px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span data-i18n="nav.downloadBtn">تحميل مجاني</span>
+          </a>
+        </div>
+
+        <!-- Mobile Hamburger Button -->
+        <button id="mobile-menu-btn" class="md:hidden p-2 rounded-xl bg-obsidian-surface border border-neon-teal/20 text-light-text hover:text-neon-teal focus:outline-none">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mobile Dropdown Menu -->
+      <div id="mobile-menu" class="hidden md:hidden py-4 border-t border-neon-teal/10 space-y-3">
+        <a href="#features" class="block px-3 py-2 rounded-lg text-sm font-semibold hover:bg-obsidian-surface hover:text-neon-teal" data-i18n="nav.features">الميزات</a>
+        <a href="#platforms" class="block px-3 py-2 rounded-lg text-sm font-semibold hover:bg-obsidian-surface hover:text-neon-teal" data-i18n="nav.platforms">المنصات المدعومة</a>
+        <a href="#screenshots" class="block px-3 py-2 rounded-lg text-sm font-semibold hover:bg-obsidian-surface hover:text-neon-teal" data-i18n="nav.screenshots">لقطات التطبيق</a>
+        <a href="#how-it-works" class="block px-3 py-2 rounded-lg text-sm font-semibold hover:bg-obsidian-surface hover:text-neon-teal" data-i18n="nav.howItWorks">طريقة الاستخدام</a>
+        <a href="#faq" class="block px-3 py-2 rounded-lg text-sm font-semibold hover:bg-obsidian-surface hover:text-neon-teal" data-i18n="nav.faq">الأسئلة الشائعة</a>
+        
+        <div class="pt-2 flex flex-col gap-2">
+          <button class="lang-toggle-btn w-full py-2.5 rounded-xl text-xs font-bold text-light-text bg-obsidian-surface border border-neon-teal/20 flex items-center justify-center gap-2">
+            <svg class="w-4 h-4 text-neon-teal" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+            </svg>
+            <span data-i18n="nav.toggleLang">English</span>
+          </button>
+          <a href="downloads/MediaFlow-latest.apk" download class="btn-primary w-full py-2.5 rounded-xl text-center text-sm font-bold flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span data-i18n="nav.downloadBtn">تحميل مجاني</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== HERO SECTION ==================== -->
+  <section class="relative pt-12 pb-20 md:pt-20 md:pb-28 overflow-hidden z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        
+        <!-- Left / Hero Text Content -->
+        <div class="lg:col-span-7 space-y-6 text-center lg:text-start">
+          
+          <!-- Release Badge -->
+          <div class="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-obsidian-surface/90 border border-neon-teal/25 shadow-lg shadow-neon-teal/5 text-xs sm:text-sm font-semibold">
+            <span class="pulse-dot"></span>
+            <span class="text-light-text" data-i18n="hero.badge">الإصدار الأحدث متوفر الآن • سريع ومجاني 100%</span>
+          </div>
+
+          <!-- Main Catchy Title -->
+          <h1 class="text-4xl sm:text-5xl lg:text-[2.85rem] xl:text-6xl font-black tracking-tight leading-[1.22]">
+            <span data-i18n="hero.titlePart1">حمّل أي فيديو من أي منصة</span><br />
+            <span class="gradient-text" data-i18n="hero.titleGradient">بلا قيود وبأعلى جودة 4K</span>
+          </h1>
+
+          <!-- Subtitle -->
+          <p class="text-base sm:text-lg text-muted-text max-w-2xl mx-auto lg:mx-0 leading-relaxed" data-i18n="hero.subtitle">
+            تطبيق أندرويد الفائق لتنزيل وتشغيل الوسائط من أكثر من 1800 موقع، مع متصفح ذكي، استئناف فوري، ومشغل وسائط متطور يدعم 4K و MKV وصوت MP3 وبدون أي إعلانات.
+          </p>
+
+          <!-- Action Buttons (Direct Download) -->
+          <div class="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            
+            <!-- Primary Download Button -->
+            <a href="downloads/MediaFlow-latest.apk" download class="btn-primary w-full sm:w-auto px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3.5 group">
+              <!-- Android Robot Icon -->
+              <svg class="w-7 h-7 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.082 12 8.082s-3.5902.3296-5.1368.8676L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/>
+              </svg>
+              <div class="flex flex-col text-start">
+                <span class="text-base font-extrabold leading-tight" data-i18n="hero.ctaDirect">تحميل مجاني مباشر</span>
+                <span class="text-xs font-semibold opacity-85 leading-tight mt-0.5" data-i18n="hero.versionSubtitle">(الإصدار 0.8.9)</span>
+              </div>
+            </a>
+          </div>
+
+          <!-- Trust Badges Row -->
+          <div class="pt-6 border-t border-neon-teal/10 flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs font-semibold text-muted-text">
+            <div class="flex items-center gap-1.5 bg-obsidian-surface/60 px-3 py-1.5 rounded-lg border border-neon-teal/10">
+              <span class="text-neon-teal">🛡️</span>
+              <span data-i18n="hero.badgeClean">فحص أمان معتمد (100% Clean)</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-obsidian-surface/60 px-3 py-1.5 rounded-lg border border-neon-teal/10">
+              <span class="text-electric-blue">⚡</span>
+              <span data-i18n="hero.badgeSize">سريع وخفيف</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-obsidian-surface/60 px-3 py-1.5 rounded-lg border border-neon-teal/10">
+              <span class="text-lavender">📱</span>
+              <span data-i18n="hero.badgeAndroid">أندرويد 8.0+ (ARM64)</span>
+            </div>
+            <div class="flex items-center gap-1.5 bg-obsidian-surface/60 px-3 py-1.5 rounded-lg border border-neon-teal/10">
+              <span class="text-emerald-400">🚫</span>
+              <span data-i18n="hero.badgeNoAds">بدون إعلانات إطلاقاً</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right / 3D Phone Mockup Showcase -->
+        <div class="lg:col-span-5 flex justify-center items-center relative mockup-container">
+          
+          <div class="phone-wrapper relative">
+            <!-- Outer Phone Frame -->
+            <div class="phone-mockup relative">
+              <!-- Dynamic Island / Top Camera Punch -->
+              <div class="phone-notch"></div>
+              <!-- Glare reflection -->
+              <div class="phone-glare"></div>
+              <!-- Screen Screenshot -->
+              <img src="assets/app-preview.png" alt="MediaFlow App Real Interface" class="phone-screen" />
+            </div>
+
+            <!-- Floating Badge 1: 4K Player -->
+            <div class="floating-badge floating-badge-1 hidden sm:flex">
+              <span class="text-xl">🎬</span>
+              <span class="text-light-text" data-i18n="hero.mockupBadge1">مشغل 4K ومعادل صوتي مدمج</span>
+            </div>
+
+            <!-- Floating Badge 2: In-App Browser -->
+            <div class="floating-badge floating-badge-2 hidden sm:flex">
+              <span class="text-xl">🌐</span>
+              <span class="text-light-text" data-i18n="hero.mockupBadge2">متصفح وسائط وكاشف ذكي عائم</span>
+            </div>
+
+            <!-- Floating Badge 3: Resilient Engine -->
+            <div class="floating-badge floating-badge-3 hidden sm:flex">
+              <span class="text-xl">⚡</span>
+              <span class="text-light-text" data-i18n="hero.mockupBadge3">استئناف فوري بدون فقدان البايتات</span>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STATS ROW ==================== -->
+  <section class="relative z-10 py-10 border-y border-neon-teal/10 bg-obsidian-surface/40 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        
+        <div class="space-y-1">
+          <div class="text-3xl sm:text-4xl font-extrabold gradient-teal-blue" data-i18n="stats.sitesCount">+1,800</div>
+          <div class="text-xs sm:text-sm text-muted-text font-medium" data-i18n="stats.sitesLabel">موقع ومنصة مدعومة</div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-3xl sm:text-4xl font-extrabold text-neon-teal" data-i18n="stats.qualityMax">4K Ultra HD</div>
+          <div class="text-xs sm:text-sm text-muted-text font-medium" data-i18n="stats.qualityLabel">أقصى دقة مدعومة</div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-3xl sm:text-4xl font-extrabold text-electric-blue" data-i18n="stats.resilience">100%</div>
+          <div class="text-xs sm:text-sm text-muted-text font-medium" data-i18n="stats.resilienceLabel">استئناف موثوق بدون انقطاع</div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="text-3xl sm:text-4xl font-extrabold text-lavender" data-i18n="stats.price">0$</div>
+          <div class="text-xs sm:text-sm text-muted-text font-medium" data-i18n="stats.priceLabel">مجاني بالكامل وبدون إعلانات</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PLATFORMS INFINITE MARQUEE ==================== -->
+  <section id="platforms" class="py-16 relative overflow-hidden z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-10">
+      <div class="inline-block px-3.5 py-1.5 rounded-full bg-obsidian-surface border border-neon-teal/20 text-xs font-bold text-neon-teal mb-3" data-i18n="marquee.tag">
+        تغطية شاملة لكل المنصات
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-light-text" data-i18n="marquee.title">
+        يدعم أكثر من 1,800 موقع ومنصة فيديو وصوت حول العالم
+      </h2>
+    </div>
+
+    <!-- Infinite Carousel Marquee -->
+    <div class="marquee-container py-4">
+      <div class="marquee-track">
+        <!-- Group 1 -->
+        <div class="marquee-group">
+          <div class="platform-pill"><img src="assets/platforms/youtube.svg" class="w-6 h-6" alt="YouTube" /><span>YouTube & Shorts</span></div>
+          <div class="platform-pill"><img src="assets/platforms/instagram.svg" class="w-6 h-6" alt="Instagram" /><span>Instagram Reels & Stories</span></div>
+          <div class="platform-pill"><img src="assets/platforms/tiktok.svg" class="w-6 h-6" alt="TikTok" /><span>TikTok (No Watermark)</span></div>
+          <div class="platform-pill"><img src="assets/platforms/facebook.svg" class="w-6 h-6" alt="Facebook" /><span>Facebook Video</span></div>
+          <div class="platform-pill"><img src="assets/platforms/x.svg" class="w-6 h-6" alt="X" /><span>X / Twitter</span></div>
+          <div class="platform-pill"><img src="assets/platforms/pinterest.svg" class="w-6 h-6" alt="Pinterest" /><span>Pinterest Pins</span></div>
+          <div class="platform-pill"><img src="assets/platforms/reddit.svg" class="w-6 h-6" alt="Reddit" /><span>Reddit Video</span></div>
+          <div class="platform-pill"><img src="assets/platforms/soundcloud.svg" class="w-6 h-6" alt="SoundCloud" /><span>SoundCloud Audio</span></div>
+          <div class="platform-pill"><img src="assets/platforms/vimeo.svg" class="w-6 h-6" alt="Vimeo" /><span>Vimeo HD</span></div>
+          <div class="platform-pill"><img src="assets/platforms/telegram.svg" class="w-6 h-6" alt="Telegram" /><span>Telegram Channels</span></div>
+          <div class="platform-pill"><img src="assets/platforms/snapchat.svg" class="w-6 h-6" alt="Snapchat" /><span>Snapchat Spotlight</span></div>
+          <div class="platform-pill"><span class="text-neon-teal font-extrabold">+1,800</span><span data-i18n="marquee.moreSites">المزيد من المنصات والمواقع</span></div>
+        </div>
+
+        <!-- Group 2 (Identical duplicate for seamless infinite loop) -->
+        <div class="marquee-group" aria-hidden="true">
+          <div class="platform-pill"><img src="assets/platforms/youtube.svg" class="w-6 h-6" alt="YouTube" /><span>YouTube & Shorts</span></div>
+          <div class="platform-pill"><img src="assets/platforms/instagram.svg" class="w-6 h-6" alt="Instagram" /><span>Instagram Reels & Stories</span></div>
+          <div class="platform-pill"><img src="assets/platforms/tiktok.svg" class="w-6 h-6" alt="TikTok" /><span>TikTok (No Watermark)</span></div>
+          <div class="platform-pill"><img src="assets/platforms/facebook.svg" class="w-6 h-6" alt="Facebook" /><span>Facebook Video</span></div>
+          <div class="platform-pill"><img src="assets/platforms/x.svg" class="w-6 h-6" alt="X" /><span>X / Twitter</span></div>
+          <div class="platform-pill"><img src="assets/platforms/pinterest.svg" class="w-6 h-6" alt="Pinterest" /><span>Pinterest Pins</span></div>
+          <div class="platform-pill"><img src="assets/platforms/reddit.svg" class="w-6 h-6" alt="Reddit" /><span>Reddit Video</span></div>
+          <div class="platform-pill"><img src="assets/platforms/soundcloud.svg" class="w-6 h-6" alt="SoundCloud" /><span>SoundCloud Audio</span></div>
+          <div class="platform-pill"><img src="assets/platforms/vimeo.svg" class="w-6 h-6" alt="Vimeo" /><span>Vimeo HD</span></div>
+          <div class="platform-pill"><img src="assets/platforms/telegram.svg" class="w-6 h-6" alt="Telegram" /><span>Telegram Channels</span></div>
+          <div class="platform-pill"><img src="assets/platforms/snapchat.svg" class="w-6 h-6" alt="Snapchat" /><span>Snapchat Spotlight</span></div>
+          <div class="platform-pill"><span class="text-neon-teal font-extrabold">+1,800</span><span data-i18n="marquee.moreSites">المزيد من المنصات والمواقع</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FEATURES GRID ==================== -->
+  <section id="features" class="py-20 relative z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+        <div class="inline-block px-3.5 py-1.5 rounded-full bg-obsidian-surface border border-neon-teal/20 text-xs font-bold text-neon-teal" data-i18n="features.tag">
+          إمكانيات فائقة وتجربة متكاملة
+        </div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-light-text" data-i18n="features.title">
+          كل ما تحتاجه للتحكم في وسائطك في تطبيق واحد
+        </h2>
+        <p class="text-base sm:text-lg text-muted-text leading-relaxed" data-i18n="features.subtitle">
+          صُمم MediaFlow بعناية فائقة ليجمع بين السرعة الصاروخية، المتانة ضد انقطاع الشبكة، والأناقة المطلقة في واجهة مستخدم داكنة ومريحة للعين.
+        </p>
+      </div>
+
+      <!-- 6 Key Features Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        
+        <!-- Feature 1: Smart In-App Browser -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat1Title">المتصفح المدمج والكاشف التلقائي</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat1Desc">
+            تصفح حساباتك ومواقعك المفضلة داخل التطبيق بأمان تام؛ يكتشف الزر العائم الذكي أي فيديو أو ريلز أو ستوري فور تشغيله ويعطيك خيار التنزيل المباشر بنقرة واحدة.
+          </p>
+        </div>
+
+        <!-- Feature 2: Resilient Engine -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat2Title">محرك تنزيل متين وقابل للاستئناف</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat2Desc">
+            وداعاً لفشل التنزيلات عند انقطاع الإنترنت أو التبديل بين Wi-Fi وبيانات الهاتف؛ يدعم التطبيق الاستئناف الذكي حتى مع السيرفرات التي لا توفر ETag ولا يعيد التحميل من الصفر.
+          </p>
+        </div>
+
+        <!-- Feature 3: 4K Media Player -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat3Title">مشغل ميديا 4K ومعادل صوتي احترافي</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat3Desc">
+            شاهد الفيديوهات المحملة فوراً داخل التطبيق بدقة 4K و 1080p وصيغة MKV مع تحكم كامل باللمس، واختيار مسارات الصوت والترجمات، ومعادل صوتي 5 حزم مع تعزيز الجهير.
+          </p>
+        </div>
+
+        <!-- Feature 4: WhatsApp Status Saver -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat4Title">حافظ حالات واتساب الفوري</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat4Desc">
+            اكتشف واحفظ حالات أصدقائك من واتساب (صور وفيديوهات) بنقرة واحدة مباشرة إلى معرض هاتفك بجودتها الأصلية الكاملة ودون الحاجة لتطبيقات إضافية.
+          </p>
+        </div>
+
+        <!-- Feature 5: Duplicate Detection Guard -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat5Title">كاشف التنزيل المكرر الذكي</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat5Desc">
+            حماية ذكية لمساحة هاتفك؛ ينبهك فورياً إذا كان الرابط أو الملف تم تنزيله مسبقاً، مع إمكانية تشغيل الفيديو المحفوظ فوراً بنقرة واحدة لتوفير الوقت والبيانات.
+          </p>
+        </div>
+
+        <!-- Feature 6: 100% Privacy & No Ads -->
+        <div class="feature-card">
+          <div class="feature-icon-wrapper">
+            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold mb-3 text-light-text" data-i18n="features.feat6Title">خصوصية 100% وبدون أي إعلانات</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="features.feat6Desc">
+            لا تسجيل دخول إجباري، لا إعلانات منبثقة مزعجة، ولا أي تتبع لبياناتك. ملفاتك وتنزيلاتك وسجل تصفحك مشفرة ومحفوظة محلياً على جهازك فقط.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SCREENSHOTS SHOWCASE ==================== -->
+  <section id="screenshots" class="py-20 relative z-10 bg-obsidian-surface/30 border-y border-neon-teal/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-12 space-y-4">
+        <div class="inline-block px-3.5 py-1.5 rounded-full bg-obsidian-surface border border-neon-teal/20 text-xs font-bold text-neon-teal" data-i18n="screenshots.tag">
+          معرض واجهات التطبيق
+        </div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-light-text" data-i18n="screenshots.title">
+          لقطات شاشة حقيقية من داخل MediaFlow
+        </h2>
+        <p class="text-base sm:text-lg text-muted-text" data-i18n="screenshots.subtitle">
+          استكشف تجربة الاستخدام السلسة والواجهة العصرية المصممة باللون الزبرجدي والنيون المتوهج على أجهزة أندرويد الحقيقية.
+        </p>
+      </div>
+
+      <!-- Interactive Tab Filters (4 Authentic Screens) -->
+      <div class="flex items-center justify-center gap-2 sm:gap-3 flex-wrap mb-10">
+        <button class="screenshot-tab-btn tab-btn active" data-i18n="screenshots.tabHome">الرئيسية</button>
+        <button class="screenshot-tab-btn tab-btn" data-i18n="screenshots.tabDownloads">التنزيلات</button>
+        <button class="screenshot-tab-btn tab-btn" data-i18n="screenshots.tabLibrary">المكتبة وقوائم التشغيل</button>
+        <button class="screenshot-tab-btn tab-btn" data-i18n="screenshots.tabPlayer">مشغل الفيديو 4K</button>
+      </div>
+
+      <!-- Smartphone Showcase Frame -->
+      <div class="relative w-full max-w-[340px] sm:max-w-[360px] mx-auto group">
+        
+        <!-- Ambient Neon Glow Behind Device -->
+        <div class="absolute -inset-4 bg-gradient-to-tr from-neon-teal/30 via-electric-blue/20 to-lavender/25 rounded-[50px] blur-2xl opacity-50 group-hover:opacity-75 transition-opacity duration-500 -z-10 pointer-events-none"></div>
+
+        <!-- Phone Device Frame -->
+        <div class="showcase-phone-frame">
+          <!-- Top Camera Punch-hole -->
+          <div class="showcase-phone-notch"></div>
+
+          <!-- Screen Container (9:16 Aspect Ratio) -->
+          <div class="showcase-screen-wrap cursor-pointer">
+            <!-- Glass Glare Reflection -->
+            <div class="showcase-phone-glare"></div>
+
+            <!-- Screenshot Image -->
+            <img id="screenshot-display-img" src="assets/screenshots/home.png" alt="MediaFlow Screenshot" class="showcase-phone-screen" />
+
+            <!-- Hover Zoom Hint Pill -->
+            <div class="absolute bottom-4 inset-x-3 flex items-center justify-center pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-obsidian/85 backdrop-blur-md border border-neon-teal/40 text-xs font-semibold text-neon-teal shadow-lg">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+                <span data-i18n="screenshots.clickToZoom">اضغط للتكبير الكامل</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Info Card (Badge & Caption) -->
+        <div class="mt-6 text-center max-w-sm mx-auto space-y-2.5 px-2">
+          <div class="inline-flex items-center justify-center">
+            <span id="screenshot-badge" class="text-xs font-bold text-neon-teal bg-obsidian-surface/90 px-3.5 py-1.5 rounded-full border border-neon-teal/25 shadow-sm">
+              الرئيسية الموحدة
+            </span>
+          </div>
+          <p id="screenshot-caption" class="text-sm sm:text-base font-semibold text-light-text leading-relaxed">
+            مركز التحكم الفائق: لصق الروابط الفوري، أدوات المتصفح وقوائم التشغيل وحفظ الحالات وسجل التنزيلات الأخير
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== HOW IT WORKS ==================== -->
+  <section id="how-it-works" class="py-20 relative z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header -->
+      <div class="text-center max-w-3xl mx-auto mb-16 space-y-4">
+        <div class="inline-block px-3.5 py-1.5 rounded-full bg-obsidian-surface border border-neon-teal/20 text-xs font-bold text-neon-teal" data-i18n="howItWorks.tag">
+          سهولة فائقة في الاستخدام
+        </div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-light-text" data-i18n="howItWorks.title">
+          كيف يعمل تطبيق MediaFlow؟
+        </h2>
+        <p class="text-base sm:text-lg text-muted-text" data-i18n="howItWorks.subtitle">
+          ثلاث خطوات بسيطة ومباشرة للاستمتاع بأي محتوى في أي وقت بدون اتصال بالإنترنت.
+        </p>
+      </div>
+
+      <!-- 3 Steps -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+        
+        <!-- Step 1 -->
+        <div class="glass-panel p-8 rounded-3xl relative group hover:border-neon-teal/50 transition-all">
+          <div class="text-5xl font-black text-neon-teal/20 mb-6 font-['Inter'] group-hover:text-neon-teal/40 transition-colors" data-i18n="howItWorks.step1Num">01</div>
+          <h3 class="text-2xl font-bold mb-3 text-light-text" data-i18n="howItWorks.step1Title">انسخ الرابط أو تصفح</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="howItWorks.step1Desc">
+            انسخ رابط أي فيديو من أي تطبيق، أو استخدم المتصفح المدمج داخل MediaFlow للعثور على المحتوى مباشرة.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-panel p-8 rounded-3xl relative group hover:border-electric-blue/50 transition-all">
+          <div class="text-5xl font-black text-electric-blue/20 mb-6 font-['Inter'] group-hover:text-electric-blue/40 transition-colors" data-i18n="howItWorks.step2Num">02</div>
+          <h3 class="text-2xl font-bold mb-3 text-light-text" data-i18n="howItWorks.step2Title">اختر الجودة والصيغة</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="howItWorks.step2Desc">
+            اختر ما يناسبك بضغطة زر: دقة فائقة 4K أو 1080p، أو استخرج ملف صوتي نقي MP3 بأعلى معدل بت.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-panel p-8 rounded-3xl relative group hover:border-lavender/50 transition-all">
+          <div class="text-5xl font-black text-lavender/20 mb-6 font-['Inter'] group-hover:text-lavender/40 transition-colors" data-i18n="howItWorks.step3Num">03</div>
+          <h3 class="text-2xl font-bold mb-3 text-light-text" data-i18n="howItWorks.step3Title">حمّل وشاهد بدون إنترنت</h3>
+          <p class="text-muted-text text-sm leading-relaxed" data-i18n="howItWorks.step3Desc">
+            يبدأ التنزيل بسرعة قصوى، ويمكنك تشغيل الملف فوراً داخل مشغل التطبيق المدمج والاستمتاع به دون إعلانات.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== FAQ ACCORDION ==================== -->
+  <section id="faq" class="py-20 relative z-10 bg-obsidian-surface/20 border-t border-neon-teal/10">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Section Header -->
+      <div class="text-center mb-16 space-y-4">
+        <div class="inline-block px-3.5 py-1.5 rounded-full bg-obsidian-surface border border-neon-teal/20 text-xs font-bold text-neon-teal" data-i18n="faq.tag">
+          إجابات وتوضيحات سريعة
+        </div>
+        <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-light-text" data-i18n="faq.title">
+          الأسئلة الأكثر شيوعاً
+        </h2>
+        <p class="text-base sm:text-lg text-muted-text" data-i18n="faq.subtitle">
+          كل ما تود معرفته حول تحميل وتثبيت واستخدام MediaFlow بأمان.
+        </p>
+      </div>
+
+      <!-- Accordion Items -->
+      <div class="space-y-4">
+        
+        <!-- Q1 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q1">هل تطبيق MediaFlow مجاني بالكامل؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a1">
+            نعم، التطبيق مجاني تماماً بنسبة 100%، ولا يتطلب أي اشتراكات مدفوعة، وخالٍ كلياً من أي إعلانات تجارية مزعجة أو نوافذ منبثقة.
+          </div>
+        </div>
+
+        <!-- Q2 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q2">كيف أقوم بتثبيت التطبيق على هاتفي الأندرويد؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a2">
+            الخطوات سهلة جداً:<br/>
+            1. اضغط على زر 'تحميل مجاني' بالأعلى لحفظ الملف على هاتفك.<br/>
+            2. افتح قائمة التنزيلات في متصفحك أو مدير الملفات واضغط على الملف.<br/>
+            3. إذا طلب هاتفك إذناً، اختر 'السماح بالتثبيت من هذا المصدر' (Allow from this source).<br/>
+            4. اضغط 'تثبيت' وسيكون التطبيق جاهزاً للاستخدام فوراً!
+          </div>
+        </div>
+
+        <!-- Q3 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q3">هل يدعم تحميل ريلز وستوري الحسابات الخاصة على إنستغرام؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a3">
+            نعم بالتأكيد! بفضل المتصفح المدمج داخل التطبيق، يمكنك تسجيل الدخول إلى حسابك بأمان تام، وسيقوم الزر العائم الذكي باكتشاف أي فيديو تشاهده على الصفحة لتنزيله بجودته الأصلية مباشرة.
+          </div>
+        </div>
+
+        <!-- Q4 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q4">ماذا يحدث لو انقطع الاتصال بالإنترنت أثناء تحميل ملف كبير؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a4">
+            لا تقلق أبداً! محرك التنزيل المتين في MediaFlow مزود بتقنية الاستئناف الذكي حتى مع السيرفرات التي لا تدعم ETag؛ بمجرد عودة الاتصال أو التبديل للـ Wi-Fi يستأنف التحميل من نفس البايت دون الحاجة لإعادة التنزيل من البداية.
+          </div>
+        </div>
+
+        <!-- Q5 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q5">ما هي إصدارات وأجهزة أندرويد المتوافقة؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a5">
+            يعمل MediaFlow بكفاءة وسلاسة على جميع الهواتف والأجهزة اللوحية التي تعمل بنظام Android 8.0 (Oreo) وما بعده، وهو مُهندس خصيصاً لمعالجات ARM64-v8a الحديثة لتوفير أقصى سرعة واستهلاك بطارية منخفض.
+          </div>
+        </div>
+
+        <!-- Q6 -->
+        <div class="faq-item">
+          <div class="faq-header">
+            <span data-i18n="faq.q6">هل التطبيق آمن وموثوق ولا يحتوي على برمجيات ضارة؟</span>
+            <div class="faq-icon">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="faq-body" data-i18n="faq.a6">
+            نعم، التطبيق آمن ونظيف 100% وموقع بشهادة أمان رقمية. لا يطلب التطبيق سوى الأذونات الضرورية لتشغيله وحفظ الوسائط في هاتفك، ولا يقوم بجمع أو إرسال أي بيانات شخصية لأي خوادم خارجية.
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== FINAL DOWNLOAD CTA BANNER ==================== -->
+  <section class="py-20 relative z-10 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="glass-panel rounded-3xl p-8 sm:p-14 relative overflow-hidden border border-neon-teal/30 shadow-2xl shadow-neon-teal/10 text-center space-y-6">
+        
+        <!-- Glow accents inside banner -->
+        <div class="absolute -top-24 -left-24 w-72 h-72 bg-neon-teal/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-electric-blue/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-3xl mx-auto space-y-4 relative z-10">
+          <h2 class="text-3xl sm:text-5xl font-black text-light-text tracking-tight" data-i18n="cta.title">
+            جاهز لتجربة تنزيل وتشغيل استثنائية؟
+          </h2>
+          <p class="text-base sm:text-lg text-muted-text leading-relaxed" data-i18n="cta.subtitle">
+            حمّل MediaFlow الآن وانضم للآلاف ممن يستمتعون بالوسائط بدون إعلانات وبأعلى دقة 4K.
+          </p>
+
+          <div class="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="downloads/MediaFlow-latest.apk" download class="btn-primary w-full sm:w-auto px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3.5 group">
+              <svg class="w-7 h-7 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+              </svg>
+              <div class="flex flex-col text-start">
+                <span class="text-base font-extrabold leading-tight" data-i18n="cta.btn">تحميل مجاني مباشر</span>
+                <span class="text-xs font-semibold opacity-85 leading-tight mt-0.5" data-i18n="hero.versionSubtitle">(الإصدار 0.8.9)</span>
+              </div>
+            </a>
+          </div>
+
+          <div class="text-xs text-muted-text font-medium pt-3" data-i18n="cta.spec">
+            أحدث إصدار • يدعم Android 8.0+ • موقّع ونظيف 100%
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="relative z-10 border-t border-neon-teal/10 bg-obsidian-surface/60 backdrop-blur-xl pt-16 pb-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-10 pb-12 border-b border-neon-teal/10">
+        
+        <!-- Brand Info -->
+        <div class="md:col-span-6 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl p-1 bg-obsidian border border-neon-teal/30 flex items-center justify-center">
+              <img src="assets/logo.svg" alt="MediaFlow Logo" class="w-full h-full object-contain" />
+            </div>
+            <span class="text-2xl font-black gradient-text font-['Inter']">MediaFlow</span>
+          </div>
+          <p class="text-muted-text text-sm max-w-md leading-relaxed" data-i18n="footer.desc">
+            تطبيق أندرويد الفائق لتنزيل وإدارة وتشغيل الوسائط من مختلف المنصات العالمية بأعلى جودة وبأمان وخصوصية تامة وبدون إعلانات.
+          </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="md:col-span-3 space-y-3">
+          <h4 class="text-sm font-bold text-light-text uppercase tracking-wider" data-i18n="footer.quickLinks">روابط سريعة</h4>
+          <ul class="space-y-2 text-sm text-muted-text">
+            <li><a href="#features" class="hover:text-neon-teal transition-colors" data-i18n="footer.features">الميزات</a></li>
+            <li><a href="#platforms" class="hover:text-neon-teal transition-colors" data-i18n="footer.platforms">المنصات</a></li>
+            <li><a href="#screenshots" class="hover:text-neon-teal transition-colors" data-i18n="footer.screenshots">لقطات التطبيق</a></li>
+            <li><a href="#faq" class="hover:text-neon-teal transition-colors" data-i18n="footer.faq">الأسئلة الشائعة</a></li>
+          </ul>
+        </div>
+
+        <!-- Download & Meta -->
+        <div class="md:col-span-3 space-y-3">
+          <h4 class="text-sm font-bold text-light-text uppercase tracking-wider" data-i18n="footer.download">تحميل مباشر</h4>
+          <ul class="space-y-2 text-sm text-muted-text">
+            <li><a href="downloads/MediaFlow-latest.apk" download class="hover:text-neon-teal transition-colors" data-i18n="footer.download">تحميل مباشر</a></li>
+            <li class="text-xs text-muted-text/70 pt-2" data-i18n="footer.cleanBadge">مفحوص ومضمون بنسبة 100% (SHA-256 Clean)</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Disclaimer & Copyright -->
+      <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-text">
+        <p class="max-w-2xl text-center md:text-start leading-relaxed" data-i18n="footer.disclaimer">
+          إخلاء مسؤولية: MediaFlow أداة شخصية لإدارة وتشغيل الوسائط للاستخدام غير التجاري. يلتزم المستخدم بمراعاة حقوق الملكية الفكرية وشروط استخدام منصات المحتوى المختلفة.
+        </p>
+        <p class="text-center md:text-end font-medium" data-i18n="footer.copyright">
+          جميع الحقوق محفوظة © 2026 MediaFlow. صُنع بأناقة وشغف لخدمة المستخدمين.
+        </p>
+      </div>
+
+    </div>
+  </footer>
+
+
+
+  <!-- ==================== FULLSCREEN LIGHTBOX MODAL ==================== -->
+  <div id="lightbox-modal" class="lightbox-overlay">
+    <button id="lightbox-close-btn" class="absolute top-6 end-6 w-11 h-11 rounded-full bg-obsidian-surface/90 border border-neon-teal/40 text-light-text hover:text-neon-teal flex items-center justify-center transition-all z-20">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+    <img id="lightbox-img" src="" alt="Fullscreen Screenshot Preview" class="lightbox-img" />
+  </div>
+
+  <!-- ==================== BACK TO TOP BUTTON ==================== -->
+  <button id="back-to-top" class="back-to-top" title="الرجوع للأعلى" data-i18n-attr="title:common.backToTop">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
+    </svg>
+  </button>
+
+  <!-- ==================== JAVASCRIPT BUNDLES ==================== -->
+  <script src="js/i18n.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
