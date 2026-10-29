@@ -3,18 +3,18 @@
   'use strict';
   const config = Object.freeze({
     repository: 'moham34643fxx-sudo/mediaflow',
-    // Same-origin public metadata API on this Vercel deployment.
+    // Optional absolute HTTPS manifest endpoint. Empty = GitHub Releases on Pages.
     feedUrl: root.location && root.location.protocol === 'https:' ? root.location.origin + '/api/update' : '',
     // The public website always discovers stable. URL query strings cannot enable QA.
     fallback: Object.freeze({
-      versionCode: 53,
-      versionName: '0.9.20',
+      versionCode: 61,
+      versionName: '0.9.28',
       minSdk: 24,
       channel: 'qa',
       abi: 'arm64-v8a',
       path: 'downloads/MediaFlow-latest.apk',
-      bytes: 56779164,
-      sha256: '9a1f13a1bf5965b56e79f4e1c2cfc016e4316e9232592706ef30ce9f5abac596',
+      bytes: 54188182,
+      sha256: '16fe2d98cc72704c5ad0fa0af23edd6a7c427b03541502f20d7f6a6b607bc367',
     }),
   });
   if (typeof module === 'object' && module.exports) module.exports = config;

@@ -4,6 +4,14 @@
  */
 const translations = {
   ar: {
+    release: {
+      available: "التنزيل المتاح",
+      stable: "إصدار مستقر",
+      qa: "نسخة QA موقعة",
+      android: "أندرويد",
+      checksum: "بصمة SHA-256 معلنة",
+      requires: "يتطلب MediaFlow"
+    },
     meta: {
       title: "MediaFlow - حمّل أي فيديو من أي منصة بأعلى جودة 4K | أندرويد",
       desc: "MediaFlow هو تطبيق أندرويد الفائق لتنزيل وتشغيل الوسائط من أكثر من 1800 موقع ومنصة بدقة تصل إلى 4K، مع متصفح مدمج واستئناف فوري بدون إعلانات."
@@ -27,7 +35,7 @@ const translations = {
       titleGradient: "بلا قيود وبأعلى جودة 4K",
       subtitle: "تطبيق أندرويد الفائق لتنزيل وتشغيل الوسائط من أكثر من 1800 موقع، مع متصفح ذكي، استئناف فوري، ومشغل وسائط متطور يدعم 4K و MKV وصوت MP3 وبدون أي إعلانات.",
       ctaDirect: "تحميل مجاني مباشر",
-      versionSubtitle: "(الإصدار 0.8.9)",
+      versionSubtitle: "(الإصدار 0.9.28)",
       badgeClean: "فحص أمان معتمد (100% Clean)",
       badgeSize: "سريع وخفيف",
       badgeAndroid: "أندرويد 8.0+ (ARM64)",
@@ -140,9 +148,28 @@ const translations = {
     },
     common: {
       backToTop: "الرجوع للأعلى"
+    },
+    downloadToast: {
+      started: "بدأ تنزيل MediaFlow APK تلقائياً",
+      startedDesc: "الإصدار 0.9.28 • الحجم 54.1 ميجابايت • يدعم جميع أجهزة وتابلت أندرويد",
+      fallbackTitle: "إذا لم يبدأ التنزيل تلقائياً في متصفحك:",
+      directVercel: "تحميل مباشر من السيرفر",
+      directGithub: "تحميل بديل عبر سيرفر GitHub",
+      androidTip: "💡 تنبيه أندرويد: إذا ظهرت رسالة 'قد يكون الملف ضاراً'، اضغط على 'التنزيل على أي حال' (تحذير أمان روتيني لملفات APK من خارج المتجر).",
+      pcTip: "💻 للكمبيوتر: هذا الملف (APK) مخصص لأجهزة أندرويد والتابلت. يمكنك نقله لهاتفك عبر الكابل أو مشاركته أو تشغيله بمحاكي أندرويد.",
+      iosTip: "📱 لأجهزة Apple: تطبيق MediaFlow مخصص لنظام أندرويد (APK). يمكنك حفظ الملف لمشاركته مع أجهزة أندرويد.",
+      close: "إغلاق"
     }
   },
   en: {
+    release: {
+      available: "Available download",
+      stable: "Stable release",
+      qa: "QA-signed build",
+      android: "Android",
+      checksum: "SHA-256 published",
+      requires: "MediaFlow requires"
+    },
     meta: {
       title: "MediaFlow - Download Any Video From Any Site in 4K Ultra HD | Android",
       desc: "MediaFlow is the ultimate Android media utility supporting 1800+ sites, packed with an intelligent in-app browser, resilient resumable downloads, and a full-featured 4K player — with zero ads."
@@ -166,7 +193,7 @@ const translations = {
       titleGradient: "Limitless & In True 4K Ultra HD",
       subtitle: "The ultimate Android media utility supporting 1800+ sites, packed with an intelligent in-app browser, resilient resumable downloads, and a full-featured 4K player — with zero ads.",
       ctaDirect: "Free Direct Download",
-      versionSubtitle: "(v0.8.9)",
+      versionSubtitle: "(v0.9.28)",
       badgeClean: "Certified Safe (100% Clean)",
       badgeSize: "Fast & Lightweight",
       badgeAndroid: "Android 8.0+ (ARM64)",
@@ -279,6 +306,17 @@ const translations = {
     },
     common: {
       backToTop: "Back to Top"
+    },
+    downloadToast: {
+      started: "MediaFlow APK download started automatically",
+      startedDesc: "Version 0.9.28 • Size 54.1 MB • Supports all Android phones & tablets",
+      fallbackTitle: "If download did not start automatically in your browser:",
+      directVercel: "Direct Server Download",
+      directGithub: "GitHub CDN Fallback",
+      androidTip: "💡 Android Tip: If 'File might be harmful' warning appears, tap 'Download anyway' (standard Android prompt for external APKs).",
+      pcTip: "💻 PC Users: This APK file is designed for Android. You can transfer it to your phone/tablet or run it inside an Android emulator.",
+      iosTip: "📱 Apple Users: MediaFlow is currently built for Android (APK). You can save the file to transfer it to an Android device.",
+      close: "Close"
     }
   }
 };

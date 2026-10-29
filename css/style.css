@@ -789,3 +789,167 @@ html[dir="ltr"] .back-to-top {
   box-shadow: 0 0 20px rgba(118, 229, 223, 0.6);
   transform: translateY(-3px);
 }
+
+/* ==========================================================================
+   Universal Download Toast & Feedback Engine
+   ========================================================================== */
+
+.download-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(140%);
+  width: calc(100% - 32px);
+  max-width: 580px;
+  background: rgba(14, 23, 37, 0.96);
+  border: 1px solid rgba(118, 229, 223, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(118, 229, 223, 0.18);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: 9999;
+  padding: 20px;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.download-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.download-toast-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+}
+
+.download-toast-icon {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 14px;
+  background: rgba(118, 229, 223, 0.12);
+  border: 1px solid rgba(118, 229, 223, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--neon-teal);
+}
+
+.download-toast-content {
+  flex: 1;
+}
+
+.download-toast-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #F0F5FC;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.download-toast-desc {
+  font-size: 0.82rem;
+  color: #9AAABD;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.download-toast-close {
+  position: absolute;
+  top: -4px;
+  inset-inline-end: -4px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #9AAABD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.download-toast-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #FFF;
+}
+
+.download-toast-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.download-toast-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.download-toast-btn-primary {
+  background: rgba(118, 229, 223, 0.18);
+  border: 1px solid rgba(118, 229, 223, 0.4);
+  color: #76E5DF;
+}
+
+.download-toast-btn-primary:hover {
+  background: #76E5DF;
+  color: #080D14;
+  box-shadow: 0 0 15px rgba(118, 229, 223, 0.4);
+}
+
+.download-toast-btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #E2E8F0;
+}
+
+.download-toast-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.download-toast-tip {
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #FCD34D;
+  font-size: 0.77rem;
+  line-height: 1.45;
+}
+
+.download-btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: 0 0 25px rgba(118, 229, 223, 0.6) !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner-icon {
+  animation: spin 1s linear infinite;
+}
