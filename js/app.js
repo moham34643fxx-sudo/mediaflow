@@ -391,38 +391,19 @@
     const buttons = document.querySelectorAll(downloadSelectors.join(','));
 
     buttons.forEach((btn) => {
-      // Ensure target URL is correct
-      if (!btn.getAttribute('href') || btn.getAttribute('href').includes('downloads/MediaFlow')) {
-        btn.setAttribute('href', directServerUrl);
-      }
+      // Ensure target URL is always the same-origin direct file
+      btn.setAttribute('href', directServerUrl);
+      btn.setAttribute('download', 'MediaFlow-latest.apk');
 
       btn.addEventListener('click', function (e) {
-        // Visual feedback on button
-        const originalHtml = this.innerHTML;
-        if (!this.classList.contains('download-btn-loading')) {
-          this.classList.add('download-btn-loading');
-          const isAr = currentLang === 'ar';
-          this.innerHTML = `
-            <svg class="w-4 h-4 spinner-icon inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>${isAr ? 'جارٍ بدء التحميل... ⏳' : 'Starting download... ⏳'}</span>
-          `;
-
-          setTimeout(() => {
-            this.classList.remove('download-btn-loading');
-            this.innerHTML = originalHtml;
-          }, 3500);
-        }
+        // Non-destructive visual feedback: do not destroy DOM nodes during event dispatch
+        this.classList.add('download-btn-loading');
+        setTimeout(() => {
+          this.classList.remove('download-btn-loading');
+        }, 3500);
 
         // Show the interactive toast
         showToast();
-
-        // Secondary fallback trigger after 400ms: if browser didn't navigate or prompt, trigger direct
-        setTimeout(() => {
-          triggerDirectDownload(directServerUrl);
-        }, 400);
       });
     });
   }

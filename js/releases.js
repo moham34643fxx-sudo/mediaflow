@@ -181,12 +181,11 @@
       Object.entries(labels).forEach(([key, value]) => document.querySelectorAll(`[data-i18n="${key}"]`)
         .forEach(element => { element.textContent = value; }));
       links.forEach(link => {
-        link.setAttribute('href', selected.url);
+        link.setAttribute('href', 'downloads/MediaFlow-latest.apk');
+        link.setAttribute('download', 'MediaFlow-latest.apk');
         link.setAttribute('data-sha256', selected.sha256);
         link.setAttribute('data-bytes', String(selected.bytes));
         link.setAttribute('title', `v${selected.versionName} • ${selected.bytes} bytes • SHA-256: ${selected.sha256}`);
-        // Cross-origin HTML download is not guaranteed; GitHub serves APKs as attachments.
-        if (status === 'ready') link.removeAttribute('download');
       });
       document.documentElement.setAttribute('data-release-status', status);
     }
