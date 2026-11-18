@@ -1,0 +1,25 @@
+<resources>
+    <string name="pl_search_files">ابحث داخل القائمة</string>
+    <string name="pl_clear_search">مسح البحث</string>
+    <string name="pl_search_hint">جرّب اسمًا آخر أو اختر حالة مختلفة.</string>
+    <string name="pl_files_heading">ملفات القائمة · %1$d من %2$d</string>
+    <string name="pl_filename">اسم الملف</string>
+    <string name="pl_folder">مكان الحفظ</string>
+    <string name="pl_more_actions">خيارات القائمة</string>
+    <string name="transfer_speed_policy">لا يوجد سقف مُعدّ للسرعة بالبايت/ثانية. تتشارك التنزيلات المتزامنة السرعة المتاحة، ويعتمد الأداء الفعلي على المصدر ومسار الاتصال والشبكة والجهاز.</string>
+    <string name="pl_order_sequential">تنزيل متتابع · بنفس ترتيب المصدر</string>
+    <string name="pl_order_parallel">تنزيل متوازٍ · مع حفظ ترتيب المصدر</string>
+    <string name="pl_completed_fraction">تم حفظ %1$d من %2$d ملف</string>
+    <string name="pl_total_transferred">البيانات المنقولة: %1$s</string>
+    <string name="pl_current_position">العنصر الحالي · %1$d</string>
+    <string name="pl_rate">%1$s/ث</string>
+    <string name="pl_waiting_for_previous">في الدور بعد العنصر %1$d</string>
+    <string name="pl_provider_cooldown">المصدر يقيّد الطلبات مؤقتًا · تمت جدولة المحاولة</string>
+    <string name="pl_format_on_analysis">تُحدد الصيغة عند التحليل</string>
+    <string name="pl_no_matching_items">لا توجد عناصر في هذا العرض</string>
+    <string name="pl_output_location">مجلد الحفظ: %1$s</string>
+    <string name="pl_retry_count">محاولات الإعادة: %1$d</string>
+    <string name="pl_retry_at">المحاولة القادمة: %1$s</string>
+    <string name="notification_progress_enabled">إشعارات تقدم التنزيل مسموحة في أندرويد</string>
+    <string name="notification_progress_blocked">إشعارات تقدم التنزيل غير مسموحة حاليًا من أندرويد</string>
+</resources>

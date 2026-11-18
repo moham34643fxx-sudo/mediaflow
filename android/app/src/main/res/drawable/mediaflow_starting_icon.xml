@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:width="288dp" android:height="288dp">
+        <shape><solid android:color="@android:color/transparent" /></shape>
+    </item>
+    <item android:width="@dimen/mediaflow_starting_light_size"
+        android:height="@dimen/mediaflow_starting_light_size" android:gravity="center">
+        <shape android:shape="oval">
+            <gradient android:type="radial" android:gradientRadius="50%"
+                android:startColor="@color/mediaflow_launch_light"
+                android:endColor="@color/mediaflow_launch_background" />
+        </shape>
+    </item>
+</layer-list>

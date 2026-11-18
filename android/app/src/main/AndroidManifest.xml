@@ -1,0 +1,100 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!-- Optional, API-guarded isolated engine. QuickJS remains supported on API 24/25. -->
+    <uses-sdk tools:overrideLibrary="androidx.javascriptengine" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <queries>
+        <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
+    </queries>
+    <application android:name=".ZApplication" android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher_round" android:allowBackup="false" android:dataExtractionRules="@xml/data_extraction_rules" android:supportsRtl="true" android:theme="@style/Theme.Z" android:usesCleartextTraffic="false">
+        <provider android:name=".status.StatusFileProvider" android:authorities="${applicationId}.status.sources" android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/status_source_paths" />
+        </provider>
+        <provider android:name="androidx.startup.InitializationProvider" android:authorities="${applicationId}.androidx-startup" android:exported="false" tools:node="merge">
+            <meta-data android:name="androidx.work.WorkManagerInitializer" tools:node="remove" />
+        </provider>
+        <service android:name="androidx.work.impl.foreground.SystemForegroundService" android:foregroundServiceType="dataSync" tools:node="merge" />
+        <service android:name=".background.DownloadJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
+        <service android:name=".background.UserTransferService" android:foregroundServiceType="dataSync" android:exported="false" android:stopWithTask="false" />
+        <service android:name=".extraction.AudioExtractionService" android:foregroundServiceType="mediaProcessing|dataSync" android:exported="false" android:stopWithTask="false" />
+        <service android:name=".playback.MediaPlaybackService" android:foregroundServiceType="mediaPlayback" android:exported="true" android:stopWithTask="false">
+            <intent-filter><action android:name="androidx.media3.session.MediaSessionService" /></intent-filter>
+        </service>
+        <receiver android:name=".playback.PlaybackActionReceiver" android:exported="false" />
+        <receiver android:name=".updates.UpdateInstallReceiver" android:exported="false" />
+        <receiver android:name=".updates.UpdateReplacedReceiver" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.MY_PACKAGE_REPLACED" /></intent-filter>
+        </receiver>
+        <!-- The task owns the floating preview and its URI grant even when moved behind the launcher. -->
+        <activity android:name=".playback.ExternalAudioOpenActivity" android:exported="false"
+            android:theme="@style/Theme.Z.Share" android:launchMode="singleTask" android:taskAffinity=""
+            android:persistableMode="persistNever" />
+        <!-- Keep the existing resolver component so Android can retain a user's preferred-app choice. -->
+        <activity-alias android:name=".playback.AudioPopupActivity" android:targetActivity=".playback.ExternalAudioOpenActivity"
+            android:label="@string/app_name" android:exported="true" android:theme="@style/Theme.Z.Share">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" /><data android:scheme="file" />
+                <data android:mimeType="audio/mpeg" /><data android:mimeType="audio/mp3" /><data android:mimeType="audio/x-mpeg" />
+                <data android:mimeType="audio/mp4" /><data android:mimeType="audio/x-m4a" />
+                <data android:mimeType="audio/aac" /><data android:mimeType="audio/aacp" />
+                <data android:mimeType="audio/flac" /><data android:mimeType="audio/x-flac" />
+                <data android:mimeType="audio/wav" /><data android:mimeType="audio/x-wav" /><data android:mimeType="audio/vnd.wave" />
+                <data android:mimeType="audio/ogg" /><data android:mimeType="application/ogg" /><data android:mimeType="audio/opus" /><data android:mimeType="audio/vorbis" />
+            </intent-filter>
+        </activity-alias>
+        <activity android:name=".playback.InAppAudioPreviewActivity" android:label="@string/app_name" android:exported="false"
+            android:theme="@style/Theme.Z.AudioPopup" android:launchMode="singleTask" android:taskAffinity="" android:excludeFromRecents="true" />
+        <activity android:name=".playback.PlayerActivity" android:exported="true" android:supportsPictureInPicture="true" android:resizeableActivity="true"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout" android:theme="@style/Theme.Z" android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" /><data android:scheme="file" />
+                <data android:mimeType="video/mp4" /><data android:mimeType="video/webm" />
+                <data android:mimeType="video/x-matroska" /><data android:mimeType="video/3gpp" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".background.DownloadActionReceiver" android:exported="false" />
+        <receiver android:name=".background.RecoveryReceiver" android:exported="false"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED" /></intent-filter></receiver>
+        <activity android:name=".MainActivity" android:label="@string/launcher_name" android:exported="true" android:launchMode="singleTop" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.Z.Starting">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        <activity android:name=".ShareReceiverActivity" android:label="@string/share_link_target" android:icon="@mipmap/ic_launcher" android:exported="true" android:launchMode="singleTop" android:taskAffinity="" android:excludeFromRecents="true" android:windowSoftInputMode="adjustResize" android:theme="@style/Theme.Z.Share">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="text/uri-list" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".status.StatusImportActivity" android:label="@string/app_name" android:exported="true" android:launchMode="singleTop" android:taskAffinity="" android:excludeFromRecents="true" android:theme="@style/Theme.Z">
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

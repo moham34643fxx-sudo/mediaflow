@@ -1,0 +1,6 @@
+<resources>
+    <string name="audio_processing_percent">تحويل الصوت · نحو %1$d%%</string>
+    <string name="audio_processing_encoding">جارٍ تحويل الصوت</string>
+    <string name="audio_processing_finalizing">إنهاء ملف MP3 وإضافة الغلاف</string>
+    <string name="audio_processing_validating">فحص سلامة الملف الصوتي كاملًا</string>
+</resources>

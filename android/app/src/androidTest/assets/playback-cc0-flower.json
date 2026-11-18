@@ -1,0 +1,7 @@
+{
+  "source": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+  "license": "CC0 sample (MDN media/cc0-videos)",
+  "purpose": "Controlled local content-URI playback; not a shipping sample",
+  "bytes": 554058,
+  "sha256": "c6f8a348953395598a9a73b9bab1676436410797bce9f398f4be1531d6e76dda"
+}

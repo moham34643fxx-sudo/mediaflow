@@ -1,0 +1,19 @@
+<resources>
+    <string name="share_preferences_notice">الجودة المختارة حدّ أقصى؛ تُحدَّد الصيغة المتاحة أثناء التحضير.</string>
+    <string name="share_best_available">أفضل جودة متاحة</string>
+    <string name="share_basic_480">سريع (حتى 480p)</string>
+    <string name="share_basic_720">جودة عالية (حتى 720p)</string>
+    <string name="share_prefer_up_to">حتى %1$dp</string>
+    <string name="share_prefer_category">%1$s</string>
+    <string name="share_audio_only">صوت فقط</string>
+    <string name="share_preview_formats">المزيد من الصيغ</string>
+    <string name="share_preview_hint">عرض الصيغ والأحجام المتاحة</string>
+    <string name="share_requested_preference">التفضيل المطلوب: %1$s</string>
+    <string name="share_change_preference">تغيير</string>
+    <string name="share_transfer_size">النقل: %1$s</string>
+    <string name="share_output_size">الناتج: %1$s</string>
+    <string name="share_waiting_best">سيبدأ تنزيل أفضل جودة متاحة بعد تأكيد صيغة فعلية. أغلق النافذة للإلغاء.</string>
+    <string name="share_preference_unavailable">لا توجد جودة مؤكدة متاحة حتى %1$dp. اختر صيغة أخرى متاحة أو ارفع الحد بنفسك؛ لن يتجاوزه التطبيق تلقائيًا.</string>
+    <string name="share_unknown_quality">جودة غير معروفة</string>
+    <string name="share_quality_class">فئة %1$s</string>
+</resources>

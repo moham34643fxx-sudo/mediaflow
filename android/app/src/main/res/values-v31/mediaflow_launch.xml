@@ -1,0 +1,4 @@
+<resources>
+    <!-- Compensate for the native splash scaling of the icon without a background. -->
+    <dimen name="mediaflow_starting_light_size">104dp</dimen>
+</resources>

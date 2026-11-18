@@ -1,0 +1,18 @@
+<resources>
+    <string name="studio_brand_detail">VIDEO · AUDIO · PLAYLISTS</string>
+    <string name="studio_new_download">All media in one place</string>
+    <string name="studio_download_options">Download options</string>
+    <string name="studio_tools">Tools</string>
+    <string name="studio_browser">Browser</string>
+    <string name="studio_playlists">Playlists</string>
+    <string name="studio_status">Status saver</string>
+    <string name="studio_link_placeholder">Paste a video or playlist link</string>
+    <string name="studio_analyze">Get download options</string>
+    <string name="aurora_downloads_hint">Progress, files, and transfer details.</string>
+    <string name="aurora_library_hint">Local media and saved downloads.</string>
+    <string name="aurora_share_hint">Quality and format</string>
+    <string name="aurora_settings_hint">Language, appearance, and download preferences.</string>
+    <string name="aurora_collection">SAVED MEDIA</string>
+    <string name="aurora_output_size">Output size</string>
+    <string name="aurora_playlist_empty">Create a playlist to organize your videos and music.</string>
+</resources>

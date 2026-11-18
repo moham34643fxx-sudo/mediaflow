@@ -1,0 +1,9 @@
+<resources>
+    <string name="pl_remove_cancelled">Remove cancelled playlist</string>
+    <string name="pl_remove_cancelled_confirm">Remove this cancelled playlist and its cancelled entries permanently? Completed files will stay on your device and in your library.</string>
+    <string name="pl_cancel_confirm">Cancel all unfinished downloads in this playlist? Completed files will be kept.</string>
+    <string name="downloads_filter_empty">No downloads match this filter</string>
+    <string name="downloads_filter_empty_hint">Choose another filter to see your other downloads.</string>
+    <string name="downloads_clear_selection">Clear selection</string>
+    <string name="filename_required">Enter a file name.</string>
+</resources>

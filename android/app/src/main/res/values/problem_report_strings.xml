@@ -1,0 +1,21 @@
+<resources>
+    <string name="report_title">Having trouble with a download?</string>
+    <string name="report_action">Report a problem</string>
+    <string name="report_help_title">Help and report a problem</string>
+    <string name="report_privacy">Review your report before opening WhatsApp. Credentials are removed from the prefilled link. Only the app version and public error code are included automatically.</string>
+    <string name="report_url">Content link</string>
+    <string name="report_description">Describe the problem</string>
+    <string name="report_preview">Message preview</string>
+    <string name="report_send">Open report in WhatsApp</string>
+    <string name="report_manual_send">You review and send the message yourself in WhatsApp. Opening the conversation does not mean your report was sent.</string>
+    <string name="report_keep_draft">Close and keep draft</string>
+    <string name="report_required">Add a content link or describe the problem in at least 10 characters.</string>
+    <string name="report_invalid_url">Enter a complete https:// or http:// content link.</string>
+    <string name="report_open_failed">Could not open WhatsApp or a browser. Your draft is still here.</string>
+    <string name="report_type_unsupported">Unsupported link</string>
+    <string name="report_type_analysis">Link analysis failed</string>
+    <string name="report_type_download">Download failed</string>
+    <string name="report_type_media">Audio or video problem</string>
+    <string name="report_type_other">Other problem</string>
+    <string name="report_help_solutions">A link does not work: check that it opens in your browser and that you have access to the content.\n\nA download stopped: try again when connected. Some sources require a fresh link.\n\nA file has no sound: check the original video and the selected audio option.\n\nStill having trouble? Send a reviewed report with the link and a description.</string>
+</resources>

@@ -1,0 +1,8 @@
+<resources>
+    <string name="registration_consent_title">تسجيل هذا التثبيت</string>
+    <string name="registration_consent_summary">موافقة مستقلة للتسجيل والتحديثات المهمة. معطّل افتراضيًا.</string>
+    <string name="registration_consent_disclosure">يرسل التسجيل معرّف تثبيت عشوائيًا وسرًا خاصًا بالتثبيت والشركة والطراز وإصدار Android والتطبيق إلى خدمة الإدارة المحددة. يستخدم Firebase App Check خدمة Google Play Integrity للتحقق من التطبيق، ويستخدم Firebase Messaging رمز تثبيت للتحديثات. هذا لا يثبت هوية جهاز مادي أو إعادة تثبيت. لا نرسل IMEI أو MAC أو الوسائط أو روابط التنزيل. تنتهي صلاحية عدادات منع الإساءة المجزأة بمفتاح بعد ساعتين وإيصالات التحدّي بعد 24 ساعة، وقد يتأخر حذفها الفعلي حتى تشغيل تنظيف الخادم. تبقى الرسائل العامة وإذن إشعارات Android خيارين مستقلين. التعطيل يوقف التسجيل اللاحق ويلغي push؛ وتخضع إحصاءات التسجيل الموجودة لسياسة الاحتفاظ والحذف بالخادم. يبقى الإنتاج معطّلًا حتى اعتماد هذه السياسة والنشر. هل توافق على هذا التسجيل؟</string>
+    <string name="registration_consent_accept">أوافق</string>
+    <string name="registration_consent_cancel">إلغاء</string>
+    <string name="registration_unavailable">التسجيل غير مهيأ أو تعذر حفظ حالته الخاصة بأمان. لن نستبدل الحالة التالفة بهوية جديدة.</string>
+</resources>

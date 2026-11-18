@@ -1,0 +1,5 @@
+<resources>
+    <string name="browser_unavailable">The browser is unavailable. Update or enable Android System WebView, then try again.</string>
+    <string name="browser_renderer_failed">This page stopped responding. You can reopen the browser without closing MediaFlow.</string>
+    <string name="browser_page_failed">The page could not load. Check your connection and try again.</string>
+</resources>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Welcome Navigation & Indicators -->
+    <string name="welcome_step_indicator">Step %1$d of %2$d</string>
+    <string name="welcome_next">Next</string>
+    <string name="welcome_done">Done</string>
+
+    <!-- Step 1: Welcome & Responsible Use -->
+    <string name="welcome_step1_title">Welcome to MediaFlow</string>
+    <string name="welcome_step1_body">MediaFlow is designed as an ad-free alternative to Snaptube, with a distinctive experience.\n\nUse it lawfully and responsibly, respecting content owners’ rights and platform terms.</string>
+    <string name="welcome_step1_notice">Do not use it in ways that displease God.</string>
+
+    <!-- Step 2: Website Authentication -->
+    <string name="welcome_step2_title">Sign in to websites</string>
+    <string name="welcome_step2_body">Some online videos, including some Facebook videos, require you to sign in before you can watch or download them.\n\nWhen needed, sign in through MediaFlow’s built-in browser to access content available to your account and download it where permitted.</string>
+
+    <!-- Step 3: What's New & Version -->
+    <string name="welcome_step3_title">What’s new in this version?</string>
+    <string name="welcome_step3_version">Version %1$s</string>
+    <string name="welcome_step3_bullet_speed">General speed improvements</string>
+    <string name="welcome_step3_bullet_stability">Bug fixes and stability improvements</string>
+</resources>

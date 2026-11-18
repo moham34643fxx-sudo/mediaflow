@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_search_placeholder">البحث في التنزيلات…</string>
+    <string name="downloads_clear_search">مسح البحث</string>
+    <string name="downloads_no_search_results">لا توجد تنزيلات تطابق بحثك</string>
+    <string name="download_adding">جارٍ إضافة التنزيل…</string>
+    <string name="downloads_active_summary">%1$d نشطة</string>
+    <string name="downloads_completed_summary">%1$d مكتملة</string>
+    <string name="downloads_total_size">%1$s إجمالي</string>
+</resources>

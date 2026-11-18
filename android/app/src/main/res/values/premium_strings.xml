@@ -1,0 +1,11 @@
+<resources>
+    <string name="mf_loading">In progress…</string>
+    <string name="mf_quick_start">Quick start</string>
+    <string name="mf_playlist_title">Playlist Downloads</string>
+    <string name="mf_playlist_hint">Paste a playlist link, then choose the items to download.</string>
+    <string name="mf_status_hint">Save photos and videos you have already viewed.</string>
+    <string name="mf_workflow_title">Made for a quick start</string>
+    <string name="mf_workflow_hint">Explore a link, choose the quality, and leave the rest to MediaFlow.</string>
+    <string name="mf_current_operations">Current operations</string>
+    <string name="mf_individual_downloads">Individual downloads</string>
+</resources>

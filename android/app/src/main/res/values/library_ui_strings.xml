@@ -1,0 +1,11 @@
+<resources>
+    <string name="library_device_media_action">Device media</string>
+    <string name="library_file_actions">Actions for %1$s</string>
+    <string name="library_layout_grid">Grid view</string>
+    <string name="library_layout_list">List view</string>
+    <string name="library_show_list">Show as list</string>
+    <string name="library_show_grid">Show as grid</string>
+    <string name="library_no_videos">No videos yet</string>
+    <string name="library_no_audio">No audio yet</string>
+    <string name="library_no_images">No images yet</string>
+</resources>

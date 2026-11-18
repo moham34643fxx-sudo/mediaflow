@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_day_today">اليوم — %1$s</string>
+    <string name="media_day_yesterday">أمس — %1$s</string>
+    <string name="media_day_unknown">تاريخ الإضافة غير متاح</string>
+</resources>

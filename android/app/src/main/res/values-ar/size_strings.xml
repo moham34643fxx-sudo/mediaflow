@@ -1,0 +1,15 @@
+<resources>
+    <string name="media_output_total">إجمالي حجم الملفات: %1$s</string>
+    <string name="media_output_partial">الأحجام المعروفة: %1$s · %2$d / %3$d</string>
+    <string name="media_size_scanning">جارٍ قراءة أحجام الملفات… %1$d / %2$d</string>
+    <string name="media_size_quality_unavailable">الجودة المختارة غير متاحة</string>
+    <string name="share_source_copy">%1$s · بدون تحويل</string>
+    <string name="share_more_section_formats">مزيد من الصيغ</string>
+    <string name="share_source_audio_description">صوت المصدر · دون تحويل</string>
+    <string name="share_converted_audio_description">صوت محوّل</string>
+    <string name="share_flac_description">ترميز غير مضغوط لمصدر مضغوط · الحجم غير معروف</string>
+    <string name="share_mp3_native_description">مصدر MP3 أصلي · نسخ دون تحويل</string>
+    <string name="share_mp3_convert_description">تحويل مصدر الصوت المحدد إلى MP3</string>
+    <string name="share_audio_convert_to">تحويل إلى %1$s</string>
+    <string name="share_audio_language_unspecified">اللغة غير محددة</string>
+</resources>

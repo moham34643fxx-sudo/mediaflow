@@ -1,0 +1,8 @@
+<resources>
+    <string name="registration_consent_title">Register this installation</string>
+    <string name="registration_consent_summary">Separate opt-in for registration and important service updates. Off by default.</string>
+    <string name="registration_consent_disclosure">Register a random installation ID and a private installation credential, device manufacturer/model, Android version and app version with the configured control service. Firebase App Check uses Google Play Integrity to verify the app; Firebase Messaging uses an installation token for updates. This is not proof of a unique physical device or a reinstall. No IMEI, MAC, media or download URLs are sent. Keyed abuse counters expire after 2 hours and challenge receipts after 24 hours; actual deletion may be delayed until server cleanup runs. General messages still use their separate choice, and Android notification permission remains separate. Disabling stops further registration and revokes push; existing registration statistics require the server retention/deletion policy. Production remains disabled until that policy and deployment are approved. Do you consent to this registration?</string>
+    <string name="registration_consent_accept">I consent</string>
+    <string name="registration_consent_cancel">Cancel</string>
+    <string name="registration_unavailable">Registration is not configured, or its private state could not be safely saved. No fresh identity will replace damaged state.</string>
+</resources>

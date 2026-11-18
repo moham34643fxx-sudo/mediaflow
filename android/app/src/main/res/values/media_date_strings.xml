@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="media_day_today">Today — %1$s</string>
+    <string name="media_day_yesterday">Yesterday — %1$s</string>
+    <string name="media_day_unknown">Date added unavailable</string>
+</resources>

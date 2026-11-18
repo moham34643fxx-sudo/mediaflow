@@ -1,0 +1,153 @@
+<resources>
+    <string name="share_link_target">Download with MediaFlow</string>
+    <string name="audio_popup_keep_listening">Keep listening outside MediaFlow</string>
+    <string name="audio_popup_floating_title">Floating audio player</string>
+    <string name="audio_popup_overlay_explanation">Allow display over other apps to use the optional floating player. Background playback works without this permission. Closing the floating window keeps audio playing; use Stop playback in the player to end the session.</string>
+    <string name="audio_popup_background">Play in background</string>
+    <string name="audio_popup_dismiss">Close window · keep audio playing</string>
+    <string name="audio_popup_stop">Stop playback</string>
+    <string name="audio_popup_allow_overlay">Allow floating player</string>
+    <string name="audio_popup_notification_only">Use notification only</string>
+    <string name="audio_popup_notification_fallback">Audio continues without a floating window. Use media controls in notifications.</string>
+    <string name="diagnostics_title">Diagnostics</string>
+    <string name="diagnostics_privacy">Optional technical export: timings, codecs and error codes, without links, account data or media titles. Save only where you trust. Performance capture adds screen and app-state events for up to 30 minutes, and stops if the process restarts. No data is uploaded automatically.</string>
+    <string name="diagnostics_export">Save recent diagnostics</string>
+    <string name="diagnostics_start">Start temporary performance capture</string>
+    <string name="diagnostics_stop">Stop performance capture</string>
+    <string name="diagnostics_saved">Diagnostics saved</string>
+    <string name="diagnostics_failed">Could not save diagnostics. The logs are unchanged. Try again.</string>
+    <string name="design_capture_eyebrow">YOUR MEDIA, BEAUTIFULLY KEPT</string>
+    <string name="design_home_headline">Keep what moves you.</string>
+    <string name="design_home_hint">A link is all you need. Choose your quality, then make it yours.</string>
+    <string name="design_downloads_hint">Your transfers, clearly in view.</string>
+    <string name="design_settings_hint">Make MediaFlow feel like your own.</string>
+    <string name="design_library_hint">A home for everything you keep.</string>
+    <string name="design_update_eyebrow">MADE TO KEEP GETTING BETTER</string>
+    <string name="design_update_hint">The latest MediaFlow, with every detail in view.</string>
+    <string name="design_update_current_label">On your device</string>
+    <string name="design_update_checks">The app checks the package, checksum and signing certificate before installation.</string>
+    <string name="design_update_last_checked">Last checked %1$s</string>
+    <string name="design_update_transfer_hint">You can leave this page. Your update stays separate from your media downloads.</string>
+    <string name="audio_popup_full_player">Open full player</string>
+    <string name="audio_popup_artwork">Album artwork</string>
+    <string name="audio_popup_open_in_app">Open in MediaFlow</string>
+    <string name="audio_popup_seek">Seek audio position</string>
+    <string name="audio_popup_close">Stop audio and close</string>
+    <string name="audio_popup_untitled">Audio track</string>
+    <string name="clipboard_download_title">From your clipboard</string>
+    <string name="clipboard_download_hint">Would you like to download this media?</string>
+    <string name="clipboard_ignore">Not now</string>
+    <string name="clipboard_media_fallback">Your next great find</string>
+    <string name="original_photo">Original photo</string>
+    <string name="photo_original_hint">Saves the best available image bytes without recompression. This is not a video.</string>
+    <string name="photo_save_original">Save original photo</string>
+    <string name="photo_download_audio">Save available audio separately</string>
+    <string name="photo_audio_source_hint">Photo and audio are separate files. The available audio source may be the full track, not a timed recreation of the post.</string>
+    <string name="photo_audio_unavailable">No downloadable companion audio was provided by this source. Only the photo will be saved.</string>
+    <string name="photo_default_folder">Pictures/MediaFlow</string>
+    <string name="downloading_photo">Downloading photo…</string>
+    <string name="preparing_photo">Preparing photo…</string>
+    <string name="photo_download_completed">Photo download complete</string>
+    <string name="download_added">Download added</string>
+    <string name="quality_full_hd">Full HD</string>
+    <string name="quality_hd">HD</string>
+    <string name="quality_standard">Standard</string>
+    <string name="quality_data_saver">Data Saver</string>
+    <string name="technical_details">Technical details</string>
+    <string name="notification_completed_title">Download completed</string>
+    <string name="notification_completed_description">Notify me when a file has been saved successfully.</string>
+    <string name="notification_failed_title">Download failed</string>
+    <string name="notification_failed_description">Notify me when a download cannot be completed.</string>
+    <string name="notification_system_settings">Android notification settings</string>
+    <string name="notification_system_off">Notifications are off in Android settings.</string>
+    <string name="notification_permission_denied">Notification permission is denied. Allow it to receive download alerts.</string>
+    <string name="notification_permission_request">Allow notification permission</string>
+    <string name="notification_channel_off">One or more notification channels are off in Android settings.</string>
+    <string name="notification_ongoing_hint">Active downloads may show an ongoing notification.</string>
+    <string name="about_zd">About MediaFlow</string>
+    <string name="developer_attribution">Powered by Mohamed Abuzaid</string>
+    <string name="version_display">Version %1$s</string>
+    <string name="open_source_licenses">Open-source licenses</string>
+    <string name="legal_summary">Please respect the rights of content owners and the terms of the source service. Third-party software notices are available below.</string>
+    <string name="size_unknown">Size unknown</string>
+    <string name="error_batch_limit">A batch can contain up to 200 links.</string>
+    <string name="background_work">Preparing your downloads…</string>
+    <plurals name="active_download_count"><item quantity="one">%1$d active download</item><item quantity="other">%1$d active downloads</item></plurals>
+    <string name="finishing_downloads">Finishing your downloads…</string>
+    <string name="preparing_video">Preparing video…</string>
+    <string name="preparing_audio">Preparing audio…</string>
+    <string name="downloading_video">Downloading video…</string>
+    <string name="downloading_audio">Downloading audio…</string>
+    <string name="video_download_completed">Download complete</string>
+    <string name="audio_download_completed">Download complete</string>
+    <string name="validating">Verifying complete media</string>
+    <string name="retrying">Retry scheduled</string>
+    <string name="error_metadata_mismatch">The downloaded media does not match the selected format. Analyze the link again or choose another available quality.</string>
+    <string name="error_decoder">This device cannot fully verify this media codec. Choose another available format; downloading the same bytes again will not fix the decoder.</string>
+    <string name="error_wifi_required">The request is saved and waiting for Wi-Fi, as selected in your settings.</string>
+    <string name="error_scheduling">Your request is saved, but downloading could not be scheduled. Please try again.</string>
+    <string name="error_start_delayed">Waiting to start. Your download has been added.</string>
+    <string name="quick_music">Music</string>
+    <string name="quick_original_audio">Original audio</string>
+    <string name="quick_more_formats">More qualities</string>
+    <string name="quick_audio_source">Audio track</string>
+    <string name="quick_adding">Adding to downloads…</string>
+    <string name="quick_invalid_share">Share one complete public HTTPS media link with MediaFlow.</string>
+    <string name="processing_hint">Compatible tracks are copied. MP4 conversion uses device H.264 encoding when required; unsupported conversions fail explicitly.</string>
+    <string name="conversion_notice">Video conversion required. This takes longer and can change quality; final size is unknown.</string>
+    <string name="best_source_vbr">Best · VBR</string>
+    <string name="error_dns">The network could not resolve the server address. Check your connection or DNS settings and retry.</string>
+    <string name="error_connect">The server connection failed. Try again shortly.</string>
+    <string name="error_connect_timeout">The server did not accept a connection in time.</string>
+    <string name="error_read_timeout">The server stopped sending data. Your resumable data has been kept.</string>
+    <string name="error_tls">A secure connection could not be established. Check the device clock and network.</string>
+    <string name="error_forbidden">The server denied access to this media.</string>
+    <string name="error_expired">The media link expired. Analyze the source again.</string>
+    <string name="error_extraction_timeout">Link analysis took too long. Check the connection and retry.</string>
+    <string name="select_download">Select download</string>
+    <string name="media_link">Video or audio link</string>
+    <string name="paste_link_placeholder">Paste a video or playlist link…</string>
+    <string name="choose_preferred_quality">Choose your preferred quality</string>
+    <string name="link_validation">Enter a complete HTTPS link.</string>
+    <string name="size_unavailable">Size unavailable</string><string name="simultaneous_downloads">Simultaneous downloads</string><string name="follow_system">Follow system</string>
+    <string name="estimated_size">Approximately %1$s</string><string name="merging">Merging audio and video</string><string name="converting">Converting audio</string><string name="saving">Saving file</string><string name="resuming">Resuming…</string>
+    <string name="without_audio">Without audio</string><string name="output_format">File format</string><string name="container_hint">Compatible formats only. Original video quality is preserved.</string><string name="audio_quality">Audio quality</string><string name="standard_quality">Standard</string><string name="high_quality">High</string><string name="best_quality">Best</string>
+    <string name="default_video_quality">Default video quality</string><string name="best_available">Best available</string><string name="quality_preference_hint">Uses an available quality closest to your preference.</string><string name="default_download_type">Default download type</string><string name="ask_every_time">Ask every time</string><string name="save_location">Save location</string><string name="selected_folder">Selected folder: %1$s</string>
+    <string name="notify_completion">Download completed</string><string name="notify_failure">Download failed</string><string name="information">Information</string><string name="app_version">App version</string><string name="privacy_information">Privacy Information</string><string name="legal_information">Legal information</string>
+    <string name="transfer_percent">%1$d%% transferred</string><string name="estimated_percent">Approximately %1$d%% transferred</string>
+    <string name="choose_format">Choose quality and format</string><string name="use_selection">Use this selection</string><string name="search_library">Search saved media</string><string name="sort_newest">Newest</string><string name="sort_name">Name</string><string name="sort_size">Largest</string><string name="no_search_results">No matching media</string><string name="search_hint">Try another title or filename.</string><string name="library_hint">Download a video or audio track to build your offline library.</string><string name="measuring_speed">Measuring speed…</string>
+    <string name="bitrate_value">%1$d kb/s</string><string name="fps_value">%1$d fps</string><string name="speed_value">%1$s/s</string><string name="transfer_progress">%1$s / %2$s · %3$s</string>
+    <string name="app_name" translatable="false">MediaFlow</string>
+    <string name="launcher_name" translatable="false">MediaFlow</string>
+    <string name="brand_symbol">MediaFlow logo</string>
+    <string name="home">Home</string><string name="downloads">Downloads</string><string name="library">Library</string><string name="settings">Settings</string>
+    <string name="tagline">Download what matters</string><string name="download_media">All your media, one place.</string><string name="paste_hint">Download videos and audio easily from supported platforms.</string><string name="paste">Paste</string><string name="clear">Clear</string><string name="analyze">Explore Media</string><string name="analyzing">Discovering available qualities…</string><string name="cancel_analysis">Cancel analysis</string><string name="analyze_playlist">Analyze playlist</string><string name="authorized_only">Download only media you are authorized to save.</string>
+    <string name="recent">Recent activity</string><string name="view_all">View all</string><string name="no_downloads">Your downloads start here</string>
+    <string name="preview">Media preview</string><string name="back">Back</string><string name="video">Video</string><string name="audio">Audio</string><string name="audio_only">Audio only</string><string name="audio_format">Audio output</string><string name="available_quality">Available quality</string><string name="original">Original</string><string name="bitrate_hint">Converted bitrate does not improve source quality.</string><string name="source_quality">Source quality</string><string name="requires_merge">Audio merge required</string><string name="unknown_size">Unknown size</string><string name="filename">Output title</string><string name="download">Download</string><string name="added_queue">Added to your download queue</string>
+    <string name="default_folder">Default application download folder</string><string name="custom_folder">Selected folder (SAF)</string><string name="choose_folder">Choose destination folder</string><string name="legacy_folder">On Android 7–9, choose a folder before downloading.</string><string name="keep_both">Duplicate files are kept with a distinct filename.</string>
+    <plurals name="batch_title"><item quantity="one">%1$d detected link</item><item quantity="other">%1$d detected links</item></plurals><string name="select_all">Select all</string><string name="deselect_all">Deselect all</string><string name="remove">Remove</string><string name="batch_quality">Maximum quality for this batch; each item uses its available formats.</string><string name="enqueue_selected">Download selected</string><plurals name="batch_failed"><item quantity="one">%1$d item could not be added. Other items continue independently.</item><item quantity="other">%1$d items could not be added. Other items continue independently.</item></plurals>
+    <string name="all">All</string><string name="active">Active</string><string name="queued">Queued</string><string name="completed">Completed</string><string name="failed">Failed</string><string name="cancelled">Cancelled</string><string name="paused">Paused</string><string name="pausing">Pausing…</string><string name="interrupted">Interrupted</string><string name="downloading">Downloading</string><string name="processing">Processing media</string><string name="waiting_network">Waiting for connection / retry</string><string name="continue_queue">Continue pending downloads</string><plurals name="selected_count"><item quantity="one">%1$d selected</item><item quantity="other">%1$d selected</item></plurals><string name="pause">Pause</string><string name="resume">Resume</string><string name="cancel">Cancel</string><string name="retry">Retry</string><string name="remaining">About %1$s remaining</string><string name="details">Details</string><string name="remove_history">Remove history</string><string name="play">Play</string><string name="open">Open</string><string name="share">Share</string><string name="rename">Rename</string><string name="delete">Delete file</string><string name="delete_confirm">Delete this downloaded file and its history? This cannot be undone.</string><string name="library_empty">Your saved media will appear here</string><string name="file_missing">The file is missing or no compatible app is installed.</string><string name="playback_error">This file is missing or its codec cannot be played on this device.</string><string name="close">Close</string><string name="save">Save</string><string name="ok">OK</string><string name="problem">Unable to complete this action</string>
+    <string name="general">General</string><string name="language">Language</string><string name="theme">Appearance</string><string name="system">System</string><string name="dark">Dark</string><string name="light">Light</string><string name="concurrency">Maximum concurrent downloads</string><string name="wifi_only">Wi-Fi only</string><string name="automatic_retry">Automatic retry attempts (0 disables retries)</string><string name="filename_template">Filename template ({title}, {ext})</string><string name="notifications">Notifications</string><string name="notification_permission">Allow download notifications</string><string name="background_limits">Android may stop work under battery restrictions or after a force-stop. Return here to continue pending work.</string><string name="storage">Storage</string><string name="clear_temp">Clear completed temporary files</string><string name="cache_hint">Paused and resumable files are preserved.</string><string name="engine">Media engine</string><string name="diagnostic">Inspect engine versions</string><string name="engine_updates">Engine updates are delivered in app updates. No unverified executable code is downloaded.</string><string name="about">About</string><string name="privacy">Local-first • No accounts, advertisements or tracking. Links are sent only to their media sources.</string><string name="licenses">Open source: yt-dlp / EJS — Unlicense; FFmpeg min — LGPL-3.0; QuickJS-KT / AndroidX / OkHttp — Apache-2.0. See THIRD_PARTY_NOTICES.md for sources.</string>
+    <string name="error_invalid_url">The link is invalid or incomplete. Copy the complete public HTTPS link and try again. Local addresses and insecure schemes are not accepted.</string>
+    <string name="error_unsupported">This link is not currently supported in MediaFlow. You can report it to help us review support.</string>
+    <string name="error_server_unavailable">The source website has a temporary server problem. Try again later.</string>
+    <string name="error_not_found">This content was removed or is currently unavailable. Check that the link opens in your browser.</string>
+    <string name="error_private">This content is private and cannot be accessed.</string><string name="error_auth">This content requires an authenticated session.</string><string name="error_drm">This media is DRM protected and cannot be downloaded.</string><string name="error_geo">This media is unavailable in your region.</string><string name="error_rate">The source is limiting requests. Try again later.</string><string name="error_network">Waiting for connection. Check your internet connection.</string><string name="error_timeout">The connection timed out. Try again.</string><string name="error_http">The media server rejected or interrupted the request.</string><string name="error_extraction">Could not analyze this media. The source may have changed.</string><string name="error_format">The selected format or required stream is unavailable.</string><string name="error_quality_unavailable">The selected quality is unavailable for this media from the source.</string><string name="error_space">Not enough free storage. Free up space and retry.</string><string name="error_storage">Cannot write to this folder. Choose an accessible destination.</string><string name="error_interrupted">The transfer was interrupted. Resume to continue where supported.</string><string name="error_merge">Could not merge or validate the media streams.</string><string name="error_conversion">The requested conversion is unavailable or failed.</string><string name="error_write">Could not save the completed file.</string><string name="error_internal">The media engine could not complete this request.</string><string name="error_live_stream">This media is an active livestream or upcoming premiere. MediaFlow downloads completed recordings after the broadcast ends.</string>
+    <string name="browser_title">In-App Browser</string>
+    <string name="browser_hint">Browse platforms &amp; download directly</string>
+    <string name="search_or_enter_url">Search or enter URL…</string>
+    <string name="download_detected_video">Download media</string>
+    <string name="quick_platforms">Popular platforms</string>
+    <string name="facebook_auth_dialog_title">Login required</string>
+    <string name="facebook_auth_dialog_message">This link requires signing in to Facebook to proceed. Sign in using MediaFlow\'s browser, and we\'ll continue automatically.</string>
+    <string name="facebook_auth_dialog_confirm">Log in</string>
+    <string name="facebook_auth_dialog_dismiss">Later</string>
+    <string name="facebook_login_required">This video requires signing in to Facebook.</string>
+    <string name="facebook_login_action">Log in to Facebook</string>
+    <string name="facebook_secure_connection">Official Facebook Login · Secure HTTPS</string>
+    <string name="share_audio_formats">Audio Formats</string>
+    <string name="share_video_formats">Video Formats</string>
+    <string name="share_audio_original">Original audio</string>
+    <string name="share_audio_convert">Convert</string>
+    <string name="quality_not_available">The requested quality is not available for this content</string>
+</resources>

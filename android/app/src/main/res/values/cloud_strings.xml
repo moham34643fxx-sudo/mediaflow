@@ -1,0 +1,11 @@
+<resources>
+    <string name="privacy_share_diagnostics">Share basic device information</string>
+    <string name="privacy_general_messages">Receive general messages</string>
+    <string name="privacy_general_messages_description">Optional service messages and seasonal greetings. You can withdraw this choice here. Android controls notification permission separately. Checking for app updates does not depend on this choice.</string>
+    <string name="usage_statistics_title">Optional device statistics</string>
+    <string name="usage_statistics_description">Off by default. Share a random installation ID, device model, Android version, architecture and app version with the MediaFlow service, at most once a day while opening the app. No download links or media files are sent.</string>
+    <string name="cloud_notices_title">App announcements</string>
+    <string name="cloud_notices_description">Off by default. Check for service announcements when opening the app. Android notification permission is optional.</string>
+    <string name="cloud_notice_open">Open link</string>
+    <string name="cloud_privacy_connections">Accounts and connections\nMediaFlow does not require an app account. Source analysis, downloads and remote artwork contact source websites and their delivery services, which receive your IP address, requested URL and necessary headers. Your network, proxy or VPN also handles this traffic.\n\nPrivacy choices\nThe choices below are off by default and preserve your earlier decisions. Sharing basic device information sends a random installation ID, device model, Android version, architecture and app version to mediaflow-ochre.vercel.app at most once per day when opening the app. The service receives your IP address and may derive a country from it. The ID is pseudonymous, not fully anonymous, and does not reliably identify a physical device after reinstalling. Download links, media, playback history and session cookies are not sent by this feature. Withdrawing this choice stops new reports and clears the local reporting ID; it does not erase reports already received by the server. General messages fetch remote text and optional HTTPS links. There is no guaranteed background push delivery. App update checks remain independent of both choices and of Android notification permission.</string>
+</resources>

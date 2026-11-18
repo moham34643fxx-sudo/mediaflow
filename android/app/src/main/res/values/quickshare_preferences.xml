@@ -1,0 +1,17 @@
+<resources>
+    <string name="share_compact_preference_hint">Choose a preference now. We use the best available quality within your limit.</string>
+    <string name="share_preference_mp3_title">MP3</string>
+    <string name="share_preference_mp3_description">Audio only</string>
+    <string name="share_preference_360_title">360p</string>
+    <string name="share_preference_360_description">Smaller file, faster download.</string>
+    <string name="share_preference_480_title">480p</string>
+    <string name="share_preference_480_description">Good quality, moderate file size.</string>
+    <string name="share_preference_720_title">720p</string>
+    <string name="share_preference_720_description">Higher quality, clearer video.</string>
+    <string name="share_more_description">Explore all available formats and qualities.</string>
+    <string name="share_source_tier">Source tier: %1$s</string>
+    <string name="share_video_rate">%1$s kb/s</string>
+    <string name="share_frame_rate">%1$s fps</string>
+    <string name="share_audio_channels">%1$d ch</string>
+    <string name="share_format_identity">Format %1$s</string>
+</resources>

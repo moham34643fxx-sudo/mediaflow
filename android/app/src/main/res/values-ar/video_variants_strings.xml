@@ -1,0 +1,20 @@
+<resources>
+    <string name="share_quality_fast_title">سريع (%1$s)</string>
+    <string name="share_quality_high_title">جودة عالية (%1$s)</string>
+    <string name="share_quality_low_description">جودة منخفضة للتشغيل السريع</string>
+    <string name="share_quality_standard_description">جودة عادية للتشغيل السريع</string>
+    <string name="share_quality_high_description">عرض واضح وتشغيل سريع</string>
+    <string name="share_quality_full_description">تفاصيل عالية للعرض بملء الشاشة</string>
+    <string name="share_formats_pending">جارٍ جلب مزيد من الصيغ</string>
+    <string name="share_all_video_sources">كل صيغ الفيديو من المصدر (%1$d)</string>
+    <string name="share_all_video_sources_hint">مرتبة حسب الجودة ثم الحجم. تسمية المصدر قد تصف الضغط؛ عند غيابها نستخدم دقة البكسلات المؤكدة. الأحجام المختلفة تظل اختيارات مستقلة.</string>
+    <string name="share_source_quality_title">جودة المصدر %1$s</string>
+    <string name="share_video_format">صيغة فيديو</string>
+    <string name="share_actual_resolution">الأبعاد الفعلية: %1$s</string>
+    <string name="share_actual_resolution_missing">الأبعاد الفعلية غير متاحة</string>
+    <string name="share_audio_codec_value">الصوت: %1$s</string>
+    <string name="share_recommended">موصى به</string>
+    <string name="share_expand_video_variants">عرض صيغ المصدر</string>
+    <string name="share_collapse_video_variants">إخفاء صيغ المصدر</string>
+    <plurals name="share_quality_source_count"><item quantity="zero">لا توجد صيغ مصدر</item><item quantity="one">صيغة مصدر واحدة</item><item quantity="two">صيغتا مصدر</item><item quantity="few">%1$d صيغ مصدر</item><item quantity="many">%1$d صيغة مصدر</item><item quantity="other">%1$d صيغة مصدر</item></plurals>
+</resources>

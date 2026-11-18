@@ -1,0 +1,17 @@
+<resources>
+    <string name="share_compact_preference_hint">اختر تفضيلك الآن. نستخدم أعلى جودة متاحة ضمن الحد الذي تختاره.</string>
+    <string name="share_preference_mp3_title">MP3</string>
+    <string name="share_preference_mp3_description">صوت فقط</string>
+    <string name="share_preference_360_title">360p</string>
+    <string name="share_preference_360_description">ملف أصغر، مناسب للتنزيل السريع.</string>
+    <string name="share_preference_480_title">480p</string>
+    <string name="share_preference_480_description">جودة جيدة بحجم معتدل.</string>
+    <string name="share_preference_720_title">720p</string>
+    <string name="share_preference_720_description">جودة عالية وصورة أوضح.</string>
+    <string name="share_more_description">استكشف جميع الصيغ والجودات المتاحة.</string>
+    <string name="share_source_tier">تصنيف المصدر: %1$s</string>
+    <string name="share_video_rate">%1$s كيلوبت/ث</string>
+    <string name="share_frame_rate">%1$s إطار/ث</string>
+    <string name="share_audio_channels">%1$d قنوات</string>
+    <string name="share_format_identity">الصيغة %1$s</string>
+</resources>

@@ -1,0 +1,11 @@
+{
+  "file": "av1-validation.mp4",
+  "frames": 16,
+  "width": 128,
+  "height": 96,
+  "fps": 8,
+  "duration": 2,
+  "sha256": "549607cf0928836247b0305cdee28806c1c87b585e4aadb6ea5228df0900593c",
+  "bytes": 20747,
+  "source": "synthetic testsrc2 and sine; no network/media-server dependency"
+}

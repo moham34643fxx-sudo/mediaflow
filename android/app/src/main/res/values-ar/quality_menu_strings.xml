@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="schedule_select_quality_hint">اختر الجودة قبل الجدولة</string>
+    <string name="schedule_encoder_required">مطلوب برنامج ترميز الصوت لصيغة MP3</string>
+</resources>

@@ -1,0 +1,66 @@
+<resources>
+    <string name="pl_title">Playlist</string>
+    <string name="pl_choose_scope">Download this video or browse the entire playlist?</string>
+    <string name="pl_single">This video only</string>
+    <string name="pl_entire">Entire playlist</string>
+    <string name="pl_loaded">%1$s · %2$s</string>
+    <plurals name="pl_entries_loaded"><item quantity="one">%1$d entry loaded</item><item quantity="other">%1$d entries loaded</item></plurals>
+    <plurals name="pl_known_total"><item quantity="one">Source reports %1$d entry</item><item quantity="other">Source reports %1$d entries</item></plurals>
+    <string name="pl_unknown_total">Playlist entry count unknown — discovery is incremental</string>
+    <string name="pl_load_more">Load next 100 entries</string>
+    <string name="pl_loaded_scope">Select all applies to loaded entries only. Only your finite selection will be downloaded. Load more to extend it (up to 5,000 per batch).</string>
+    <string name="pl_quality">Quality preference</string>
+    <string name="pl_exact">Exact quality</string>
+    <string name="pl_at_most">Best up to selected resolution</string>
+    <string name="pl_best">Best available</string>
+    <string name="pl_policy_hint">Formats are verified when each item starts. Exact/unavailable requests fail individually; “up to” never exceeds the selected resolution.</string>
+    <string name="pl_concurrency">Simultaneous videos (advanced)</string>
+    <string name="pl_automatic">Automatic</string>
+    <string name="pl_auto_hint">Parallel mode is optional and respects the global limit in Settings. Automatic uses up to 3 transfer slots. Processing stays bounded separately.</string>
+    <string name="pl_sequential">Sequential — finish and save one video before starting the next.</string>
+    <string name="pl_advanced">Advanced parallel downloading</string>
+    <plurals name="pl_videos"><item quantity="one">%1$d video</item><item quantity="other">%1$d videos</item></plurals>
+    <plurals name="pl_audio_items"><item quantity="one">%1$d audio item</item><item quantity="other">%1$d audio items</item></plurals>
+    <string name="pl_selected_transfer">Expected transfer: %1$s</string>
+    <string name="pl_size_unknown">Total transfer size unknown</string>
+    <string name="pl_transfer_amount">%1$s / %2$s</string>
+    <string name="pl_transferred">%1$s downloaded</string>
+    <string name="pl_percent">%1$d%% downloaded</string>
+    <string name="pl_estimated_percent">Approximately %1$d%% downloaded</string>
+    <plurals name="pl_published"><item quantity="one">%1$d of %2$d video published</item><item quantity="other">%1$d of %2$d videos published</item></plurals>
+    <plurals name="pl_cancelled_count"><item quantity="one">%1$d cancelled</item><item quantity="other">%1$d cancelled</item></plurals>
+    <string name="pl_finalizing">Finalizing playlist…</string>
+    <string name="pl_current">Current: %1$s — %2$s</string>
+    <string name="pl_show_details">Show video details</string>
+    <string name="pl_hide_details">Hide video details</string>
+    <string name="pl_numbering">Prefix filenames with playlist order</string>
+    <string name="pl_download">Download selected (%1$d)</string>
+    <string name="pl_discovering">Discovering entries…</string>
+    <string name="pl_empty">No entries were returned by this source.</string>
+    <string name="pl_item">Item %1$d</string>
+    <string name="pl_collection">Collection — tap to browse explicitly</string>
+    <string name="pl_unavailable">Unavailable or access restricted</string>
+    <string name="pl_summary">%1$s · %2$s · %3$s · %4$s</string>
+    <plurals name="pl_summary_completed"><item quantity="one">%1$d of %2$d completed</item><item quantity="other">%1$d of %2$d completed</item></plurals>
+    <plurals name="pl_summary_active"><item quantity="one">%1$d active</item><item quantity="other">%1$d active</item></plurals>
+    <plurals name="pl_summary_waiting"><item quantity="one">%1$d waiting</item><item quantity="other">%1$d waiting</item></plurals>
+    <plurals name="pl_summary_failed"><item quantity="one">%1$d failed</item><item quantity="other">%1$d failed</item></plurals>
+    <string name="pl_retry_failed">Retry failed items</string>
+    <string name="pl_details">View playlist items</string>
+    <string name="pl_range">Select range</string>
+    <string name="pl_from">From position</string>
+    <string name="pl_to">To position</string>
+    <string name="pl_partial">Partially completed</string>
+    <string name="pl_analyzing_item">Analyzing item formats</string>
+    <string name="pl_prioritize">Prioritize</string>
+    <string name="pl_batch_notice">Downloading playlist</string>
+    <string name="pl_audio_playlist">Audio Playlist</string>
+    <string name="pl_video_playlist">Video Playlist</string>
+    <string name="pl_progress_step">Completed %1$d of %2$d — downloading item %3$d</string>
+    <string name="pl_progress_complete">Playlist complete (%1$d items)</string>
+    <string name="pl_pause_all">Pause Playlist</string>
+    <string name="pl_resume_all">Resume Playlist</string>
+    <string name="pl_retry_failed_short">Retry Failed</string>
+    <string name="pl_cancel_all">Cancel Playlist</string>
+    <string name="pl_playlist_details">Playlist Details</string>
+</resources>

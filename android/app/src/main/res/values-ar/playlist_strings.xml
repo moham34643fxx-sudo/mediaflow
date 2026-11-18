@@ -1,0 +1,66 @@
+<resources>
+    <string name="pl_title">قائمة تشغيل</string>
+    <string name="pl_choose_scope">تنزيل هذا الفيديو فقط أم استعراض قائمة التشغيل كاملة؟</string>
+    <string name="pl_single">هذا الفيديو فقط</string>
+    <string name="pl_entire">قائمة التشغيل كاملة</string>
+    <string name="pl_loaded">%1$s · %2$s</string>
+    <plurals name="pl_entries_loaded"><item quantity="zero">لم يُكتشف أي عنصر</item><item quantity="one">تم اكتشاف عنصر واحد</item><item quantity="two">تم اكتشاف عنصرين</item><item quantity="few">تم اكتشاف %1$d عناصر</item><item quantity="many">تم اكتشاف %1$d عنصرًا</item><item quantity="other">تم اكتشاف %1$d عنصر</item></plurals>
+    <plurals name="pl_known_total"><item quantity="zero">لا يعرض المصدر أي عناصر</item><item quantity="one">يعرض المصدر عنصرًا واحدًا</item><item quantity="two">يعرض المصدر عنصرين</item><item quantity="few">يعرض المصدر %1$d عناصر</item><item quantity="many">يعرض المصدر %1$d عنصرًا</item><item quantity="other">يعرض المصدر %1$d عنصر</item></plurals>
+    <string name="pl_unknown_total">إجمالي عدد العناصر غير معروف — الاكتشاف تدريجي</string>
+    <string name="pl_load_more">اكتشاف الـ 100 عنصر التالية</string>
+    <string name="pl_loaded_scope">تحديد الكل يشمل العناصر المكتشفة فقط. لن يتم تنزيل إلا اختيارك المحدود. اكتشف المزيد لتوسيعه (حتى 5,000 عنصر في الدفعة).</string>
+    <string name="pl_quality">الجودة المفضلة</string>
+    <string name="pl_exact">الجودة المطلوبة فقط</string>
+    <string name="pl_at_most">أفضل جودة لا تتجاوز الدقة المحددة</string>
+    <string name="pl_best">أفضل جودة متاحة</string>
+    <string name="pl_policy_hint">تُراجع الصيغ عند بدء كل عنصر. عدم توفر الجودة المطلوبة يؤثر على العنصر فقط؛ خيار «لا تتجاوز» لا يتخطى الدقة المحددة.</string>
+    <string name="pl_concurrency">الفيديوهات المتزامنة (متقدم)</string>
+    <string name="pl_automatic">تلقائي</string>
+    <string name="pl_auto_hint">التوازي اختياري ويلتزم بالحد العام في الإعدادات. التلقائي يستخدم حتى 3 خانات نقل. تبقى المعالجة محدودة بشكل منفصل.</string>
+    <string name="pl_sequential">بالتتابع — إكمال فيديو وحفظه قبل بدء الفيديو التالي.</string>
+    <string name="pl_advanced">تنزيل متوازٍ متقدم</string>
+    <plurals name="pl_videos"><item quantity="zero">لا توجد فيديوهات</item><item quantity="one">فيديو واحد</item><item quantity="two">فيديوان</item><item quantity="few">%1$d فيديوهات</item><item quantity="many">%1$d فيديو</item><item quantity="other">%1$d فيديو</item></plurals>
+    <plurals name="pl_audio_items"><item quantity="zero">لا توجد عناصر صوتية</item><item quantity="one">عنصر صوتي واحد</item><item quantity="two">عنصران صوتيان</item><item quantity="few">%1$d عناصر صوتية</item><item quantity="many">%1$d عنصرًا صوتيًا</item><item quantity="other">%1$d عنصر صوتي</item></plurals>
+    <string name="pl_selected_transfer">حجم النقل المتوقع: %1$s</string>
+    <string name="pl_size_unknown">إجمالي حجم النقل غير معروف</string>
+    <string name="pl_transfer_amount">%1$s / %2$s</string>
+    <string name="pl_transferred">تم تنزيل %1$s</string>
+    <string name="pl_percent">تم تنزيل %1$d%%</string>
+    <string name="pl_estimated_percent">تم تنزيل %1$d%% تقريبًا</string>
+    <plurals name="pl_published"><item quantity="zero">تم نشر %1$d من أصل %2$d فيديو</item><item quantity="one">تم نشر %1$d من فيديو واحد</item><item quantity="two">تم نشر %1$d من فيديوين</item><item quantity="few">تم نشر %1$d من %2$d فيديوهات</item><item quantity="many">تم نشر %1$d من %2$d فيديو</item><item quantity="other">تم نشر %1$d من %2$d فيديو</item></plurals>
+    <plurals name="pl_cancelled_count"><item quantity="zero">لم يتم إلغاء أي عنصر</item><item quantity="one">تم إلغاء عنصر واحد</item><item quantity="two">تم إلغاء عنصرين</item><item quantity="few">تم إلغاء %1$d عناصر</item><item quantity="many">تم إلغاء %1$d عنصرًا</item><item quantity="other">تم إلغاء %1$d عنصر</item></plurals>
+    <string name="pl_finalizing">جارٍ إنهاء قائمة التشغيل…</string>
+    <string name="pl_current">الحالي: %1$s — %2$s</string>
+    <string name="pl_show_details">عرض تفاصيل الفيديوهات</string>
+    <string name="pl_hide_details">إخفاء تفاصيل الفيديوهات</string>
+    <string name="pl_numbering">ترقيم الملفات بترتيب القائمة</string>
+    <string name="pl_download">تنزيل المحدد (%1$d)</string>
+    <string name="pl_discovering">جارٍ اكتشاف العناصر…</string>
+    <string name="pl_empty">لم يُرجع المصدر أي عناصر.</string>
+    <string name="pl_item">العنصر %1$d</string>
+    <string name="pl_collection">مجموعة — اضغط لاستعراضها باختيارك</string>
+    <string name="pl_unavailable">غير متاح أو يتطلب صلاحية وصول</string>
+    <string name="pl_summary">%1$s · %2$s · %3$s · %4$s</string>
+    <plurals name="pl_summary_completed"><item quantity="zero">لم يكتمل أي عنصر من أصل %2$d</item><item quantity="one">اكتمل عنصر واحد من أصل %2$d</item><item quantity="two">اكتمل عنصران من أصل %2$d</item><item quantity="few">اكتمل %1$d من %2$d عناصر</item><item quantity="many">اكتمل %1$d من %2$d عنصرًا</item><item quantity="other">اكتمل %1$d من %2$d عنصر</item></plurals>
+    <plurals name="pl_summary_active"><item quantity="zero">لا عناصر نشطة</item><item quantity="one">عنصر واحد نشط</item><item quantity="two">عنصران نشطان</item><item quantity="few">%1$d عناصر نشطة</item><item quantity="many">%1$d عنصرًا نشطًا</item><item quantity="other">%1$d عنصر نشط</item></plurals>
+    <plurals name="pl_summary_waiting"><item quantity="zero">لا عناصر في الانتظار</item><item quantity="one">عنصر واحد في الانتظار</item><item quantity="two">عنصران في الانتظار</item><item quantity="few">%1$d عناصر في الانتظار</item><item quantity="many">%1$d عنصرًا في الانتظار</item><item quantity="other">%1$d عنصر في الانتظار</item></plurals>
+    <plurals name="pl_summary_failed"><item quantity="zero">لا عناصر متعذرة</item><item quantity="one">تعذر عنصر واحد</item><item quantity="two">تعذر عنصران</item><item quantity="few">%1$d عناصر متعذرة</item><item quantity="many">%1$d عنصرًا متعذرًا</item><item quantity="other">%1$d عنصر متعذر</item></plurals>
+    <string name="pl_retry_failed">إعادة محاولة العناصر المتعذرة</string>
+    <string name="pl_details">عرض عناصر القائمة</string>
+    <string name="pl_range">تحديد نطاق</string>
+    <string name="pl_from">من الترتيب</string>
+    <string name="pl_to">إلى الترتيب</string>
+    <string name="pl_partial">اكتملت جزئيًا</string>
+    <string name="pl_analyzing_item">جارٍ تحليل صيغ العنصر</string>
+    <string name="pl_prioritize">إعطاء أولوية</string>
+    <string name="pl_batch_notice">جارٍ تنزيل قائمة التشغيل</string>
+    <string name="pl_audio_playlist">قائمة صوتية</string>
+    <string name="pl_video_playlist">قائمة فيديو</string>
+    <string name="pl_progress_step">اكتمل %1$d من %2$d — جارٍ تحميل العنصر %3$d</string>
+    <string name="pl_progress_complete">اكتملت القائمة (%1$d عنصر)</string>
+    <string name="pl_pause_all">إيقاف القائمة</string>
+    <string name="pl_resume_all">استئناف القائمة</string>
+    <string name="pl_retry_failed_short">إعادة محاولة الفاشل</string>
+    <string name="pl_cancel_all">إلغاء القائمة</string>
+    <string name="pl_playlist_details">تفاصيل قائمة التشغيل</string>
+</resources>

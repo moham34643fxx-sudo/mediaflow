@@ -1,0 +1,25 @@
+<resources>
+    <string name="pl_search_files">Search this playlist</string>
+    <string name="pl_clear_search">Clear search</string>
+    <string name="pl_search_hint">Try another name or choose a different filter.</string>
+    <string name="pl_files_heading">Playlist files · %1$d of %2$d</string>
+    <string name="pl_filename">File name</string>
+    <string name="pl_folder">Save location</string>
+    <string name="pl_more_actions">Playlist actions</string>
+    <string name="transfer_speed_policy">No configured bytes-per-second cap. Concurrent downloads share available bandwidth; actual throughput depends on the source, route, connection and device.</string>
+    <string name="pl_order_sequential">Sequential queue · source order preserved</string>
+    <string name="pl_order_parallel">Parallel queue · source order preserved</string>
+    <string name="pl_completed_fraction">%1$d of %2$d files saved</string>
+    <string name="pl_total_transferred">Transferred: %1$s</string>
+    <string name="pl_current_position">CURRENT ITEM · %1$d</string>
+    <string name="pl_rate">%1$s/s</string>
+    <string name="pl_waiting_for_previous">Queued after item %1$d</string>
+    <string name="pl_provider_cooldown">Source temporarily limiting requests · retry scheduled</string>
+    <string name="pl_format_on_analysis">Format determined during analysis</string>
+    <string name="pl_no_matching_items">No items in this view</string>
+    <string name="pl_output_location">Save folder: %1$s</string>
+    <string name="pl_retry_count">Retry attempts: %1$d</string>
+    <string name="pl_retry_at">Next attempt: %1$s</string>
+    <string name="notification_progress_enabled">Download progress notifications are allowed by Android</string>
+    <string name="notification_progress_blocked">Download progress notifications are not currently allowed by Android</string>
+</resources>

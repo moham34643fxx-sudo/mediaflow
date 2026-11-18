@@ -1,0 +1,18 @@
+<resources>
+    <string name="studio_brand_detail">فيديو · صوت · قوائم تشغيل</string>
+    <string name="studio_new_download">كل المحتوى في مكان واحد</string>
+    <string name="studio_download_options">خيارات التنزيل</string>
+    <string name="studio_tools">الأدوات</string>
+    <string name="studio_browser">المتصفح</string>
+    <string name="studio_playlists">قوائم التشغيل</string>
+    <string name="studio_status">حفظ الحالات</string>
+    <string name="studio_link_placeholder">ألصق الرابط هنا</string>
+    <string name="studio_analyze">عرض خيارات التنزيل</string>
+    <string name="aurora_downloads_hint">التقدم والملفات وتفاصيل النقل.</string>
+    <string name="aurora_library_hint">الوسائط المحلية والتنزيلات المحفوظة.</string>
+    <string name="aurora_share_hint">الجودة والتنسيق</string>
+    <string name="aurora_settings_hint">اللغة والمظهر وتفضيلات التنزيل.</string>
+    <string name="aurora_collection">الوسائط المحفوظة</string>
+    <string name="aurora_output_size">حجم المخرجات</string>
+    <string name="aurora_playlist_empty">أنشئ قائمة لتنظيم الفيديو والموسيقى.</string>
+</resources>

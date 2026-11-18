@@ -1,0 +1,10 @@
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <external-path name="whatsapp_status" path="Android/media/com.whatsapp/WhatsApp/Media/.Statuses/" />
+    <external-path name="whatsapp_status_visible" path="Android/media/com.whatsapp/WhatsApp/Media/Statuses/" />
+    <external-path name="whatsapp_legacy" path="WhatsApp/Media/.Statuses/" />
+    <external-path name="whatsapp_legacy_visible" path="WhatsApp/Media/Statuses/" />
+    <external-path name="business_status" path="Android/media/com.whatsapp.w4b/WhatsApp Business/Media/.Statuses/" />
+    <external-path name="business_status_visible" path="Android/media/com.whatsapp.w4b/WhatsApp Business/Media/Statuses/" />
+    <external-path name="business_legacy" path="WhatsApp Business/Media/.Statuses/" />
+    <external-path name="business_legacy_visible" path="WhatsApp Business/Media/Statuses/" />
+</paths>

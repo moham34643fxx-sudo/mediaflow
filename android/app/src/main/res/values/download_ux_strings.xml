@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="downloads_search_placeholder">Search downloads…</string>
+    <string name="downloads_clear_search">Clear search</string>
+    <string name="downloads_no_search_results">No downloads match your search</string>
+    <string name="download_adding">Adding download…</string>
+    <string name="downloads_active_summary">%1$d active</string>
+    <string name="downloads_completed_summary">%1$d completed</string>
+    <string name="downloads_total_size">%1$s total</string>
+</resources>

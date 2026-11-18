@@ -1,0 +1,24 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
+    <!-- Optional API-26 engine; the application retains QuickJS on API 24/25. -->
+    <uses-sdk tools:overrideLibrary="androidx.javascriptengine" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner" android:targetPackage="${applicationId}" />
+    <!-- External UI/process-death driver: ZD itself is NOT instrumented in this mode. -->
+    <instrumentation android:name="com.zdownloader.app.ExternalDriverInstrumentation" android:targetPackage="${applicationId}" android:functionalTest="true" />
+    <instrumentation android:name="com.zdownloader.app.UpdateUpgradeDriverInstrumentation" android:targetPackage="${applicationId}" android:functionalTest="true" />
+    <instrumentation android:name="com.zdownloader.app.UserFailureSnapshotInstrumentation" android:targetPackage="${applicationId}" android:functionalTest="true" />
+    <application>
+        <!-- ActivityScenario host for in-memory Compose-only instrumentation tests. -->
+        <activity android:name="androidx.activity.ComponentActivity" android:exported="false" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        <provider android:name="com.zdownloader.app.ExternalMediaControllerProbeProvider" android:authorities="${applicationId}.external-media-controller" android:process=":external_media_controller" android:exported="true" />
+        <provider android:name="com.zdownloader.app.ExternalAudioFixtureProvider" android:authorities="${applicationId}.external-audio" android:exported="false" android:grantUriPermissions="true" />
+        <activity android:name="com.zdownloader.app.ExternalAudioOriginActivity" android:exported="true" android:taskAffinity="" android:excludeFromRecents="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        <!-- Isolated filesystem-backed provider for SAF contract tests only. -->
+        <provider android:name="com.zdownloader.app.TestDocumentsProvider" android:authorities="${applicationId}.documents" android:permission="android.permission.MANAGE_DOCUMENTS" android:exported="true" android:grantUriPermissions="true"><intent-filter><action android:name="android.content.action.DOCUMENTS_PROVIDER" /></intent-filter></provider>
+        <provider android:name="com.zdownloader.app.StatusFixtureProvider" android:authorities="${applicationId}.statusdocs" android:permission="android.permission.MANAGE_DOCUMENTS" android:exported="true" android:grantUriPermissions="true" />
+        <activity android:name="com.zdownloader.app.StatusFixtureGrantActivity" android:exported="true" android:taskAffinity="" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- Grants access to isolated fixture documents from their owning UID. -->
+        <activity android:name="com.zdownloader.app.TestDocumentsGrantActivity" android:exported="true" android:taskAffinity="" android:excludeFromRecents="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity android:name="com.zdownloader.app.ShareOriginActivity" android:exported="true" android:label="Share origin fixture" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+    </application>
+</manifest>

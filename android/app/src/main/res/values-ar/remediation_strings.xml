@@ -1,0 +1,5 @@
+<resources>
+    <string name="extract_output_preserved">قد تحتوي الوجهة بالفعل على الصوت المحفوظ؛ تم الحفاظ عليها. أعد محاولة الاسترداد لاحقًا، أو تجاهل هذه المهمة قبل حفظ نسخة أخرى.</string>
+    <string name="batch_result_counts">مكتمل: %1$d · فشل: %2$d · ملغى: %3$d</string>
+    <string name="browser_form_not_resent">لحمايتك، لن يُعاد إرسال النماذج. تفتح إعادة المحاولة آخر صفحة GET معروفة؛ قد تحتاج إلى تسجيل الدخول مجددًا.</string>
+</resources>

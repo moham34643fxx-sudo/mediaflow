@@ -1,0 +1,22 @@
+<resources>
+    <string name="share_actual_quality_hint">جودات المصدر الفعلية. اختر صيغة مباشرة؛ اكتشاف هذه القائمة لا يحتاج تنزيل الفيديو.</string>
+    <string name="share_cap_resolved">%1$dp · الجودة المختارة من المصدر: %2$s</string>
+    <string name="trash_title">سلة المهملات</string>
+    <string name="trash_hint">نحتفظ هنا بروابط التنزيلات الملغاة والمحذوفة من السجل. تنزيلها مجددًا يفتح اختيار الصيغة من البداية، ولا يستأنف الملفات الجزئية القديمة.</string>
+    <string name="trash_empty">لا توجد روابط محفوظة بعد</string>
+    <string name="trash_empty_hint">ستظهر هنا روابط التنزيلات التي تلغيها أو تزيلها من السجل. السلة لا تحذف الملفات المنزّلة.</string>
+    <string name="trash_cancelled">تنزيل ملغى</string>
+    <string name="trash_removed">محذوف من السجل</string>
+    <string name="trash_download_again">تنزيل من جديد</string>
+    <string name="trash_forget">حذف الرابط نهائيًا</string>
+    <string name="trash_forget_confirm">هل تريد إزالة هذا الرابط المحفوظ نهائيًا من السلة؟ لن تُحذف الملفات المنزّلة.</string>
+    <string name="share_preference_hint">اختر حدًا أقصى الآن، أو انتظر جودات المصدر الفعلية. نختار أعلى جودة مؤكدة ضمن الحد، ولا نتجاوزه أبدًا.</string>
+    <string name="share_quality_preference">%1$dp</string>
+    <string name="share_available_formats">جودات الفيديو المتاحة</string>
+    <string name="share_discovery_hint">نفحص الرابط في الخلفية. يمكنك اختيار تفضيلك الآن؛ لن تظهر جودة كمتاحة إلا بعد تأكيدها.</string>
+    <string name="share_resolves_to">الجودة الفعلية لهذا الرابط: %1$s</string>
+    <string name="share_source_variant">نسخة المصدر %1$s</string>
+    <string name="share_source_dimensions_missing">الموقع لم يوفّر أبعاد هذه النسخة.</string>
+    <string name="share_selected_video">المحدد: %1$s</string>
+    <string name="share_preset_resolves">أعلى جودة متاحة ضمن الحد: %1$s</string>
+</resources>

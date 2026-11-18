@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Welcome Navigation & Indicators -->
+    <string name="welcome_step_indicator">الخطوة %1$d من %2$d</string>
+    <string name="welcome_next">التالي</string>
+    <string name="welcome_done">تم</string>
+
+    <!-- Step 1: Welcome & Responsible Use -->
+    <string name="welcome_step1_title">مرحبًا بك في ميديا فلو</string>
+    <string name="welcome_step1_body">تم تصميم ميديا فلو ليكون منافسًا لتطبيق سناب تيوب، مع تجربة استخدام مميزة وبدون إعلانات.\n\nنحن نسعى لتقديم طريقة استخدام شرعية ومسؤولة، مع احترام حقوق أصحاب المحتوى وشروط استخدام المنصات.</string>
+    <string name="welcome_step1_notice">لا تستخدمه فيما يغضب الله.</string>
+
+    <!-- Step 2: Website Authentication -->
+    <string name="welcome_step2_title">تسجيل الدخول إلى المواقع</string>
+    <string name="welcome_step2_body">بعض الفيديوهات الموجودة على الإنترنت تتطلب تسجيل الدخول إلى الموقع حتى تكون متاحة للمشاهدة أو التنزيل، مثل بعض فيديوهات فيسبوك وغيرها من المواقع.\n\nلذلك، يُرجى تسجيل الدخول إلى حسابك من خلال المتصفح الداخلي الخاص بميديا فلو عند الحاجة، حتى تتمكن من الوصول إلى المحتوى المتاح لحسابك وتنزيله عندما يكون ذلك مسموحًا.</string>
+
+    <!-- Step 3: What's New & Version -->
+    <string name="welcome_step3_title">ما الجديد في هذا الإصدار؟</string>
+    <string name="welcome_step3_version">الإصدار %1$s</string>
+    <string name="welcome_step3_bullet_speed">تسريعات عامة</string>
+    <string name="welcome_step3_bullet_stability">إصلاح بعض المشاكل وتحسين استقرار التطبيق</string>
+</resources>

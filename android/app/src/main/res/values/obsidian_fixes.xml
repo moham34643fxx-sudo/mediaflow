@@ -1,0 +1,11 @@
+<resources>
+    <string name="error_encoder">This device cannot encode the selected video to H.264. Save the original quality in MKV instead.</string>
+    <string name="error_validation">The media is incomplete or damaged and could not be verified.</string>
+    <string name="error_busy">The media engine is busy. Try again shortly.</string>
+    <string name="error_policy">This address is not a public media destination.</string>
+    <string name="error_captive">Sign in to the Wi-Fi network before downloading.</string>
+    <string name="error_unvalidated">Waiting for a working internet connection.</string>
+    <string name="view_downloads">View Downloads</string>
+    <string name="save_mkv">Save original as MKV</string>
+    <string name="waiting_processing">Waiting for media processing</string>
+</resources>

@@ -1,0 +1,151 @@
+<resources>
+    <string name="share_link_target">التنزيل عبر MediaFlow</string>
+    <string name="audio_popup_keep_listening">متابعة الاستماع خارج MediaFlow</string>
+    <string name="audio_popup_floating_title">مشغّل الصوت العائم</string>
+    <string name="audio_popup_overlay_explanation">اسمح بالظهور فوق التطبيقات لاستخدام المشغّل العائم الاختياري. التشغيل في الخلفية لا يحتاج إلى هذا الإذن. إغلاق النافذة العائمة لا يوقف الصوت؛ لإنهاء الجلسة استخدم إيقاف التشغيل داخل المشغّل.</string>
+    <string name="audio_popup_background">تشغيل في الخلفية</string>
+    <string name="audio_popup_dismiss">إغلاق النافذة ومتابعة الصوت</string>
+    <string name="audio_popup_stop">إيقاف التشغيل</string>
+    <string name="audio_popup_allow_overlay">السماح بالمشغّل العائم</string>
+    <string name="audio_popup_notification_only">استخدام الإشعار فقط</string>
+    <string name="audio_popup_notification_fallback">يستمر الصوت دون نافذة عائمة. استخدم أزرار الوسائط في الإشعارات.</string>
+    <string name="diagnostics_title">التشخيص</string>
+    <string name="diagnostics_privacy">تصدير تقني اختياري للأوقات والترميزات ورموز الأخطاء، دون الروابط أو بيانات الحساب أو عناوين الوسائط. احفظه في مكان موثوق فقط. يضيف التسجيل المؤقت حالة الشاشة والتطبيق لمدة تصل إلى ٣٠ دقيقة، ويتوقف عند إعادة تشغيل العملية. لا تُرفع البيانات تلقائيًا.</string>
+    <string name="diagnostics_export">حفظ بيانات التشخيص الأخيرة</string>
+    <string name="diagnostics_start">بدء تسجيل الأداء المؤقت</string>
+    <string name="diagnostics_stop">إيقاف تسجيل الأداء</string>
+    <string name="diagnostics_saved">حُفظت بيانات التشخيص</string>
+    <string name="diagnostics_failed">تعذر حفظ التشخيص. لم تتغير السجلات. حاول مجددًا.</string>
+    <string name="design_capture_eyebrow">وسائطك، كما تحبّها</string>
+    <string name="design_home_headline">احتفظ بما يلهمك.</string>
+    <string name="design_home_hint">كل ما تحتاجه رابط. اختر الجودة واحتفظ بما تحب.</string>
+    <string name="design_downloads_hint">كل تنزيلاتك، بوضوح وراحة.</string>
+    <string name="design_settings_hint">اجعل MediaFlow أقرب إلى أسلوبك.</string>
+    <string name="design_library_hint">مكان لكل ما تحب الاحتفاظ به.</string>
+    <string name="design_update_eyebrow">تفاصيل تتحسّن مع كل إصدار</string>
+    <string name="design_update_hint">أحدث إصدار من MediaFlow، بكل تفاصيله.</string>
+    <string name="design_update_current_label">على جهازك</string>
+    <string name="design_update_checks">يتحقق التطبيق من الحزمة وبصمة الملف وشهادة التوقيع قبل التثبيت.</string>
+    <string name="design_update_last_checked">آخر تحقق %1$s</string>
+    <string name="design_update_transfer_hint">يمكنك مغادرة هذه الصفحة. يظل تحديث التطبيق منفصلاً عن تنزيلات وسائطك.</string>
+    <string name="audio_popup_full_player">فتح المشغّل الكامل</string>
+    <string name="audio_popup_artwork">غلاف الألبوم</string>
+    <string name="audio_popup_open_in_app">فتح في MediaFlow</string>
+    <string name="audio_popup_seek">موضع الصوت</string>
+    <string name="audio_popup_close">إيقاف الصوت وإغلاق النافذة</string>
+    <string name="audio_popup_untitled">مقطع صوتي</string>
+    <string name="clipboard_download_title">من الحافظة</string>
+    <string name="clipboard_download_hint">هل ترغب في تنزيل هذا المحتوى؟</string>
+    <string name="clipboard_ignore">ليس الآن</string>
+    <string name="clipboard_media_fallback">اكتشاف يستحق الحفظ</string>
+    <string name="original_photo">الصورة الأصلية</string>
+    <string name="photo_original_hint">يحفظ بيانات الصورة بأفضل دقة متاحة دون إعادة ضغط. هذا ليس فيديو.</string>
+    <string name="photo_save_original">حفظ الصورة الأصلية</string>
+    <string name="photo_download_audio">حفظ الصوت المتاح في ملف منفصل</string>
+    <string name="photo_audio_source_hint">الصورة والصوت ملفان منفصلان. قد يكون المصدر الصوتي هو المسار الكامل، وليس إعادة إنشاء لتوقيت المنشور.</string>
+    <string name="photo_audio_unavailable">المصدر لم يوفّر صوتًا مصاحبًا قابلًا للتنزيل. سيتم حفظ الصورة فقط.</string>
+    <string name="photo_default_folder">Pictures/MediaFlow</string>
+    <string name="downloading_photo">جارٍ تنزيل الصورة…</string>
+    <string name="preparing_photo">جارٍ تجهيز الصورة…</string>
+    <string name="photo_download_completed">اكتمل تنزيل الصورة</string>
+    <string name="download_added">تمت إضافة التنزيل</string>
+    <string name="quality_full_hd">دقة عالية كاملة</string>
+    <string name="quality_hd">دقة عالية</string>
+    <string name="quality_standard">جودة عادية</string>
+    <string name="quality_data_saver">توفير البيانات</string>
+    <string name="technical_details">تفاصيل تقنية</string>
+    <string name="notification_completed_title">إشعار اكتمال التنزيل</string>
+    <string name="notification_completed_description">إظهار إشعار عند حفظ الملف بنجاح.</string>
+    <string name="notification_failed_title">إشعار فشل التنزيل</string>
+    <string name="notification_failed_description">إظهار إشعار عند تعذّر إكمال التنزيل.</string>
+    <string name="notification_system_settings">إعدادات إشعارات Android</string>
+    <string name="notification_system_off">الإشعارات متوقفة في إعدادات Android.</string>
+    <string name="notification_permission_denied">إذن الإشعارات مرفوض. اسمح به لتلقي تنبيهات التنزيل.</string>
+    <string name="notification_permission_request">السماح بإذن الإشعارات</string>
+    <string name="notification_channel_off">قناة إشعارات واحدة أو أكثر متوقفة في إعدادات Android.</string>
+    <string name="notification_ongoing_hint">قد يظهر إشعار مستمر أثناء التنزيل.</string>
+    <string name="about_zd">حول MediaFlow</string>
+    <string name="developer_attribution">Powered by Mohamed Abuzaid</string>
+    <string name="version_display">الإصدار %1$s</string>
+    <string name="open_source_licenses">تراخيص المصادر المفتوحة</string>
+    <string name="legal_summary">يرجى احترام حقوق أصحاب المحتوى وشروط الخدمة المصدر. يمكنك الاطلاع أدناه على إشعارات البرامج المستخدمة في التطبيق.</string>
+    <string name="size_unknown">الحجم غير معروف</string>
+    <string name="error_batch_limit">يمكن معالجة 200 رابط كحد أقصى في الدفعة الواحدة.</string>
+    <string name="background_work">جارٍ تحضير التنزيلات…</string>
+    <plurals name="active_download_count"><item quantity="zero">لا توجد تنزيلات نشطة</item><item quantity="one">تنزيل واحد نشط</item><item quantity="two">تنزيلان نشطان</item><item quantity="few">%1$d تنزيلات نشطة</item><item quantity="many">%1$d تنزيلًا نشطًا</item><item quantity="other">%1$d تنزيل نشط</item></plurals>
+    <string name="finishing_downloads">جارٍ إنهاء التنزيلات…</string>
+    <string name="preparing_video">جارٍ تجهيز الفيديو…</string>
+    <string name="preparing_audio">جارٍ تجهيز الصوت…</string>
+    <string name="downloading_video">جارٍ تنزيل الفيديو…</string>
+    <string name="downloading_audio">جارٍ تنزيل الصوت…</string>
+    <string name="video_download_completed">اكتمل التنزيل</string>
+    <string name="audio_download_completed">اكتمل التنزيل</string>
+    <string name="validating">جارٍ التحقق الكامل من الوسائط</string>
+    <string name="retrying">إعادة محاولة مجدولة</string>
+    <string name="error_metadata_mismatch">الوسائط المحمّلة لا تطابق الصيغة المختارة. أعد تحليل الرابط أو اختر جودة أخرى متاحة.</string>
+    <string name="error_decoder">لا يستطيع الجهاز التحقق الكامل من هذا الترميز. اختر صيغة أخرى متاحة؛ إعادة تنزيل الملف نفسه لن تصلح مفكك الترميز.</string>
+    <string name="error_wifi_required">تم حفظ الطلب وهو ينتظر شبكة Wi-Fi وفق إعداداتك.</string>
+    <string name="error_scheduling">تم حفظ طلبك، لكن تعذّرت جدولة التنزيل. حاول مجددًا.</string>
+    <string name="error_start_delayed">بانتظار البدء. تمت إضافة التنزيل.</string>
+    <string name="quick_music">الموسيقى</string>
+    <string name="quick_original_audio">الصوت الأصلي</string>
+    <string name="quick_more_formats">المزيد من الجودات</string>
+    <string name="quick_audio_source">مسار الصوت</string>
+    <string name="quick_adding">تتم الإضافة إلى التنزيلات…</string>
+    <string name="quick_invalid_share">شارك رابط وسائط HTTPS عامًا وكاملًا واحدًا مع MediaFlow.</string>
+    <string name="processing_hint">تُنسخ المسارات المتوافقة دون إعادة ترميز. يستخدم تحويل MP4 مرمّز H.264 في الجهاز عند الحاجة؛ ويُعرض خطأ واضح إذا لم يدعم التحويل.</string>
+    <string name="conversion_notice">يلزم تحويل الفيديو. يستغرق ذلك وقتًا أطول وقد يغيّر الجودة؛ الحجم النهائي غير معروف.</string>
+    <string name="best_source_vbr">الأفضل · معدل متغيّر</string>
+    <string name="error_dns">تعذّر العثور على عنوان الخادم. تحقّق من الاتصال أو إعدادات DNS وأعد المحاولة.</string>
+    <string name="error_connect">تعذّر الاتصال بالخادم. حاول بعد قليل.</string>
+    <string name="error_connect_timeout">لم يستجب الخادم لطلب الاتصال في الوقت المحدّد.</string>
+    <string name="error_read_timeout">توقّف الخادم عن إرسال البيانات. احتفظنا بالبيانات القابلة للاستئناف.</string>
+    <string name="error_tls">تعذّر إنشاء اتصال آمن. تحقّق من ساعة الجهاز والشبكة.</string>
+    <string name="error_forbidden">رفض الخادم الوصول إلى هذه الوسائط.</string>
+    <string name="error_expired">انتهت صلاحية رابط الوسائط. حلّل رابط المصدر مجددًا.</string>
+    <string name="error_extraction_timeout">استغرق تحليل الرابط وقتًا طويلًا. تحقّق من الاتصال وأعد المحاولة.</string>
+    <string name="select_download">تحديد التنزيل</string>
+    <string name="media_link">رابط الفيديو أو الصوت</string>
+    <string name="paste_link_placeholder">الصق رابط الفيديو أو قائمة التشغيل…</string>
+    <string name="choose_preferred_quality">اختر الجودة المناسبة</string>
+    <string name="link_validation">أدخل رابط HTTPS كاملًا.</string>
+    <string name="size_unavailable">الحجم غير متاح</string><string name="simultaneous_downloads">التنزيلات المتزامنة</string><string name="follow_system">حسب النظام</string>
+    <string name="estimated_size">حوالي %1$s</string><string name="merging">دمج الصوت والفيديو</string><string name="converting">تحويل الصوت</string><string name="saving">حفظ الملف</string><string name="resuming">استئناف…</string>
+    <string name="without_audio">بدون صوت</string><string name="output_format">صيغة الملف</string><string name="container_hint">الصيغ المتوافقة فقط. تُحفظ جودة الفيديو الأصلية.</string><string name="audio_quality">جودة الصوت</string><string name="standard_quality">عادية</string><string name="high_quality">عالية</string><string name="best_quality">الأفضل</string>
+    <string name="default_video_quality">جودة الفيديو الافتراضية</string><string name="best_available">أفضل جودة متاحة</string><string name="quality_preference_hint">تُستخدم جودة متاحة قريبة من تفضيلك.</string><string name="default_download_type">نوع التنزيل الافتراضي</string><string name="ask_every_time">اسأل في كل مرة</string><string name="save_location">مكان الحفظ</string><string name="selected_folder">المجلد المختار: %1$s</string>
+    <string name="notify_completion">اكتمال التنزيل</string><string name="notify_failure">فشل التنزيل</string><string name="information">معلومات</string><string name="app_version">إصدار التطبيق</string><string name="privacy_information">معلومات الخصوصية</string><string name="legal_information">المعلومات القانونية</string>
+    <string name="transfer_percent">تم نقل %1$d%%</string><string name="estimated_percent">تم نقل حوالي %1$d%%</string>
+    <string name="choose_format">اختيار الجودة والصيغة</string><string name="use_selection">استخدام هذا الاختيار</string><string name="search_library">البحث في الوسائط المحفوظة</string><string name="sort_newest">الأحدث</string><string name="sort_name">الاسم</string><string name="sort_size">الأكبر حجمًا</string><string name="no_search_results">لا توجد وسائط مطابقة</string><string name="search_hint">جرّب عنوانًا أو اسم ملف آخر.</string><string name="library_hint">نزّل فيديو أو مسارًا صوتيًا لبناء مكتبتك دون اتصال.</string><string name="measuring_speed">جارٍ قياس السرعة…</string>
+    <string name="bitrate_value">%1$d كيلوبت/ث</string><string name="fps_value">%1$d إطار/ث</string><string name="speed_value">%1$s/ث</string><string name="transfer_progress">%1$s / %2$s · %3$s</string>
+    <string name="brand_symbol">شعار MediaFlow</string>
+    <string name="home">الرئيسية</string><string name="downloads">التنزيلات</string><string name="library">المكتبة</string><string name="settings">الإعدادات</string>
+    <string name="tagline">نزّل ما يهمك</string><string name="download_media">كل محتواك، في مكان واحد</string><string name="paste_hint">حمّل الفيديوهات والصوتيات بسهولة من المنصات المدعومة.</string><string name="paste">لصق</string><string name="clear">مسح</string><string name="analyze">استكشاف الوسائط</string><string name="analyzing">جارٍ اكتشاف الجودات…</string><string name="cancel_analysis">إلغاء التحليل</string><string name="analyze_playlist">تحليل قائمة تشغيل</string><string name="authorized_only">نزّل فقط الوسائط التي تملك إذنًا بحفظها.</string>
+    <string name="recent">النشاط الأخير</string><string name="view_all">عرض الكل</string><string name="no_downloads">تنزيلاتك تبدأ من هنا</string>
+    <string name="preview">معاينة الوسائط</string><string name="back">رجوع</string><string name="video">فيديو</string><string name="audio">صوت</string><string name="audio_only">صوت فقط</string><string name="audio_format">صيغة الصوت</string><string name="available_quality">الجودة المتاحة</string><string name="original">الأصلي</string><string name="bitrate_hint">معدل التحويل لا يحسّن جودة المصدر الأصلية.</string><string name="source_quality">جودة المصدر</string><string name="requires_merge">يتطلب دمج الصوت</string><string name="unknown_size">حجم غير معروف</string><string name="filename">عنوان الملف الناتج</string><string name="download">تنزيل</string><string name="added_queue">تمت الإضافة إلى قائمة التنزيلات</string>
+    <string name="default_folder">مجلد تنزيلات التطبيق الافتراضي</string><string name="custom_folder">المجلد المحدد (SAF)</string><string name="choose_folder">اختيار مجلد الحفظ</string><string name="legacy_folder">على Android 7–9، اختر مجلدًا قبل التنزيل.</string><string name="keep_both">يتم الاحتفاظ بالملفات المكررة بأسماء مختلفة.</string>
+    <plurals name="batch_title"><item quantity="zero">لم يتم اكتشاف روابط</item><item quantity="one">تم اكتشاف رابط واحد</item><item quantity="two">تم اكتشاف رابطين</item><item quantity="few">تم اكتشاف %1$d روابط</item><item quantity="many">تم اكتشاف %1$d رابطًا</item><item quantity="other">تم اكتشاف %1$d رابط</item></plurals><string name="select_all">تحديد الكل</string><string name="deselect_all">إلغاء تحديد الكل</string><string name="remove">إزالة</string><string name="batch_quality">أقصى جودة لهذه المجموعة؛ تُستخدم الصيغ المتاحة لكل عنصر.</string><string name="enqueue_selected">تنزيل المحدد</string><plurals name="batch_failed"><item quantity="zero">لم تتعذر إضافة أي عناصر. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="one">تعذرت إضافة عنصر واحد. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="two">تعذرت إضافة عنصرين. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="few">تعذرت إضافة %1$d عناصر. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="many">تعذرت إضافة %1$d عنصرًا. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="other">تعذرت إضافة %1$d عنصر. تستمر العناصر الأخرى بصورة مستقلة.</item></plurals>
+    <string name="all">الكل</string><string name="active">النشطة</string><string name="queued">بالانتظار</string><string name="completed">مكتمل</string><string name="failed">فشل</string><string name="cancelled">ملغى</string><string name="paused">متوقف مؤقتًا</string><string name="pausing">جارٍ الإيقاف…</string><string name="interrupted">انقطع</string><string name="downloading">جارٍ التنزيل</string><string name="processing">جارٍ معالجة الوسائط</string><string name="waiting_network">بانتظار الاتصال أو إعادة المحاولة</string><string name="continue_queue">متابعة التنزيلات المعلقة</string><plurals name="selected_count"><item quantity="zero">لم يتم تحديد أي عناصر</item><item quantity="one">تم تحديد عنصر واحد</item><item quantity="two">تم تحديد عنصرين</item><item quantity="few">تم تحديد %1$d عناصر</item><item quantity="many">تم تحديد %1$d عنصرًا</item><item quantity="other">تم تحديد %1$d عنصر</item></plurals><string name="pause">إيقاف مؤقت</string><string name="resume">استئناف</string><string name="cancel">إلغاء</string><string name="retry">إعادة المحاولة</string><string name="remaining">المتبقي نحو %1$s</string><string name="details">التفاصيل</string><string name="remove_history">إزالة من السجل</string><string name="play">تشغيل</string><string name="open">فتح</string><string name="share">مشاركة</string><string name="rename">إعادة تسمية</string><string name="delete">حذف الملف</string><string name="delete_confirm">هل تريد حذف الملف المنزّل وسجله؟ لا يمكن التراجع عن هذا الإجراء.</string><string name="library_empty">ستظهر وسائطك المحفوظة هنا</string><string name="file_missing">الملف غير موجود أو لا يوجد تطبيق متوافق لفتحه.</string><string name="playback_error">الملف غير موجود أو تعذر تشغيل ترميزه على هذا الجهاز.</string><string name="close">إغلاق</string><string name="save">حفظ</string><string name="ok">حسنًا</string><string name="problem">تعذر إكمال هذا الإجراء</string>
+    <string name="general">عام</string><string name="language">اللغة</string><string name="theme">المظهر</string><string name="system">النظام</string><string name="dark">داكن</string><string name="light">فاتح</string><string name="concurrency">أقصى عدد تنزيلات متزامنة</string><string name="wifi_only">Wi-Fi فقط</string><string name="automatic_retry">عدد المحاولات التلقائية (0 للتعطيل)</string><string name="filename_template">قالب الاسم ({title}، {ext})</string><string name="notifications">الإشعارات</string><string name="notification_permission">السماح بإشعارات التنزيل</string><string name="background_limits">قد يوقف Android العمل بسبب قيود البطارية أو الإيقاف الإجباري. ارجع إلى التطبيق لمتابعة العمل المعلق.</string><string name="storage">التخزين</string><string name="clear_temp">مسح الملفات المؤقتة المكتملة</string><string name="cache_hint">يتم الاحتفاظ بالملفات المتوقفة والقابلة للاستئناف.</string><string name="engine">محرك الوسائط</string><string name="diagnostic">فحص إصدارات المحرك</string><string name="engine_updates">تُحدّث المحركات عبر تحديثات التطبيق. لا يتم تنزيل شيفرة تنفيذية غير موثوقة.</string><string name="about">حول التطبيق</string><string name="privacy">محلي أولًا • دون حسابات أو إعلانات أو تتبع. تُرسل الروابط فقط إلى مصادر الوسائط.</string><string name="licenses">مفتوح المصدر: yt-dlp وEJS — Unlicense؛ FFmpeg min — LGPL-3.0؛ QuickJS-KT وAndroidX وOkHttp — Apache-2.0. المراجع في THIRD_PARTY_NOTICES.md.</string>
+    <string name="error_invalid_url">الرابط غير صحيح أو غير مكتمل. تأكد من نسخ رابط HTTPS العام كاملًا وحاول مجددًا. لا تُقبل العناوين المحلية أو البروتوكولات غير الآمنة.</string>
+    <string name="error_unsupported">هذا الرابط غير مدعوم حاليًا في MediaFlow. يمكنك الإبلاغ عنه لمساعدتنا على مراجعته.</string>
+    <string name="error_server_unavailable">توجد مشكلة مؤقتة في خادم الموقع. حاول مجددًا لاحقًا.</string>
+    <string name="error_not_found">المحتوى محذوف أو غير متاح حاليًا. تحقق من فتح الرابط في المتصفح.</string>
+    <string name="error_private">هذا المحتوى خاص ولا يمكن الوصول إليه.</string><string name="error_auth">يتطلب هذا المحتوى جلسة مسجّلة الدخول.</string><string name="error_drm">الوسائط محمية بواسطة DRM ولا يمكن تنزيلها.</string><string name="error_geo">هذه الوسائط غير متاحة في منطقتك.</string><string name="error_rate">يحد المصدر من الطلبات. حاول لاحقًا.</string><string name="error_network">بانتظار الاتصال. تحقق من الإنترنت.</string><string name="error_timeout">انتهت مهلة الاتصال. حاول مجددًا.</string><string name="error_http">رفض خادم الوسائط الطلب أو قطع الاتصال.</string><string name="error_extraction">تعذر تحليل الوسائط. ربما تغيّر الموقع المصدر.</string><string name="error_format">الصيغة المحددة أو المسار المطلوب غير متاح.</string><string name="error_quality_unavailable">الجودة المحددة غير متاحة لهذا المحتوى من المصدر.</string><string name="error_space">المساحة غير كافية. وفر مساحة وأعد المحاولة.</string><string name="error_storage">تعذرت الكتابة في هذا المجلد. اختر مجلدًا متاحًا.</string><string name="error_interrupted">انقطع التنزيل. استأنف للمتابعة حيث يدعم المصدر ذلك.</string><string name="error_merge">تعذر دمج مسارات الوسائط أو التحقق منها.</string><string name="error_conversion">التحويل المطلوب غير متاح أو فشل.</string><string name="error_write">تعذر حفظ الملف النهائي.</string><string name="error_internal">تعذر على محرك الوسائط إكمال الطلب.</string><string name="error_live_stream">هذا المحتوى بث مباشر نشط أو عرض أول قادم. يتيح MediaFlow التنزيل بعد اكتمال البث وتوفره كتسجيل كامل.</string>
+    <string name="browser_title">متصفح الوسائط الداخلي</string>
+    <string name="browser_hint">تصفح المواقع وحمّل مباشرة</string>
+    <string name="search_or_enter_url">ابحث أو اكتب الرابط هنا…</string>
+    <string name="download_detected_video">تنزيل الوسائط</string>
+    <string name="quick_platforms">المنصات الشائعة</string>
+    <string name="facebook_auth_dialog_title">تسجيل الدخول مطلوب</string>
+    <string name="facebook_auth_dialog_message">الرابط ده محتاج تسجيل الدخول إلى Facebook علشان نقدر نكمل. سجّل دخولك من متصفح MediaFlow، وبعدها هنكمل العملية تلقائيًا.</string>
+    <string name="facebook_auth_dialog_confirm">تسجيل الدخول</string>
+    <string name="facebook_auth_dialog_dismiss">لاحقًا</string>
+    <string name="facebook_login_required">هذا الفيديو يتطلب تسجيل الدخول إلى فيسبوك.</string>
+    <string name="facebook_login_action">تسجيل الدخول إلى فيسبوك</string>
+    <string name="facebook_secure_connection">تسجيل دخول فيسبوك الرسمي · اتصال HTTPS آمن</string>
+    <string name="share_audio_formats">الصيغ الصوتية</string>
+    <string name="share_video_formats">صيغ الفيديو</string>
+    <string name="share_audio_original">الصوت الأصلي</string>
+    <string name="share_audio_convert">تحويل</string>
+    <string name="quality_not_available">الجودة غير متوفرة لهذا المحتوى</string>
+</resources>

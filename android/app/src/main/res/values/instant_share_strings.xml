@@ -1,0 +1,19 @@
+<resources>
+    <string name="share_preferences_notice">The selected quality is a maximum. Available formats are resolved during preparation.</string>
+    <string name="share_best_available">Best Available</string>
+    <string name="share_basic_480">Fast (up to 480p)</string>
+    <string name="share_basic_720">High quality (up to 720p)</string>
+    <string name="share_prefer_up_to">Up to %1$dp</string>
+    <string name="share_prefer_category">%1$s</string>
+    <string name="share_audio_only">Audio Only</string>
+    <string name="share_preview_formats">More Formats</string>
+    <string name="share_preview_hint">View available formats and sizes</string>
+    <string name="share_requested_preference">Requested: %1$s</string>
+    <string name="share_change_preference">Change</string>
+    <string name="share_transfer_size">Transfer: %1$s</string>
+    <string name="share_output_size">Output: %1$s</string>
+    <string name="share_waiting_best">Will download Best Available after a real format is confirmed. Close to cancel.</string>
+    <string name="share_preference_unavailable">No confirmed source is available at or below %1$dp. Choose another available format or raise the limit yourself; the app will never exceed it automatically.</string>
+    <string name="share_unknown_quality">Unknown quality</string>
+    <string name="share_quality_class">%1$s class</string>
+</resources>

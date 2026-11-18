@@ -1,0 +1,11 @@
+<resources>
+    <string name="library_device_media_action">وسائط الجهاز</string>
+    <string name="library_file_actions">إجراءات الملف %1$s</string>
+    <string name="library_layout_grid">عرض شبكي</string>
+    <string name="library_layout_list">عرض قائمة</string>
+    <string name="library_show_list">العرض كقائمة</string>
+    <string name="library_show_grid">العرض كشبكة</string>
+    <string name="library_no_videos">لا توجد فيديوهات بعد</string>
+    <string name="library_no_audio">لا توجد ملفات صوت بعد</string>
+    <string name="library_no_images">لا توجد صور بعد</string>
+</resources>

@@ -1,0 +1,30 @@
+<resources>
+    <string name="local_open">Open local media</string>
+    <string name="local_search">Search device media</string>
+    <string name="local_download_library_hint">Your completed MediaFlow downloads. Device media stays separate.</string>
+    <string name="local_browse">Browse local media</string>
+    <string name="local_sources">More ways to open media</string>
+    <string name="local_photo_picker">Choose a photo or video</string>
+    <string name="local_document_picker">Browse audio or video files</string>
+    <string name="local_image_picker">Browse image files</string>
+    <string name="local_images">Images</string>
+    <string name="local_access_title">See more of your media</string>
+    <string name="local_access_hint">Allow access to this category, or choose individual files from the menu. Your other files stay private.</string>
+    <string name="local_access_limited">Showing only the photos or videos you have allowed. You can change your selection at any time.</string>
+    <string name="local_allow_video">Allow video access</string>
+    <string name="local_allow_audio">Allow audio access</string>
+    <string name="local_allow_images">Choose image access</string>
+    <string name="local_manage_access">Manage selected access</string>
+    <string name="local_app_settings">Open Android app settings</string>
+    <string name="local_empty_hint">No accessible media in this category yet. Choose a file from the menu or connect a folder.</string>
+    <string name="local_downloads_empty_hint">Completed downloads in this category will appear here.</string>
+    <string name="local_search_empty">No matching media</string>
+    <string name="local_clear_search">Clear search</string>
+    <string name="local_image_position">Image %1$d of %2$d</string>
+    <string name="local_image_error">This image could not be opened. It may have moved or access may have changed.</string>
+    <string name="local_previous_image">Previous image</string>
+    <string name="local_next_image">Next image</string>
+    <string name="local_zoom_in">Zoom in</string>
+    <string name="local_zoom_out">Zoom out</string>
+    <string name="local_reset_zoom">Reset zoom</string>
+</resources>

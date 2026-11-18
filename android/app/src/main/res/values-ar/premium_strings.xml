@@ -1,0 +1,11 @@
+<resources>
+    <string name="mf_loading">جارٍ التنفيذ…</string>
+    <string name="mf_quick_start">ابدأ بسرعة</string>
+    <string name="mf_playlist_title">تحميل قوائم التشغيل</string>
+    <string name="mf_playlist_hint">الصق رابط القائمة، ثم اختر العناصر التي تريد تحميلها.</string>
+    <string name="mf_status_hint">احفظ الصور والفيديوهات التي شاهدتها بالفعل.</string>
+    <string name="mf_workflow_title">مصمم للاستخدام السريع</string>
+    <string name="mf_workflow_hint">حلّل الرابط، اختر الجودة، واترك الباقي على MediaFlow.</string>
+    <string name="mf_current_operations">العمليات الحالية</string>
+    <string name="mf_individual_downloads">تنزيلات منفردة</string>
+</resources>

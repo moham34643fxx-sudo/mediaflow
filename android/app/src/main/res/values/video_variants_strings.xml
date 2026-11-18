@@ -1,0 +1,20 @@
+<resources>
+    <string name="share_quality_fast_title">Fast (%1$s)</string>
+    <string name="share_quality_high_title">High quality (%1$s)</string>
+    <string name="share_quality_low_description">Low quality for quick playback</string>
+    <string name="share_quality_standard_description">Standard quality for quick playback</string>
+    <string name="share_quality_high_description">Clear viewing and quick playback</string>
+    <string name="share_quality_full_description">High detail for full-screen viewing</string>
+    <string name="share_formats_pending">Retrieving more formats</string>
+    <string name="share_all_video_sources">All source video formats (%1$d)</string>
+    <string name="share_all_video_sources_hint">Sorted by quality, then size. Source labels may describe compression; if absent, verified pixel quality is used. Different file sizes remain separate choices.</string>
+    <string name="share_source_quality_title">%1$s Source</string>
+    <string name="share_video_format">Video format</string>
+    <string name="share_actual_resolution">Actual: %1$s</string>
+    <string name="share_actual_resolution_missing">Actual resolution unavailable</string>
+    <string name="share_audio_codec_value">Audio: %1$s</string>
+    <string name="share_recommended">Recommended</string>
+    <string name="share_expand_video_variants">Show source formats</string>
+    <string name="share_collapse_video_variants">Hide source formats</string>
+    <plurals name="share_quality_source_count"><item quantity="one">%1$d source format</item><item quantity="other">%1$d source formats</item></plurals>
+</resources>

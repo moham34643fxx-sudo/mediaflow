@@ -1,0 +1,15 @@
+<resources>
+    <string name="media_output_total">Total file size: %1$s</string>
+    <string name="media_output_partial">Known file sizes: %1$s · %2$d / %3$d</string>
+    <string name="media_size_scanning">Reading file sizes… %1$d / %2$d</string>
+    <string name="media_size_quality_unavailable">Selected quality unavailable</string>
+    <string name="share_source_copy">%1$s · No conversion</string>
+    <string name="share_more_section_formats">More formats</string>
+    <string name="share_source_audio_description">Source audio · No conversion</string>
+    <string name="share_converted_audio_description">Converted audio</string>
+    <string name="share_flac_description">Lossless transcode of lossy source · File size unknown</string>
+    <string name="share_mp3_native_description">Native MP3 source · copied without conversion</string>
+    <string name="share_mp3_convert_description">Convert the selected audio source to MP3</string>
+    <string name="share_audio_convert_to">Convert to %1$s</string>
+    <string name="share_audio_language_unspecified">Language unspecified</string>
+</resources>

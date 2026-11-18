@@ -1,0 +1,21 @@
+<resources>
+    <string name="report_title">واجهت مشكلة في تنزيل المحتوى؟</string>
+    <string name="report_action">الإبلاغ عن مشكلة</string>
+    <string name="report_help_title">المساعدة والإبلاغ عن مشكلة</string>
+    <string name="report_privacy">راجع التقرير قبل فتح واتساب. تُحذف بيانات الدخول من الرابط المعبأ تلقائيًا. المعلومات التلقائية تقتصر على إصدار التطبيق ورمز الخطأ العام.</string>
+    <string name="report_url">رابط المحتوى</string>
+    <string name="report_description">وصف المشكلة</string>
+    <string name="report_preview">معاينة الرسالة</string>
+    <string name="report_send">فتح التقرير في واتساب</string>
+    <string name="report_manual_send">تراجع الرسالة وترسلها بنفسك من واتساب. فتح المحادثة لا يعني أن التقرير أُرسل.</string>
+    <string name="report_keep_draft">إغلاق والاحتفاظ بالمسودة</string>
+    <string name="report_required">أضف رابط المحتوى أو صف المشكلة في 10 أحرف على الأقل.</string>
+    <string name="report_invalid_url">أدخل رابط محتوى كاملًا يبدأ بـ https:// أو http://.</string>
+    <string name="report_open_failed">تعذّر فتح واتساب أو المتصفح. مسودتك ما زالت محفوظة هنا.</string>
+    <string name="report_type_unsupported">رابط غير مدعوم</string>
+    <string name="report_type_analysis">فشل تحليل الرابط</string>
+    <string name="report_type_download">فشل التنزيل</string>
+    <string name="report_type_media">مشكلة في الصوت أو الفيديو</string>
+    <string name="report_type_other">مشكلة أخرى</string>
+    <string name="report_help_solutions">الرابط لا يعمل: تأكد أنه يفتح في المتصفح وأن لديك صلاحية الوصول للمحتوى.\n\nالتنزيل توقف: حاول مجددًا عند توفر الاتصال. بعض المصادر تحتاج رابطًا جديدًا.\n\nالملف بلا صوت: راجع الفيديو الأصلي وخيار الصوت المحدد.\n\nالمشكلة مستمرة؟ أرسل تقريرًا تراجعه بنفسك مع الرابط ووصف المشكلة.</string>
+</resources>

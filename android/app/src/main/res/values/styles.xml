@@ -1,0 +1,20 @@
+<resources>
+    <style name="Theme.Z.AudioPopup" parent="Theme.Z.Share"><item name="android:windowSoftInputMode">adjustResize</item></style>
+    <color name="mediaflow_launch_background">#080D14</color>
+    <color name="mediaflow_launch_light">#112939</color>
+    <dimen name="mediaflow_starting_light_size">184dp</dimen>
+    <style name="Theme.Z.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/mediaflow_launch_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/mediaflow_starting_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.Z</item>
+    </style>
+    <style name="Theme.Z" parent="android:style/Theme.Material.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">false</item><item name="android:windowBackground">#080D14</item><item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item><item name="android:windowActionModeOverlay">true</item></style>
+    <style name="Theme.Z.Light" parent="Theme.Z"><item name="android:windowBackground">#F8FAFC</item><item name="android:windowLightStatusBar">true</item></style>
+    <style name="Theme.Z.Share" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item><item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item><item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowDisablePreview">true</item><item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowNoTitle">true</item><item name="android:windowActionModeOverlay">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item><item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

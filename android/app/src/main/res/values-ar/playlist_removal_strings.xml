@@ -1,0 +1,9 @@
+<resources>
+    <string name="pl_remove_cancelled">حذف قائمة التشغيل الملغية</string>
+    <string name="pl_remove_cancelled_confirm">هل تريد حذف هذه القائمة وعناصرها الملغية نهائيًا من السجل؟ ستبقى الملفات المكتملة على الجهاز وفي المكتبة.</string>
+    <string name="pl_cancel_confirm">هل تريد إلغاء جميع التنزيلات غير المكتملة في هذه القائمة؟ ستبقى الملفات المكتملة محفوظة.</string>
+    <string name="downloads_filter_empty">لا توجد تنزيلات تطابق هذا الفلتر</string>
+    <string name="downloads_filter_empty_hint">اختر فلترًا آخر لعرض باقي التنزيلات.</string>
+    <string name="downloads_clear_selection">إلغاء التحديد</string>
+    <string name="filename_required">أدخل اسمًا للملف.</string>
+</resources>

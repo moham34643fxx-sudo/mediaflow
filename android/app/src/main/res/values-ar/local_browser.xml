@@ -1,0 +1,30 @@
+<resources>
+    <string name="local_open">فتح وسائط الجهاز</string>
+    <string name="local_search">البحث في وسائط الجهاز</string>
+    <string name="local_download_library_hint">تنزيلات MediaFlow المكتملة. وسائط الجهاز تبقى منفصلة.</string>
+    <string name="local_browse">تصفح وسائط الجهاز</string>
+    <string name="local_sources">طرق أخرى لفتح الوسائط</string>
+    <string name="local_photo_picker">اختيار صورة أو فيديو</string>
+    <string name="local_document_picker">تصفح ملفات الصوت والفيديو</string>
+    <string name="local_image_picker">تصفح ملفات الصور</string>
+    <string name="local_images">الصور</string>
+    <string name="local_access_title">اعرض المزيد من وسائطك</string>
+    <string name="local_access_hint">اسمح بالوصول إلى هذه الفئة، أو اختر ملفات محددة من القائمة. تظل ملفاتك الأخرى خاصة.</string>
+    <string name="local_access_limited">تظهر فقط الصور أو الفيديوهات التي سمحت بها. يمكنك تغيير اختيارك في أي وقت.</string>
+    <string name="local_allow_video">السماح بالوصول للفيديو</string>
+    <string name="local_allow_audio">السماح بالوصول للصوت</string>
+    <string name="local_allow_images">اختيار الوصول للصور</string>
+    <string name="local_manage_access">إدارة الوصول المحدد</string>
+    <string name="local_app_settings">فتح إعدادات التطبيق في أندرويد</string>
+    <string name="local_empty_hint">لا توجد وسائط متاحة في هذه الفئة بعد. اختر ملفًا من القائمة أو اربط مجلدًا.</string>
+    <string name="local_downloads_empty_hint">ستظهر هنا التنزيلات المكتملة في هذه الفئة.</string>
+    <string name="local_search_empty">لا توجد وسائط مطابقة</string>
+    <string name="local_clear_search">مسح البحث</string>
+    <string name="local_image_position">الصورة %1$d من %2$d</string>
+    <string name="local_image_error">تعذر فتح الصورة. ربما نُقلت أو تغير إذن الوصول إليها.</string>
+    <string name="local_previous_image">الصورة السابقة</string>
+    <string name="local_next_image">الصورة التالية</string>
+    <string name="local_zoom_in">تكبير</string>
+    <string name="local_zoom_out">تصغير</string>
+    <string name="local_reset_zoom">إعادة ضبط التكبير</string>
+</resources>

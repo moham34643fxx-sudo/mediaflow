@@ -1,0 +1,11 @@
+<resources>
+    <string name="error_encoder">لا يستطيع هذا الجهاز ترميز الفيديو المحدد إلى H.264. يمكنك حفظ الجودة الأصلية بصيغة MKV.</string>
+    <string name="error_validation">الوسائط ناقصة أو تالفة وتعذر التحقق من سلامتها.</string>
+    <string name="error_busy">محرك الوسائط مشغول. أعد المحاولة بعد قليل.</string>
+    <string name="error_policy">هذا العنوان ليس وجهة وسائط عامة.</string>
+    <string name="error_captive">سجّل الدخول إلى شبكة Wi-Fi قبل التنزيل.</string>
+    <string name="error_unvalidated">بانتظار اتصال صالح بالإنترنت.</string>
+    <string name="view_downloads">عرض التنزيلات</string>
+    <string name="save_mkv">حفظ الأصل بصيغة MKV</string>
+    <string name="waiting_processing">بانتظار معالجة الوسائط</string>
+</resources>

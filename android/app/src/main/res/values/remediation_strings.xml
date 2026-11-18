@@ -1,0 +1,5 @@
+<resources>
+    <string name="extract_output_preserved">The destination may already contain your saved audio. It has been preserved. Retry recovery later, or discard this task before saving another copy.</string>
+    <string name="batch_result_counts">Completed: %1$d · Failed: %2$d · Cancelled: %3$d</string>
+    <string name="browser_form_not_resent">For safety, forms are not sent again. Retry opens the last known GET page; you may need to sign in again.</string>
+</resources>

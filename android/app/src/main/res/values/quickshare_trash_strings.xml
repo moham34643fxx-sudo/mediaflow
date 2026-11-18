@@ -1,0 +1,22 @@
+<resources>
+    <string name="share_actual_quality_hint">Actual source qualities. Choose a format directly; no video download is needed to discover this list.</string>
+    <string name="share_cap_resolved">%1$dp · Selected source: %2$s</string>
+    <string name="trash_title">Recycle bin</string>
+    <string name="trash_hint">Links from cancelled downloads and items removed from history are kept here. Downloading again opens a fresh format selection; it does not resume old partial files.</string>
+    <string name="trash_empty">No saved links yet</string>
+    <string name="trash_empty_hint">Cancelled downloads and removed history items will appear here. Files already downloaded are not deleted by this bin.</string>
+    <string name="trash_cancelled">Cancelled download</string>
+    <string name="trash_removed">Removed from history</string>
+    <string name="trash_download_again">Download again</string>
+    <string name="trash_forget">Forget link</string>
+    <string name="trash_forget_confirm">Permanently remove this saved link from the bin? This does not delete downloaded files.</string>
+    <string name="share_preference_hint">Choose a maximum now, or wait for actual source qualities. The highest confirmed quality within your limit is selected, never a higher one.</string>
+    <string name="share_quality_preference">%1$dp</string>
+    <string name="share_available_formats">Available video qualities</string>
+    <string name="share_discovery_hint">Checking this link in the background. You can choose a preference now; only confirmed formats will be listed as available.</string>
+    <string name="share_resolves_to">This link resolves to %1$s</string>
+    <string name="share_source_variant">Source version %1$s</string>
+    <string name="share_source_dimensions_missing">The site did not provide dimensions for this version.</string>
+    <string name="share_selected_video">Selected: %1$s</string>
+    <string name="share_preset_resolves">Best available within this limit: %1$s</string>
+</resources>

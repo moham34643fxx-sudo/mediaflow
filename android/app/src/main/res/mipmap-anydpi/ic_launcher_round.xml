@@ -1,0 +1,2 @@
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:src="@drawable/mediaflow_launcher_legacy_round" android:gravity="fill" android:filter="true" />

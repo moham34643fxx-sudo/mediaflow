@@ -1,0 +1,4 @@
+<resources>
+    <!-- Deliberately empty until an enrollment-capable control origin is explicitly configured. -->
+    <string name="mediaflow_control_origin" translatable="false"></string>
+</resources>
