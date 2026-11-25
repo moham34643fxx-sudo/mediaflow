@@ -20,7 +20,7 @@ import java.io.File
 class HybridPlatformDiscoveryTest {
     @Test fun immediatePreferencesAndMetadataReuseAcrossRealPlatforms():Unit=runBlocking {
         val instrument=InstrumentationRegistry.getInstrumentation()
-        check(instrument.targetContext.packageName=="com.zdownloader.app.designreview")
+        check(instrument.targetContext.packageName=="com.zdownloader.app.candidate0965")
         val app=instrument.targetContext.applicationContext as ZApplication
         val sources=listOf(
             "YouTube" to "https://www.youtube.com/watch?v=Z0mxlbvL4VQ",

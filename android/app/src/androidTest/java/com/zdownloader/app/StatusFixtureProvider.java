@@ -13,6 +13,9 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Isolated test-APK documents, never installed as a production provider. */
 public class StatusFixtureProvider extends DocumentsProvider {
     public static final String AUTH="com.zdownloader.app.test.statusdocs";
+    public static String authority(android.content.Context context) {
+        return context.getPackageName()+".statusdocs";
+    }
     public static final String WA="primary:Android/media/com.whatsapp/WhatsApp/Media/.Statuses";
     public static final String WB="primary:Android/media/com.whatsapp.w4b/WhatsApp Business/Media/.Statuses";
     public static final String WRONG="wrong-folder";

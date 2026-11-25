@@ -6,42 +6,45 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.*
 import com.zdownloader.app.ui.FlowFilterChip as FilterChip
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zdownloader.app.R
@@ -55,11 +58,18 @@ import androidx.compose.material.icons.outlined.Lock
 import kotlinx.coroutines.launch
 import java.util.Locale
 import com.zdownloader.app.ui.spectrumStringResource as stringResource
-import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResource
+
+// The sheet keeps its native handle and scrim. A list drag/fling at an edge
+// must not hand its remaining vertical velocity to the sheet's dismissal drag.
+private object QuickShareListScroll : NestedScrollConnection {
+    override fun onPostScroll(consumed:Offset,available:Offset,source:NestedScrollSource)=Offset(0f,available.y)
+    override suspend fun onPostFling(consumed:Velocity,available:Velocity)=Velocity(0f,available.y)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun QuickShareSheet(model:QuickShareViewModel,close:()->Unit) {
-    val state by model.state.collectAsStateWithLifecycle()
+    // Lazy items must use the same state snapshot as the section that owns them.
+    val state=model.state.collectAsStateWithLifecycle().value
     val preferences by model.settings.collectAsStateWithLifecycle()
     val base=LocalContext.current
     val view=LocalView.current
@@ -75,43 +85,40 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
         }
     }
     val sizeLabels=remember(context,state.sourceUrl) {SizeLabelCache({formatSizeLabel(context,it)})}
-    val presentation=rememberQuickSharePresentation(state.media,sizeLabels)
+    val presentation=key(state.sourceUrl) {rememberQuickSharePresentation(state.media,sizeLabels)}
     val media=presentation?.media
-    var schedule by remember {mutableStateOf(false)}
-    var reportOpen by rememberSaveable {mutableStateOf(false)}
-    var showFacebookLogin by rememberSaveable {mutableStateOf(false)}
+    val (overviewListState,videoListState,audioListState)=key(state.sourceUrl) {
+        Triple(rememberLazyListState(),rememberLazyListState(),rememberLazyListState())
+    }
+    var schedule by remember(state.sourceUrl) {mutableStateOf(false)}
+    var reportOpen by rememberSaveable(state.sourceUrl) {mutableStateOf(false)}
+    var showFacebookLogin by rememberSaveable(state.sourceUrl) {mutableStateOf(false)}
     val isFacebookAuth = state.error == ErrorCode.AUTHENTICATION_REQUIRED &&
         (com.zdownloader.app.engine.FacebookScraper.isFacebookUrl(state.sourceUrl.orEmpty()) ||
          runCatching { com.zdownloader.app.domain.UrlPolicy.inputLinks(state.sourceUrl.orEmpty()).any { com.zdownloader.app.engine.FacebookScraper.isFacebookUrl(it) } }.getOrDefault(false))
     var showFacebookAuthDialog by rememberSaveable(state.error) { mutableStateOf(isFacebookAuth) }
     val isImageMedia = media?.let { it.videoOptions().isEmpty() && it.imageOptions().isNotEmpty() } == true
     val isLikelyImage = remember(state.sourceUrl) { QuickShareFormats.isLikelyImageUrl(state.sourceUrl) }
-    val allVideoSources=presentation?.videoSources.orEmpty()
-    val selectableIds=remember(allVideoSources) {allVideoSources.mapTo(hashSetOf()) {it.id}}
-    val videoGroups=remember(media,selectableIds) {
-        media?.qualityGroups()?.mapNotNull {group->
-            val candidates=group.candidates.filter {it.id in selectableIds}
-            candidates.takeIf {it.isNotEmpty()}?.let {QualityGroup(group.resolution,it)}
-        }.orEmpty()
-    }
-    var expandedVideoTierKeys by rememberSaveable(state.sourceUrl) {mutableStateOf(emptyList<String>())}
-    var expandedAudioLanguageKeys by rememberSaveable(state.sourceUrl) {mutableStateOf(emptyList<String>())}
-    val toggleVideoTier:(String)->Unit={key->
-        expandedVideoTierKeys=if(key in expandedVideoTierKeys) expandedVideoTierKeys-key else expandedVideoTierKeys+key
-    }
-    val pendingRows=FormatLoadingPresentation.pendingRows(state)
-    val preferenceSelection=remember(media,state.qualityPreference,state.audioOutput) {runCatching {
-        val source=media ?: return@runCatching null
-        val height=state.qualityPreference ?: return@runCatching null
-        if(height>=0) VideoPreferenceSelection.ready(source,height)
-        else DownloadRequest(audioOnly=true,output=state.audioOutput).resolve(source)
-    }.getOrNull()}
-    val effectiveChoice=state.choice ?: if(isImageMedia&&media!=null) QuickShareFormats.defaultChoice(media)
-        else preferenceSelection?.let {QuickShareChoice(it.audioOnly,it.primary.id,if(it.audioOnly) state.audioOutput else it.output)}
+    val showPreferenceOptions=if(media==null) !isLikelyImage else !isImageMedia
+    val compactOverview=!state.expanded&&showPreferenceOptions&&!isFacebookAuth
+    val videoGroups=presentation?.groups.orEmpty()
+    var openVideoGroups by rememberSaveable(state.sourceUrl) {mutableStateOf(emptyList<String>())}
+    var collapsedAudioLanguageKeys by rememberSaveable(state.sourceUrl) {mutableStateOf(emptyList<String>())}
+    var preferenceOptions by rememberSaveable(state.sourceUrl) {mutableStateOf(false)}
+    val pendingRows=FormatLoadingPresentation.pendingRows(state,presented=presentation!=null)
+    val effectiveChoice=state.choice
+    val overviewChoice=effectiveChoice ?: if(compactOverview&&state.canSubmitDefault) state.defaultChoice else null
+    val overviewVideoGroups=remember(videoGroups,overviewChoice) {compactTierGroups(videoGroups,overviewChoice)}
     val firstFrameReported=remember(state.traceId) {java.util.concurrent.atomic.AtomicBoolean(false)}
     val selectionFrameReported=remember(state.traceId) {java.util.concurrent.atomic.AtomicBoolean(false)}
     val firstSelectableFrameReported=remember(state.traceId) {java.util.concurrent.atomic.AtomicBoolean(false)}
     val completeCatalogFrameReported=remember(state.traceId) {java.util.concurrent.atomic.AtomicBoolean(false)}
+    val reportSelectableFrame:()->Unit=remember(state.traceId) {
+        {
+            if(firstSelectableFrameReported.compareAndSet(false,true))
+                com.zdownloader.app.engine.AnalysisTrace.checkpoint(state.traceId,"first_verified_selectable_drawn")
+        }
+    }
     LaunchedEffect(model) {
         model.toastEvents.collect { resId ->
             android.widget.Toast.makeText(context, context.getString(resId), android.widget.Toast.LENGTH_SHORT).show()
@@ -122,29 +129,10 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
             close()
         }
     }
-    val selectedVideoFormat=remember(media,effectiveChoice) {
-        media?.formats?.firstOrNull {it.id==effectiveChoice?.takeUnless {c->c.audio}?.formatId}
+    val arrivals=remember(state.sourceUrl) {
+        FormatArrivalTracker(videoGroups.map {it.key}+presentation?.videoSources.orEmpty().map {it.id})
     }
-    val preferenceSizes=remember(presentation,state.choice,state.selection) {
-        presentation?.preferenceSizes.orEmpty().toMutableMap().apply {
-            state.selection?.takeUnless {it.audioOnly}?.let {selected->
-                state.qualityPreference?.takeIf {it in QuickShareCatalog.compactPreferences}?.let {prefHeight->
-                    (selected.outputSize ?: selected.transferSize)?.let {put(prefHeight,it)}
-                }
-                (QuickShareCatalog.numericVideoQuality(selected.primary) ?: qualityLabel(selected.primary))?.takeIf {it in QuickShareCatalog.compactPreferences}?.let {height->
-                    val size=selected.outputSize ?: selected.transferSize
-                    if(size==null) remove(height) else put(height,size)
-                }
-            }
-        }
-    }
-    val videoTierRows=remember(videoGroups,effectiveChoice,expandedVideoTierKeys) {
-        QuickShareVideoRows.expanded(videoGroups,effectiveChoice,expandedVideoTierKeys.toSet())
-    }
-    val arrivals=remember(state.sourceUrl,state.expanded,state.formatSection) {
-        FormatArrivalTracker(videoTierRows.map {it.key}+allVideoSources.map {it.id})
-    }
-    val selectedAudioId=effectiveChoice?.takeIf {it.audio}?.formatId
+    val selectedAudioId=overviewChoice?.takeIf {it.audio}?.formatId
     val audioSource=remember(media,selectedAudioId) {
         media?.let {m->selectedAudioId?.let {id->m.formats.firstOrNull {it.id==id&&it.audio}}
             ?: runCatching {Selection.audio(m,"original").primary}.getOrNull()}
@@ -159,21 +147,38 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                 .thenBy {it.id}
         ).orEmpty()
     }
-    val audioSourceGroups=remember(audioSourceOptions,audioSource?.id,expandedAudioLanguageKeys) {
-        QuickShareAudioRows.grouped(audioSourceOptions,audioSource?.id,expandedAudioLanguageKeys.toSet())
+    val audioSourceGroups=remember(audioSourceOptions,audioSource?.id,collapsedAudioLanguageKeys) {
+        val groups=QuickShareAudioRows.grouped(audioSourceOptions,audioSource?.id,emptySet())
+        groups.map {it.copy(expanded=it.key !in collapsedAudioLanguageKeys)}
     }
-    val audioRows=if(state.expanded) audioChoices else listOfNotNull(audioChoices.firstOrNull {it.output=="mp3"} ?: audioChoices.firstOrNull())
+    val selectedAudioChoice=overviewChoice?.takeIf {it.audio&&it.formatId==audioSource?.id}
+    val audioRows=remember(audioChoices,state.expanded,selectedAudioChoice) {
+        audioChoices.filter {state.expanded||it.output=="mp3"||it.output=="original"||it.output==selectedAudioChoice?.output}
+            .map {choice->selectedAudioChoice?.takeIf {it.output==choice.output} ?: choice}
+    }
     val hasSelectableVideo=remember(presentation) {presentation?.videoSources?.isNotEmpty()==true}
-    val hasSelectableAudio=remember(media,audioRows) {media!=null&&audioRows.any {it.resolve(media)!=null}}
-    val visibleSections=remember(state.expanded,state.formatSection,hasSelectableVideo,hasSelectableAudio,effectiveChoice,state.qualityPreference) {
-        QuickShareFormatSections.resolve(state.expanded,state.formatSection,hasSelectableVideo,hasSelectableAudio,
-            effectiveChoice?.audio==true||state.qualityPreference==-1)
+    val hasSelectableAudio=audioChoices.isNotEmpty()
+    val visibleAudioRows=if(compactOverview&&hasSelectableVideo) {
+        audioRows.filter {it.output=="mp3"||it==overviewChoice}
+    } else audioRows
+    val visibleSections=remember(state.formatSection,hasSelectableVideo,hasSelectableAudio,effectiveChoice,state.qualityPreference,state.defaultDownloadType) {
+        val preferAudio=effectiveChoice?.audio ?: state.qualityPreference?.let {it==-1}
+            ?: (state.defaultDownloadType=="audio")
+        QuickShareFormatSections.resolve(state.formatSection,hasSelectableVideo,hasSelectableAudio,preferAudio)
     }
     val showAudio=visibleSections.audio
     val showVideo=visibleSections.video
-    val hasSelectableImage=media?.imageOptions()?.isNotEmpty()==true
+    val images=remember(media) {
+        media?.imageOptions()?.distinctBy {it.id}?.sortedWith(
+            compareByDescending<Format> {(it.width ?: 0).toLong()*(it.height ?: 0)}.thenBy {it.id}
+        ).orEmpty()
+    }
     val scope=rememberCoroutineScope()
-    val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true,confirmValueChange={it!=SheetValue.Hidden||!state.saving})
+    // Material keys the sheet state on this callback; catalog updates must not recreate its drag anchors.
+    val confirmSheetChange=remember(model) {
+        {target:SheetValue->target!=SheetValue.Hidden||!model.state.value.saving}
+    }
+    val sheet=rememberModalBottomSheetState(skipPartiallyExpanded=true,confirmValueChange=confirmSheetChange)
     val folder=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) {uri->
         uri?.let {
             runCatching {base.contentResolver.takePersistableUriPermission(it,Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)}
@@ -181,7 +186,9 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                 .onFailure {model.storageError()}
         }
     }
-    val enqueue={model.enqueue()}
+    val choose:(QuickShareChoice)->Unit={choice->
+        if(model.state.value.sourceUrl==state.sourceUrl) model.choose(choice)
+    }
     BackHandler {
         if(state.queuedId!=null||state.persistedId!=null) close()
         else if(reportOpen) reportOpen=false
@@ -193,21 +200,23 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
         LocalSizeLabelCache provides sizeLabels,
         LocalLayoutDirection provides if(preferences.language=="ar") LayoutDirection.Rtl else LayoutDirection.Ltr) {
          FlowTheme(colors) {
-            val formatPulse=rememberFormatPulse(state.expanded&&(pendingRows>0||state.pendingSizeIds.isNotEmpty()||state.pendingDimensionIds.isNotEmpty()))
-            val mp3NeedsEncoder=((effectiveChoice?.audio==true&&effectiveChoice.output=="mp3")||(state.qualityPreference==-1&&state.audioOutput=="mp3"))&&!state.mp3Available
-            val hasSelectionOrPref=state.qualityPreference!=null||effectiveChoice!=null||state.selection!=null
-            val storageGuard=Build.VERSION.SDK_INT<29&&preferences.destination==null
-            val isBusy=state.saving||state.queuedId!=null||state.persistedId!=null
+             val formatPulse=rememberFormatPulse(pendingRows>0||state.pendingSizeIds.isNotEmpty())
+             val mp3NeedsEncoder=!state.mp3Available&&(state.selection?.let {it.audioOnly&&it.output=="mp3"&&it.convertAudio}==true||
+                 state.qualityPreference==-1&&state.audioOutput=="mp3")
+             val canDownload=state.canSubmit||(presentation!=null&&state.canSubmitDefault)
+             val editingEnabled=!state.saving&&state.persistedId==null&&state.queuedId==null
+             val storageGuard=Build.VERSION.SDK_INT<29&&preferences.destination==null
+             val isBusy=state.saving||state.queuedId!=null||state.persistedId!=null
             val scheduleDisabledReason:String?=when {
                 isBusy->null
-                media==null&&!hasSelectionOrPref->stringResource(R.string.schedule_select_quality_hint)
-                mp3NeedsEncoder->stringResource(R.string.schedule_encoder_required)
-                state.preferenceUnavailable->stringResource(R.string.share_preference_unavailable,state.qualityPreference ?: 0)
-                storageGuard->stringResource(R.string.legacy_folder)
+                 mp3NeedsEncoder->stringResource(R.string.schedule_encoder_required)
+                  state.preferenceUnavailable->state.qualityPreference?.let {stringResource(R.string.share_preference_unavailable,it)}
+                      ?: stringResource(R.string.error_format)
+                 storageGuard->stringResource(R.string.legacy_folder)
+                 !canDownload->stringResource(R.string.schedule_select_quality_hint)
                 else->null
             }
-            val readyToSchedule=!isBusy&&!state.saving&&state.error==null&&
-                (media!=null||hasSelectionOrPref)&&scheduleDisabledReason==null
+             val readyToSchedule=canDownload&&scheduleDisabledReason==null
              ProblemReportSheet(reportOpen,state.sourceUrl.orEmpty(),state.error?.name.orEmpty()) {reportOpen=false}
              if(showFacebookAuthDialog && isFacebookAuth) {
                  AlertDialog(
@@ -244,7 +253,10 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                      }
                  )
              }
-             if(schedule) ScheduleDialog({schedule=false}) {plan->schedule=false;model.schedule(plan)}
+              if(schedule) ScheduleDialog({schedule=false}) {plan->
+                  schedule=false
+                  if(model.state.value.sourceUrl==state.sourceUrl) model.schedule(plan)
+              }
             state.duplicate?.let {DuplicateDialog(it,model::confirmDuplicate,model::cancelDuplicate,open={match->
                 match.uri?.let {uri->
                     val app=context.applicationContext as com.zdownloader.app.ZApplication
@@ -253,10 +265,11 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                 }
             })}
             val playlist by model.playlists.state.collectAsStateWithLifecycle()
-            if(playlist.visible) PlaylistPreview(model.playlists,single=model::videoOnly,close=close,queued=close)
-             else if(!reportOpen)
-             BoxWithConstraints(Modifier.fillMaxSize()) {
-                 val limit=maxHeight*.85f
+            if(playlist.visible) PlaylistPreview(model.playlists,single=model::videoOnly,close=close,queued=close,selectQuality=model::selectPlaylistItem)
+              else if(!reportOpen)
+              BoxWithConstraints(Modifier.fillMaxSize()) {
+                      val sheetHeightRatio=if(maxHeight<400.dp) .94f else if(compactOverview) .80f else .85f
+                     val contentHeight=(maxHeight*sheetHeightRatio-28.dp).coerceAtLeast(0.dp)
                 ModalBottomSheet(onDismissRequest={
                     if(state.queuedId!=null||state.persistedId!=null) {
                         close()
@@ -264,12 +277,13 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                         if(state.expanded) {model.collapse();scope.launch {sheet.show()}}
                         else close()
                     }
-                },sheetState=sheet,sheetMaxWidth=480.dp,shape=RoundedCornerShape(topStart=32.dp,topEnd=32.dp),
+                  },sheetState=sheet,sheetMaxWidth=480.dp,
+                     shape=RoundedCornerShape(topStart=32.dp,topEnd=32.dp),
                     containerColor=colors.surfaceContainerLow,contentColor=colors.onSurface,scrimColor=Color.Black.copy(alpha=.64f),
-                    dragHandle={Box(Modifier.padding(top=12.dp,bottom=10.dp).size(48.dp,4.dp).background(colors.outline.copy(alpha=.4f),RoundedCornerShape(50)))},
+                     dragHandle={Box(Modifier.testTag("share_drag_handle").padding(top=12.dp,bottom=10.dp)
+                         .size(48.dp,4.dp).background(colors.outline.copy(alpha=.4f),RoundedCornerShape(50)))},
                     contentWindowInsets={WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom+WindowInsetsSides.Horizontal)}) {
-                    val contentHeight=(limit-32.dp).coerceAtLeast(160.dp)
-                      Column(Modifier.fillMaxWidth().then(if(state.expanded) Modifier.height(contentHeight) else Modifier.wrapContentHeight()).drawWithContent {
+                        Column(Modifier.fillMaxWidth().heightIn(max=contentHeight).drawWithContent {
                          drawContent()
                          if(firstFrameReported.compareAndSet(false,true)) {
                              com.zdownloader.app.engine.AnalysisTrace.checkpoint(state.traceId,"sheet_drawn")
@@ -278,42 +292,53 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                          }
                           if(effectiveChoice!=null&&selectionFrameReported.compareAndSet(false,true))
                               com.zdownloader.app.engine.AnalysisTrace.mark(state.traceId,"selectable_drawn")
-                          if(state.expanded&&(hasSelectableVideo||hasSelectableAudio||hasSelectableImage)&&
-                              firstSelectableFrameReported.compareAndSet(false,true))
-                              com.zdownloader.app.engine.AnalysisTrace.checkpoint(state.traceId,"first_verified_selectable_drawn")
-                          if(state.expanded&&state.catalogReady&&presentation!=null&&media!=null&&
-                              presentation.media.id==media.id&&completeCatalogFrameReported.compareAndSet(false,true))
+                           if(state.catalogReady&&presentation!=null&&presentation.media==state.media&&
+                               completeCatalogFrameReported.compareAndSet(false,true))
                               com.zdownloader.app.engine.AnalysisTrace.checkpoint(state.traceId,"complete_catalog_drawn")
                      }.testTag(if(state.expanded) "share_expanded" else "share_compact")) {
-                        Row(Modifier.fillMaxWidth().padding(horizontal=12.dp).heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically) {
+                         Row(Modifier.fillMaxWidth().padding(horizontal=12.dp).heightIn(min=48.dp).testTag("share_header"),
+                             verticalAlignment=Alignment.CenterVertically) {
                             if(state.expanded) FlowIconButton(FlowIcons.Back,stringResource(R.string.back),model::collapse,Modifier.testTag("share_back"),enabled=!state.saving)
-                            Text(stringResource(if(state.expanded) R.string.quick_more_formats else R.string.download),style=MaterialTheme.typography.titleMedium,modifier=Modifier.weight(1f).padding(horizontal=8.dp))
+                             val thumbnail=media?.thumbnail?.takeUnless {compactOverview}
+                             if(thumbnail!=null) {
+                                 val thumbnailRequest=remember(base,thumbnail) {coil.request.ImageRequest.Builder(base).data(thumbnail).size(160,90).build()}
+                                 coil.compose.AsyncImage(thumbnailRequest,null,Modifier.size(44.dp,32.dp))
+                             }
+                              val title=if(compactOverview) stringResource(R.string.download)
+                                  else media?.title?.takeIf {it.isNotBlank()} ?: stringResource(R.string.quick_share_title)
+                              Text(title,
+                                  style=if(compactOverview) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleMedium,
+                                   modifier=Modifier.weight(1f).padding(horizontal=8.dp).semantics {heading()},
+                                 maxLines=1,overflow=TextOverflow.Ellipsis)
                             FlowIconButton(FlowIcons.Close,stringResource(R.string.close),close,Modifier.testTag("share_close"),enabled=!state.saving)
-                        }
-                         val listModifier=if(state.expanded) Modifier.weight(1f,fill=false).fillMaxWidth() else Modifier.fillMaxWidth().wrapContentHeight()
-                         LazyColumn(listModifier.testTag("share_formats"),contentPadding=PaddingValues(start=20.dp,end=20.dp,top=0.dp,bottom=14.dp),
-                            verticalArrangement=Arrangement.spacedBy(0.dp)) {
-                                item(key="media-title") {
-                                  // Reserve the header before metadata arrives so
-                                  // discovery cannot push the preference rows down.
-                                  Row(Modifier.fillMaxWidth().heightIn(min=48.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                                     media?.thumbnail?.let {thumbnail->coil.compose.AsyncImage(
-                                         coil.request.ImageRequest.Builder(base).data(thumbnail).size(160,90).build(),null,
-                                         Modifier.size(64.dp,40.dp))}
-                                      Text(state.media?.title.orEmpty(),style=MaterialTheme.typography.bodyMedium,maxLines=2,overflow=TextOverflow.Ellipsis,
-                                         modifier=Modifier.weight(1f),color=colors.onSurfaceVariant)
+                         }
+                          if(state.expanded&&visibleSections.modeControl) {
+                             Box(Modifier.fillMaxWidth().padding(horizontal=20.dp).padding(bottom=6.dp)
+                                 .selectableGroup().testTag("share_media_mode")) {
+                                 MediaTypeControl(
+                                     audio=showAudio,
+                                     videoEnabled=editingEnabled&&hasSelectableVideo,
+                                     audioEnabled=editingEnabled&&hasSelectableAudio,
+                                     audioTag="share_audio_mode",
+                                     videoTag="share_video_mode",
+                                     onAudio={if(it) model.showAudio() else model.showVideo()}
+                                 )
+                             }
+                         }
+                          // The overview and each details tab have distinct item keys and scroll positions.
+                           key(compactOverview,!compactOverview&&showAudio) {
+                               LazyColumn(Modifier.weight(1f,fill=false).fillMaxWidth()
+                                   .nestedScroll(QuickShareListScroll).testTag("share_formats"),
+                               state=when {
+                                   compactOverview->overviewListState
+                                   showAudio->audioListState
+                                   else->videoListState
+                               },
+                               contentPadding=PaddingValues(start=20.dp,end=20.dp,top=0.dp,bottom=8.dp),
+                               verticalArrangement=Arrangement.spacedBy(0.dp)) {
+                                  if(compactOverview&&media!=null) item(key="overview-preview") {
+                                      QuickShareOverviewPreview(media,if(hasSelectableVideo) FlowIcons.Video else FlowIcons.Audio)
                                  }
-                                }
-                                if(state.expanded&&visibleSections.modeControl) item(key="format-mode") {
-                                    MediaTypeControl(
-                                        audio=!showVideo,
-                                        videoEnabled=hasSelectableVideo,
-                                        audioEnabled=hasSelectableAudio,
-                                        audioTag="share_audio_mode",
-                                        videoTag="share_video_mode",
-                                        onAudio={if(it) model.expandAudio() else model.expandVideo()}
-                                    )
-                                }
                                 if (isFacebookAuth) {
                                     item(key = "facebook-auth-banner") {
                                         Card(
@@ -349,166 +374,109 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                                             }
                                         }
                                     }
-                                } else if(state.sourceUrl!=null&&!state.expanded&&media?.imageOptions().isNullOrEmpty()) {
-                                    item(key="initial-preferences") {
-                                        if(isLikelyImage && media == null) {
-                                            ShareInitialPhotoPreference(
-                                                enabled = !state.saving && state.persistedId == null && state.queuedId == null,
-                                                onClick = { model.prefer(0) }
-                                            )
+                                 }
+                                val formatActions:LazyListScope.()->Unit={
+                                  if(state.sourceUrl!=null&&!isFacebookAuth&&(state.error==null||media!=null)) item(key="more-formats") {
+                                       val showMore=!isImageMedia||images.size>1||audioSourceOptions.size>1
+                                       val checking=FormatLoadingPresentation.morePending(state,showVideo||compactOverview&&hasSelectableVideo)
+                                        val togglePreferences={preferenceOptions=!preferenceOptions}
+                                        if(compactOverview) {
+                                            HorizontalDivider(color=colors.outlineVariant.copy(alpha=.5f))
+                                            if(showMore) QuickShareOverviewMore(editingEnabled,checking,model::expand)
+                                            QuickShareActionRow(QuickShareAction("share_preferences",R.string.share_download_preferences,
+                                                FlowIcons.Tune,if(preferenceOptions) ActionEnd.Collapse else ActionEnd.Expand),
+                                                editingEnabled,togglePreferences)
                                         } else {
-                                            ShareInitialPreferences(
-                                                selectedPreference=state.qualityPreference?.takeIf {it>=0}
-                                                    ?: selectedVideoFormat?.let(::qualityLabel),
-                                                audioSelected=(state.qualityPreference==-1&&state.audioOutput=="mp3")||
-                                                    (effectiveChoice?.audio==true&&effectiveChoice.output=="mp3"),
-                                                enabled=!state.saving&&state.persistedId==null&&state.queuedId==null,
-                                                onPreference=model::prefer,
-                                                onAudio={model.audioOutput("mp3");model.prefer(-1)},
-                                                onMore=model::expand,
-                                                videoVisible=media==null||media.videoOptions().isNotEmpty(),
-                                                audioVisible=media==null||media.audioOptions().isNotEmpty(),
-                                                 sizes=preferenceSizes,qualities=presentation?.preferenceQualities.orEmpty(),audioSize=if(state.choice?.audio==true&&state.choice?.output=="mp3")
-                                                    state.selection?.outputSize else presentation?.mp3Size
-                                            )
+                                            FlowRow(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+                                                if(showMore) ShareMoreFormats("share_more",enabled=editingEnabled,
+                                                    click={if(state.expanded) model.collapse() else model.expand()},expanded=state.expanded,
+                                                    checking=checking)
+                                                if(showPreferenceOptions) TextButton(onClick=togglePreferences,enabled=editingEnabled,
+                                                    modifier=Modifier.testTag("share_preferences").semantics {this.selected=preferenceOptions}) {
+                                                    Text(stringResource(R.string.share_download_preferences))
+                                                }
+                                              }
                                         }
-                                    }
-                                    if(!isLikelyImage&&state.qualityPreference?.let {it>0}==true&&preferenceSelection!=null) item(key="resolved-preference") {
-                                        Text(stringResource(R.string.share_cap_resolved,state.qualityPreference ?: 0,qualityTitle(preferenceSelection.primary)),
-                                            Modifier.testTag("share_cap_resolved"),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                    }
-                                    else if(state.choice!=null&&selectedVideoFormat!=null) item(key="selected-source") {
-                                        Text(stringResource(R.string.share_selected_video,qualityTitle(selectedVideoFormat)),
-                                            Modifier.testTag("share_selected_video"),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                    }
-                                }
-                                if(state.sourceUrl!=null&&media==null&&state.expanded&&state.discoveringFormats&&state.error==null) {
-                                    item(key="initial-classification") {ShareInitialFormats()}
-                                   items(pendingRows,key={"pending-format:$it"},contentType={"format-pending"}) {index->
-                                       ShareFormatSkeleton(formatPulse,"share_format_pending_$index")
-                                   }
-                                  if(Build.VERSION.SDK_INT<29&&preferences.destination==null) item {
-                                      Text(stringResource(R.string.legacy_folder),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                      TextButton(onClick={folder.launch(null)},enabled=!state.saving) {Text(stringResource(R.string.choose_folder))}
-                                  }
-                              }
-                             if(state.preferenceUnavailable) item {Text(stringResource(R.string.share_preference_unavailable,state.qualityPreference ?: 0),Modifier.testTag("share_preference_unavailable"),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)}
-                             media?.let {media ->
-                                 if(media.imageOptions().isNotEmpty()) {
-                                     item(key="photo-heading") {
-                                         ShareSection(stringResource(R.string.original_photo))
-                                         Text(stringResource(if(media.audioOptions().isEmpty()) R.string.photo_audio_unavailable else R.string.photo_audio_source_hint),
-                                             Modifier.padding(vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                     }
-                                     val images=if(state.expanded) media.imageOptions().sortedByDescending {(it.width ?: 0).toLong()*(it.height ?: 0)} else listOfNotNull(media.originalImage())
-                                     items(images,key={"photo:${it.id}"}) {image->
-                                         val choice=QuickShareChoice(false,image.id)
-                                         ShareFormatRow(effectiveChoice?.formatId==image.id,enabled=!state.saving,
-                                             title="${image.width}×${image.height} · ${image.ext.uppercase()}",size=sizeLabel(image.size(null)),
-                                             audio=false,photo=true,tag="share_photo_${image.id}",subtitle=stringResource(R.string.photo_save_original),click={model.choose(choice)})
-                                     }
-                                     if(!state.expanded && media.imageOptions().size > 1) item(key="photo-more") {
-                                         ShareMoreFormats("share_more", enabled=!state.saving, click=model::expand)
+                                 }
+                                 if(state.sourceUrl!=null&&state.error==null&&showPreferenceOptions&&preferenceOptions) {
+                                     item(key="initial-preferences") {
+                                         ShareInitialPreferences(
+                                             selectedPreference=state.qualityPreference?.takeIf {it>=0},
+                                             audioSelected=state.qualityPreference==-1&&state.audioOutput=="mp3",
+                                             enabled=editingEnabled,
+                                             onPreference=model::prefer,
+                                             onAudio={model.audioOutput("mp3");model.prefer(-1)},
+                                             videoVisible=media==null||hasSelectableVideo,
+                                             audioVisible=media==null||hasSelectableAudio,
+                                             sizes=presentation?.preferenceSizes.orEmpty(),qualities=presentation?.preferenceQualities.orEmpty(),
+                                             audioSize=presentation?.mp3Size
+                                         )
                                      }
                                  }
-                                  if(state.expanded&&showVideo&&videoTierRows.isNotEmpty()) {
-                                        item(key="video-heading") {
-                                          ShareSection(stringResource(R.string.share_video_formats))
-                                      }
-                                    items(videoTierRows,key={it.key},contentType={"video-quality-tier"}) {row->
-                                        val selection=remember(presentation,row.choice) {presentation.selection(row.choice)}
-                                        if(selection!=null) {
-                                            val fields=presentation.variantFields[row.format.id].orEmpty()
-                                            val detail=if(row.canExpand) pluralStringResource(
-                                                R.plurals.share_quality_source_count,row.group.candidates.size,row.group.candidates.size
-                                            ) else videoVariantDescription(row.format,selection,fields)
-                                            val subtitle=if(!row.selected) listOf(detail,stringResource(R.string.share_recommended)).filter {it.isNotBlank()}.joinToString(" · ") else detail
-                                            FormatRowArrival(row.key,arrivals,animate=true) {
-                                             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                                                 Box(Modifier.weight(1f)) {
-                                                     ShareFormatRow(row.selected,!state.saving,qualityTitle(row.format),
-                                                         sizeLabel(selection.transferSize),false,row.tag,subtitle=subtitle,
-                                                         sizePending=FormatLoadingPresentation.sizePending(state,selection,true),
-                                                         pulse=formatPulse,qualityTier=true,click={model.choose(row.choice)})
-                                                 }
-                                                 if(row.canExpand) IconButton(
-                                                     onClick={toggleVideoTier(row.key)},enabled=!state.saving,
-                                                     modifier=Modifier.sizeIn(minWidth=48.dp,minHeight=48.dp).testTag(row.toggleTag)
-                                                 ) {
-                                                     Icon(if(row.expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                                                         contentDescription=stringResource(if(row.expanded) R.string.share_collapse_video_variants else R.string.share_expand_video_variants),
-                                                         modifier=Modifier.size(20.dp))
-                                                 }
-                                                }
-                                            }
-                                            val motion=LocalFlowMotionEnabled.current
-                                            AnimatedVisibility(
-                                                visible=row.expanded&&row.canExpand,
-                                                enter=if(motion) expandVertically(animationSpec=tween(FlowMotion.Reveal))+fadeIn(animationSpec=tween(FlowMotion.Fast)) else EnterTransition.None,
-                                                exit=if(motion) shrinkVertically(animationSpec=tween(FlowMotion.Fast))+fadeOut(animationSpec=tween(FlowMotion.Fast)) else ExitTransition.None
-                                            ) {
-                                                 Column(Modifier.fillMaxWidth().padding(horizontal=4.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                                                     val variants=remember(row.group,effectiveChoice) {
-                                                         QuickShareVideoRows.variants(row.group,effectiveChoice)
-                                                     }
-                                                     val resolvedVariants=variants.mapNotNull {variant->
-                                                         presentation.selection(variant.choice)?.let {variant to it}
-                                                     }
-                                                     val chips=resolvedVariants.map {(variant,variantSelection)->
-                                                         VideoVariantChipSpec(variant.format,variant.selected,variant.recommended,
-                                                             listOf(videoVariantDescription(variant.format,variantSelection,
-                                                                 presentation.variantFields[variant.format.id].orEmpty()),
-                                                                 sizeLabel(variantSelection.transferSize))
-                                                                 .filter {it.isNotBlank()}.joinToString(" · "),
-                                                             variant.tag)
-                                                     }
-                                                     VideoVariantChips(chips,enabled=!state.saving,
-                                                         recommendedLabel=stringResource(R.string.share_recommended),
-                                                         modifier=Modifier.fillMaxWidth(),arrivals=arrivals) {format->
-                                                         resolvedVariants.firstOrNull {it.first.format.id==format.id}
-                                                             ?.first?.let {model.choose(it.choice)}
-                                                     }
-                                                     resolvedVariants.firstOrNull {it.first.selected}?.let {(variant,variantSelection)->
-                                                         FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),
-                                                             modifier=Modifier.fillMaxWidth().padding(start=28.dp,bottom=8.dp)) {
-                                                             remember(media,variant.format) {media.videoOutputs(variant.format)}.forEach {output->
-                                                                 val outputChoice=QuickShareChoice(false,variant.format.id,output)
-                                                                 FilterChip(
-                                                                     selected=variantSelection.output==output,
-                                                                     onClick={model.choose(outputChoice)},enabled=!state.saving,
-                                                                     label={Text(output.uppercase()+" — "+sizeLabel(outputChoice.resolve(media)?.outputSize))}
-                                                                 )
-                                                             }
-                                                         }
-                                                         if(variantSelection.transcodeVideo) Text(stringResource(R.string.conversion_notice),
-                                                             Modifier.padding(start=28.dp,bottom=8.dp),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                                     }
-                                                 }
-                                            }
-                                        }
-                                   }
-                                      items(pendingRows,key={"pending-format:$it"},contentType={"format-pending"}) {index->
-                                          ShareFormatSkeleton(formatPulse,"share_format_pending_$index")
-                                      }
+                                 val resolvedCap=state.qualityPreference?.takeIf {it>0}
+                                 val resolvedHeight=resolvedCap?.let {presentation?.preferenceQualities?.get(it)}
+                                  if(resolvedCap!=null&&resolvedHeight!=null&&!state.analyzing) item(key="resolved-preference") {
+                                      Text(stringResource(R.string.share_cap_resolved,resolvedCap,"${resolvedHeight}p"),
+                                          Modifier.testTag("share_cap_resolved"),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                                  }
                                 }
-                                   if(showAudio&&(state.expanded||media.imageOptions().isNotEmpty())&&audioSource!=null&&audioRows.isNotEmpty()) {
-                                    item(key="audio-heading") {ShareSection(stringResource(R.string.share_audio_formats))}
-                                    items(audioRows,key={"audio:${it.output}"}) {choice ->
-                                        val selection=remember(media,choice) {choice.resolve(media)}
-                                        if(selection!=null) {
-                                              val description=when {
-                                                  choice.output=="mp3"&&!selection.convertAudio->stringResource(R.string.share_mp3_native_description)
+                                if(!compactOverview) formatActions()
+                                 if(pendingRows>0) {
+                                     if(isLikelyImage&&state.media==null) item(key="initial-photo") {
+                                         ShareInitialPhotoPreference(editingEnabled) {model.prefer(0)}
+                                     }
+                                     item(key="initial-classification") {ShareInitialFormats()}
+                                     item(key="pending-format",contentType="format-pending") {
+                                         ShareFormatSkeleton(formatPulse,"share_format_pending_0")
+                                     }
+                                 }
+                               val unavailablePreference=state.qualityPreference?.takeIf {state.preferenceUnavailable}
+                               if(unavailablePreference!=null) item(key="unavailable-preference") {
+                                   Text(stringResource(R.string.share_preference_unavailable,unavailablePreference),
+                                       Modifier.testTag("share_preference_unavailable"),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                               }
+                              presentation?.let {catalog ->
+                                  val media=catalog.media
+                                  if(images.isNotEmpty()) {
+                                     item(key="photo-heading") {
+                                         ShareSection(stringResource(R.string.original_photo))
+                                          Text(stringResource(if(!hasSelectableAudio) R.string.photo_audio_unavailable else R.string.photo_audio_source_hint),
+                                             Modifier.padding(vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                                     }
+                                       val visibleImages=if(state.expanded) images
+                                           else listOf(images.firstOrNull {it.id==effectiveChoice?.formatId} ?: images.first())
+                                       items(visibleImages,key={"photo:${it.id}"}) {image->
+                                           val choice=QuickShareChoice(false,image.id)
+                                           ShareFormatRow(effectiveChoice?.formatId==image.id,enabled=editingEnabled,
+                                               title="${image.width}×${image.height} · ${image.ext.uppercase()}",
+                                               size=image.size(null)?.let {sizeLabel(it)}.orEmpty(),
+                                               tag="share_photo_${image.id}",subtitle=stringResource(R.string.photo_save_original),
+                                                onDrawn=reportSelectableFrame,click={choose(choice)})
+                                      }
+                                  }
+                                     if((compactOverview||showAudio)&&audioSource!=null&&visibleAudioRows.isNotEmpty()) {
+                                      if(!compactOverview&&!visibleSections.modeControl) item(key="audio-heading") {ShareSection(stringResource(R.string.share_audio_formats))}
+                                     items(visibleAudioRows,key={"audio:${it.output}"}) {choice ->
+                                         val selection=remember(media,choice) {choice.resolve(media)}
+                                         if(selection!=null) {
+                                               val original=choice.output=="original"
+                                               val outputLabel=selection.output.uppercase(Locale.ROOT)
+                                                val description=when {
+                                                    original->outputLabel
+                                                    compactOverview&&choice.output=="mp3"->stringResource(R.string.share_preference_mp3_description)
+                                                    choice.output=="mp3"&&!selection.convertAudio->stringResource(R.string.share_mp3_native_description)
                                                   choice.output=="mp3"->stringResource(R.string.share_mp3_convert_description)
                                                   !selection.convertAudio->stringResource(R.string.share_source_audio_description)
                                                   choice.output=="flac"->stringResource(R.string.share_flac_description)
                                                   else->stringResource(R.string.share_audio_convert_to,choice.output.uppercase(Locale.ROOT))
                                              }
-                                             ShareFormatRow(effectiveChoice==choice,enabled=!state.saving,
-                                                 title=if(choice.output=="original") "${selection.output.uppercase()} · ${stringResource(R.string.share_audio_original)}" else selection.output.uppercase(),
-                                                 size=shareSizeLabel(selection),audio=true,tag="share_audio_${choice.output}",
-                                                 subtitle=description,
-                                                 sizePending=state.expanded&&FormatLoadingPresentation.sizePending(state,selection,false),
-                                                 pulse=if(state.expanded) formatPulse else null,click={model.choose(choice)})
+                                                 ShareFormatRow(overviewChoice==choice,enabled=editingEnabled,
+                                                   title=if(original) stringResource(R.string.share_audio_original) else outputLabel,
+                                                  size=shareSizeLabel(selection),tag="share_audio_${choice.output}",
+                                                    subtitle=description,
+                                                   overviewIcon=FlowIcons.Audio.takeIf {compactOverview},
+                                                  sizePending=FormatLoadingPresentation.sizePending(state,selection,false),
+                                                   pulse=formatPulse,onDrawn=reportSelectableFrame,click={choose(choice)})
                                         }
                                     }
                                     if(state.expanded&&audioSourceOptions.size>1) {
@@ -519,78 +487,89 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                                             val sourceOutput=effectiveChoice?.takeIf {it.audio}?.output ?: "original"
                                             val groupChoice=QuickShareChoice(true,group.format.id,sourceOutput)
                                             val groupSelection=remember(media,groupChoice) {groupChoice.resolve(media)}
-                                            val summary=if(group.canExpand) pluralStringResource(R.plurals.share_quality_source_count,
-                                                group.candidates.size,group.candidates.size)
-                                            else listOfNotNull(group.format.audioChannels?.let {"${it}ch"},
-                                                group.format.sampleRate?.let {"${it}Hz"}).joinToString(" · ")
-                                            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                                             if(groupSelection!=null) Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
                                                 Box(Modifier.weight(1f)) {
-                                                    ShareFormatRow(group.selected,!state.saving,
-                                                        audioSourceLabel(group.format,preferences.language),
-                                                        groupSelection?.let {shareSizeLabel(it)}.orEmpty(),true,
-                                                        if(group.canExpand) group.tag else "share_audio_source_${group.format.id}",
-                                                        subtitle=summary,click={model.choose(groupChoice)})
+                                                     ShareFormatRow(group.selected,editingEnabled,
+                                                         audioSourceLabel(group.format,preferences.language),
+                                                          shareSizeLabel(groupSelection),
+                                                          if(group.canExpand) group.tag else "share_audio_source_${group.format.id}",
+                                                          click={choose(groupChoice)})
                                                 }
                                                 if(group.canExpand) IconButton(
-                                                    onClick={expandedAudioLanguageKeys=if(group.key in expandedAudioLanguageKeys)
-                                                        expandedAudioLanguageKeys-group.key else expandedAudioLanguageKeys+group.key},
-                                                    enabled=!state.saving,modifier=Modifier.testTag(group.toggleTag)
+                                                     onClick={collapsedAudioLanguageKeys=if(group.key in collapsedAudioLanguageKeys)
+                                                         collapsedAudioLanguageKeys-group.key else collapsedAudioLanguageKeys+group.key},
+                                                     enabled=editingEnabled,modifier=Modifier.testTag(group.toggleTag)
                                                 ) {
                                                     Icon(if(group.expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
                                                         contentDescription=stringResource(if(group.expanded) R.string.share_collapse_video_variants else R.string.share_expand_video_variants))
                                                 }
                                             }
-                                            AnimatedVisibility(
-                                                visible=group.expanded&&group.canExpand,
-                                                enter=if(LocalFlowMotionEnabled.current) expandVertically(animationSpec=tween(FlowMotion.Reveal))+fadeIn(animationSpec=tween(FlowMotion.Fast)) else EnterTransition.None,
-                                                exit=if(LocalFlowMotionEnabled.current) shrinkVertically(animationSpec=tween(FlowMotion.Fast))+fadeOut(animationSpec=tween(FlowMotion.Fast)) else ExitTransition.None
-                                            ) {
+                                             if(group.expanded&&group.canExpand) {
                                                 Column(Modifier.fillMaxWidth().padding(start=24.dp)) {
-                                                    QuickShareAudioRows.variants(group,audioSource?.id).forEach {variant->
+                                                     QuickShareAudioRows.variants(group,audioSource.id).filter {it.format.id!=group.format.id}.forEach {variant->
                                                         val format=variant.format
                                                         val choice=QuickShareChoice(true,format.id,sourceOutput)
                                                         val selection=remember(media,choice) {choice.resolve(media)}
-                                                        ShareFormatRow(variant.selected,!state.saving,
-                                                            audioSourceLabel(format,preferences.language),selection?.let {shareSizeLabel(it)}.orEmpty(),true,
-                                                            "share_audio_source_${format.id}",
-                                                            subtitle=listOfNotNull(format.audioChannels?.let {"${it}ch"},format.sampleRate?.let {"${it}Hz"},format.id).joinToString(" · "),
-                                                            click={model.choose(choice)})
+                                                         if(selection!=null) ShareFormatRow(variant.selected,editingEnabled,
+                                                              audioSourceLabel(format,preferences.language),shareSizeLabel(selection),
+                                                              "share_audio_source_${format.id}",
+                                                              subtitle=listOfNotNull(format.audioChannels?.let {"${it}ch"},format.sampleRate?.let {"${it}Hz"}).joinToString(" · "),
+                                                             click={choose(choice)})
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                     
-                                }
-                                  if(state.expanded&&!showVideo&&state.discoveringFormats&&state.error==null) items(pendingRows,key={"pending-format:$it"},contentType={"format-pending"}) {index->
-                                      ShareFormatSkeleton(formatPulse,"share_format_pending_$index")
+
                                   }
-                                 if(state.choice!=null&&state.selection==null) item {Text(stringResource(R.string.error_format),color=colors.error,style=MaterialTheme.typography.bodySmall)}
-                                 if(Build.VERSION.SDK_INT<29&&preferences.destination==null&&state.error!=ErrorCode.STORAGE_PERMISSION_ERROR) item {
-                                     Text(stringResource(R.string.legacy_folder),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
-                                     TextButton(onClick={folder.launch(null)},enabled=!state.saving) {Text(stringResource(R.string.choose_folder))}
+                                   if((compactOverview||showVideo)&&videoGroups.isNotEmpty()) {
+                                       if(!compactOverview&&!visibleSections.modeControl) item(key="video-heading") {
+                                           ShareSection(stringResource(R.string.share_video_formats))
+                                       }
+                                        val listedGroups=if(compactOverview) overviewVideoGroups else videoGroups
+                                        items(listedGroups,key={
+                                            if(compactOverview) "overview-video:${it.dimensions.edge}:${it.recommended.generatedSlideshow}" else it.key
+                                        },contentType={"video-quality-tier"}) {group->
+                                           QuickShareVideoTier(group,catalog,state,group.key in openVideoGroups,editingEnabled,formatPulse,arrivals,
+                                               reportSelectableFrame,choose) {
+                                               openVideoGroups=if(group.key in openVideoGroups)
+                                                   openVideoGroups-group.key else openVideoGroups+group.key
+                                           }
+                                       }
+                                   }
+                                   val hasMoreSources=images.size>1||if(showVideo)
+                                        videoGroups.any {it.candidates.size>1}||overviewVideoGroups.size<videoGroups.size
+                                        else audioSourceOptions.size>1
+                                  if(state.expanded) {
+                                      if(state.discoveryError!=null||showVideo&&state.failedDimensionIds.isNotEmpty()) item(key="more-failure") {
+                                          Text(stringResource(R.string.share_sources_partial),modifier=Modifier.testTag("share_more_failure"),
+                                              style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                                          if(state.failedDimensionIds.isNotEmpty()) TextButton(model::retrySources,
+                                              enabled=editingEnabled&&!state.discoveringFormats,modifier=Modifier.testTag("share_retry_sources")) {
+                                              Text(stringResource(R.string.retry))
+                                          }
+                                      } else if(state.catalogReady&&!FormatLoadingPresentation.morePending(state,showVideo)&&!hasMoreSources) {
+                                          item(key="no-more-sources") {
+                                              Text(stringResource(R.string.share_no_more_sources),Modifier.testTag("share_no_more_sources"),
+                                                  style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                                          }
+                                      }
+                                  }
+                                   if(state.choice!=null&&state.selection==null&&!state.analyzing) item(key="unavailable-choice") {
+                                       Text(stringResource(R.string.error_format),color=colors.error,style=MaterialTheme.typography.bodySmall)
+                                   }
+                               }
+                               if(compactOverview) formatActions()
+                             if(storageGuard&&state.sourceUrl!=null&&state.error!=ErrorCode.STORAGE_PERMISSION_ERROR) item(key="legacy-folder") {
+                                      Text(stringResource(R.string.legacy_folder),style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                                      TextButton(onClick={folder.launch(null)},enabled=editingEnabled) {Text(stringResource(R.string.choose_folder))}
+                             }
+                             if(state.sourceUrl!=null&&!isFacebookAuth) item(key="schedule") {
+                                 QuickShareActionRow(QuickShareAction("share_schedule",R.string.schedule_download,FlowIcons.Waiting,
+                                     supportingText=scheduleDisabledReason),readyToSchedule) {
+                                     if(state.canSubmitDefault) state.defaultChoice?.let(choose)
+                                     schedule=true
                                  }
-                            }
-                            if(state.expanded) item(key="schedule") {
-                                Row(
-                                    modifier=Modifier.fillMaxWidth().padding(top=2.dp,bottom=2.dp),
-                                    horizontalArrangement=if(LocalLayoutDirection.current==LayoutDirection.Rtl) Arrangement.Start else Arrangement.End,
-                                    verticalAlignment=Alignment.CenterVertically
-                                ) {
-                                    TextButton(onClick={
-                                        if(effectiveChoice==null&&state.qualityPreference==null) {
-                                            media?.let {QuickShareFormats.defaultChoice(it)}?.let(model::choose)
-                                        }
-                                        schedule=true
-                                    },enabled=readyToSchedule,contentPadding=PaddingValues(horizontal=6.dp,vertical=2.dp),modifier=Modifier.testTag("share_schedule")) {
-                                        Icon(FlowIcons.Waiting,null,Modifier.size(16.dp),tint=if(readyToSchedule) MaterialTheme.colorScheme.primary else colors.onSurfaceVariant.copy(alpha=0.38f))
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(stringResource(R.string.schedule_download),style=MaterialTheme.typography.labelMedium,color=if(readyToSchedule) MaterialTheme.colorScheme.primary else colors.onSurfaceVariant.copy(alpha=0.38f))
-                                    }
-                                    if(!readyToSchedule) {
-                                        scheduleDisabledReason?.let {reason->Text(reason,style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant,modifier=Modifier.testTag("share_schedule_disabled_reason"))}
-                                    }
-                                }
                             }
                             state.error?.let {error -> item {
                                 val isFbAuth = isFacebookAuth
@@ -605,14 +584,15 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                                     Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
                                         Text(stringResource(if(error==ErrorCode.INVALID_URL) R.string.quick_invalid_share else errorResource(error)),color=colors.error,style=MaterialTheme.typography.bodyMedium,modifier=Modifier.testTag("share_error"))
                                         TextButton({reportOpen=true},Modifier.testTag("share_report_problem")) {Text(stringResource(R.string.report_action))}
-                                        if(error==ErrorCode.STORAGE_PERMISSION_ERROR) {
+                                         if(error in setOf(ErrorCode.STORAGE_PERMISSION_ERROR,ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)) {
                                             TextButton(onClick={folder.launch(null)},enabled=!state.saving) {Text(stringResource(R.string.choose_folder))}
                                         } else if(error!=ErrorCode.INVALID_URL) TextButton(onClick=model::retry,enabled=!state.saving,modifier=Modifier.testTag("share_retry")) {Text(stringResource(R.string.retry))}
                                     }
                                 }
                             } }
-                        }
-                        if (isFacebookAuth) {
+                            }
+                         }
+                         if (isFacebookAuth) {
                             PrimaryAction(
                                 onClick = { showFacebookLogin = true },
                                 enabled = true,
@@ -623,17 +603,13 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                                 Spacer(Modifier.width(10.dp))
                                 Text(stringResource(R.string.facebook_login_action), fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
                             }
-                        } else {
-                            val canDownload=if(state.choice!=null||state.qualityPreference!=null) {
-                                state.canSubmit
-                            } else {
-                                media!=null&&!state.analyzing&&state.defaultChoice!=null&&!state.saving&&state.error==null&&state.persistedId==null&&state.queuedId==null
-                            }
-                            PrimaryAction(onClick={
-                                enqueue()
-                            },enabled=canDownload,
+                         } else {
+                              if(compactOverview) QuickShareOverviewSelection(state,presentation,overviewChoice)
+                              PrimaryAction(onClick={
+                                 if(model.state.value.sourceUrl==state.sourceUrl) model.enqueue()
+                             },enabled=canDownload,
                                 shape=RoundedCornerShape(50),
-                               modifier=Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=12.dp).testTag("share_download")) {
+                                modifier=Modifier.fillMaxWidth().padding(horizontal=20.dp,vertical=8.dp).testTag("share_download")) {
                                if(state.saving) {FlowLoadingIndicator(compact=true);Spacer(Modifier.width(10.dp));Text(stringResource(R.string.quick_adding))}
                                else {
                                    val buttonIcon=if(isImageMedia||(media==null&&isLikelyImage)) FlowIcons.Photo else FlowIcons.Downloads
@@ -651,7 +627,175 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
     }
 }
 
-@Composable internal fun videoVariantDescription(format:Format,selection:Selection,fields:Set<QuickShareVariantDetails.Field>):String {
+@Composable private fun QuickShareVideoTier(
+    group:QuickShareQualityGroup,catalog:QuickSharePresentation,state:QuickShareState,open:Boolean,enabled:Boolean,
+    pulse:State<Float>,arrivals:FormatArrivalTracker,onDrawn:()->Unit,choose:(QuickShareChoice)->Unit,toggle:()->Unit
+) {
+    val current=state.choice ?: if(!state.expanded&&state.canSubmitDefault) state.defaultChoice else null
+    val selected=group.selectedChoice(current)
+    val choice=selected ?: QuickShareChoice(false,group.recommended.id)
+    val selection=remember(catalog,choice) {catalog.selection(choice)} ?: return
+    val title=shareVideoQualityTitle(selection.primary,group.dimensions)
+    val subtitle=if(state.expanded) verifiedTierDimensions(group.dimensions)
+        else overviewQualityDescription(selection.primary,group.dimensions)
+    val canOpen=state.expanded&&(group.candidates.size>1||selected!=null)
+    FormatRowArrival(group.key,arrivals,animate=true) {
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+            Box(Modifier.weight(1f)) {
+                ShareFormatRow(selected!=null,enabled,title,selection.transferSize?.let {sizeLabel(it)}.orEmpty(),group.tag,
+                     subtitle=subtitle,
+                    overviewIcon=FlowIcons.Video.takeUnless {state.expanded},
+                    sizePending=FormatLoadingPresentation.sizePending(state,selection,true),
+                    pulse=pulse,onDrawn=onDrawn,click={choose(choice)})
+            }
+            if(canOpen) IconButton(toggle,enabled=enabled,modifier=Modifier.testTag(group.toggleTag)) {
+                Icon(if(open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                    contentDescription=stringResource(if(open) R.string.share_collapse_video_variants else R.string.share_expand_video_variants))
+            }
+        }
+    }
+    if(!canOpen||!open) return
+    QuickShareVideoOptions(group,catalog,selected,enabled,choose)
+}
+
+/** The overview has one entry per quality name; details keep each encoded size and source. */
+private fun compactTierGroups(groups:List<QuickShareQualityGroup>,choice:QuickShareChoice?):List<QuickShareQualityGroup> =
+    groups.groupBy {it.dimensions.edge to it.recommended.generatedSlideshow}.values.map {sameTier->
+        sameTier.firstOrNull {it.selectedChoice(choice)!=null} ?: sameTier.first()
+    }
+
+@Composable private fun shareVideoQualityTitle(format:Format,dimensions:QuickShareDimensions):String=when {
+    format.generatedSlideshow->stringResource(R.string.generated_slideshow)
+    else->dimensions.edge?.let {"\u2066${it}p\u2069"} ?: stringResource(R.string.share_unknown_quality)
+}
+
+@Composable private fun overviewQualityDescription(format:Format,dimensions:QuickShareDimensions):String {
+    val edge=dimensions.edge
+    return stringResource(when {
+        format.generatedSlideshow||edge==null->R.string.video
+        edge<360->R.string.share_overview_basic_quality
+        edge==360->R.string.share_preference_360_description
+        edge<720->R.string.share_preference_480_description
+        edge==720->R.string.share_preference_720_description
+        else->R.string.share_overview_high_quality
+    })
+}
+
+private fun verifiedTierDimensions(dimensions:QuickShareDimensions):String =
+    dimensions.width?.let {"\u2066$it×${dimensions.height}\u2069"}.orEmpty()
+
+@Composable private fun QuickShareOverviewPreview(media:Media,icon:ImageVector) {
+    val colors=MaterialTheme.colorScheme
+    val title=media.title.ifBlank {media.source}
+    Column(Modifier.fillMaxWidth().testTag("share_overview_preview")) {
+        if(title.isNotBlank()||media.thumbnail!=null) Surface(
+            shape=RoundedCornerShape(14.dp),color=colors.surfaceContainer
+        ) {
+            Row(Modifier.fillMaxWidth().padding(8.dp),verticalAlignment=Alignment.CenterVertically,
+                horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+                QuickSharePreviewArtwork(media.thumbnail,icon)
+                Column(Modifier.weight(1f)) {
+                    Text(title,style=MaterialTheme.typography.titleSmall,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    if(media.source.isNotBlank()&&!media.source.equals(title,ignoreCase=true)) {
+                        Text(media.source,style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant,
+                            maxLines=1,overflow=TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
+        Text(stringResource(R.string.share_overview_formats_heading),
+            Modifier.padding(start=8.dp,top=8.dp,bottom=2.dp).semantics {heading()},
+            style=MaterialTheme.typography.labelLarge,color=colors.onSurfaceVariant)
+    }
+}
+
+@Composable private fun QuickSharePreviewArtwork(thumbnail:String?,icon:ImageVector) {
+    Box(Modifier.size(42.dp)) {
+        FlowIconTile(icon,size=42.dp,iconSize=20.dp)
+        if(thumbnail!=null) {
+            val context=LocalContext.current
+            val request=remember(context,thumbnail) {coil.request.ImageRequest.Builder(context).data(thumbnail).size(128).build()}
+            coil.compose.AsyncImage(request,null,Modifier.matchParentSize().clip(RoundedCornerShape(10.dp)),
+                contentScale=ContentScale.Crop)
+        }
+    }
+}
+
+@Composable private fun QuickShareOverviewSelection(
+    state:QuickShareState,catalog:QuickSharePresentation?,choice:QuickShareChoice?
+) {
+    val selection=remember(catalog,choice) {choice?.let {catalog?.selection(it)}}
+    val label=if(selection!=null) {
+        val format=when {
+            !selection.audioOnly->shareVideoQualityTitle(selection.primary,QuickShareDimensions.from(selection.primary))
+            choice?.output=="original"->stringResource(R.string.share_audio_original)
+            else->selection.output.uppercase(Locale.ROOT)
+        }
+        stringResource(R.string.share_overview_selected_format,format)
+    } else state.qualityPreference?.let {height->
+        val preference=when(height) {
+            -1->if(state.audioOutput=="mp3") "MP3" else stringResource(R.string.share_audio_original)
+            0->stringResource(R.string.share_best_available)
+            else->stringResource(R.string.share_prefer_up_to,height)
+        }
+        stringResource(R.string.share_requested_preference,preference)
+    }
+    if(label!=null) Column(Modifier.fillMaxWidth().padding(horizontal=20.dp)) {
+        val colors=MaterialTheme.colorScheme
+        HorizontalDivider(color=colors.outlineVariant.copy(alpha=.5f))
+        Text(label,Modifier.fillMaxWidth().padding(top=6.dp).testTag("share_overview_selected"),
+            color=colors.onSurfaceVariant,style=MaterialTheme.typography.labelLarge)
+    }
+}
+
+@Composable private fun QuickShareVideoOptions(
+    group:QuickShareQualityGroup,catalog:QuickSharePresentation,selected:QuickShareChoice?,enabled:Boolean,
+    choose:(QuickShareChoice)->Unit
+) {
+    if(group.candidates.size>1) {
+        Column(Modifier.fillMaxWidth().padding(start=16.dp,end=8.dp,bottom=4.dp)) {
+            group.candidates.forEachIndexed {index,source->key(source.id) {
+                val option=selected?.takeIf {it.formatId==source.id} ?: QuickShareChoice(false,source.id)
+                val alternate=remember(catalog,option) {catalog.selection(option)}
+                if(alternate!=null) {
+                    ShareFormatRow(selected?.formatId==source.id,enabled,
+                        stringResource(R.string.share_source_variant,index+1),
+                        alternate.transferSize?.let {sizeLabel(it)}.orEmpty(),"share_video_variant_${source.id}",
+                        subtitle=videoVariantDescription(source,alternate,catalog.variantFields[source.id].orEmpty()),
+                        click={choose(option)})
+                }
+            }}
+        }
+    }
+    val selection=selected?.let {catalog.selection(it)} ?: return
+    QuickShareVideoOutputs(catalog,selection,enabled,choose)
+}
+
+@Composable private fun QuickShareVideoOutputs(
+    catalog:QuickSharePresentation,selection:Selection,enabled:Boolean,choose:(QuickShareChoice)->Unit
+) {
+    val format=selection.primary
+    val outputs=remember(catalog,format) {
+        // A visible cached choice can expire before computing its optional output chips.
+        val available=try {catalog.media.videoOutputs(format)} catch(_:MediaException) {emptyList()}
+        available.mapNotNull {output->
+            val choice=QuickShareChoice(false,format.id,output)
+            catalog.selection(choice)?.let {choice to it}
+        }
+    }
+    FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.padding(vertical=4.dp)) {
+        outputs.forEach { (choice,output) ->
+            FilterChip(selected=selection.output==output.output,onClick={choose(choice)},enabled=enabled,
+                modifier=Modifier.testTag("share_video_output_${output.output}"),
+                label={Text(listOf(output.output.uppercase(Locale.ROOT),shareSizeLabel(output))
+                    .filter {it.isNotBlank()}.joinToString(" — "))})
+        }
+    }
+    if(selection.transcodeVideo) Text(stringResource(R.string.conversion_notice),
+        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+@Composable private fun videoVariantDescription(format:Format,selection:Selection,fields:Set<QuickShareVariantDetails.Field>):String {
     return (videoEncodingDetails(format,fields)+videoAudioDetails(selection,fields))
         .filter {it.isNotBlank()}.distinct().joinToString(" · ") {"\u2068$it\u2069"}
 }
@@ -670,18 +814,15 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
 
 @Composable private fun videoEncodingDetails(format:Format,fields:Set<QuickShareVariantDetails.Field>):List<String> {
     val rate=(format.videoBitrate ?: format.bitrate)?.takeIf {it.isFinite()&&it>0}
-    val dimensions=if(format.width!=null&&format.height!=null) "${format.width}×${format.height}"
-        else if(QuickShareVariantDetails.Field.DIMENSIONS in fields) stringResource(R.string.share_actual_resolution_missing) else null
     return listOfNotNull(
-        dimensions,
-        codecLabel(format.videoCodec).takeIf {QuickShareVariantDetails.Field.CODEC in fields&&it.isNotEmpty()},
+        QuickShareCatalog.sourceQualityLabel(format)?.let {stringResource(R.string.share_source_tier,it)},
+        codecLabel(format.videoCodec).takeIf {it.isNotEmpty()},
         fpsLabel(format.fps)?.takeIf {QuickShareVariantDetails.Field.FPS in fields||(format.fps ?: 0.0)>30}
             ?.let {stringResource(R.string.share_frame_rate,it)},
         rate?.takeIf {QuickShareVariantDetails.Field.BITRATE in fields}?.let {
             stringResource(R.string.share_video_rate,java.math.BigDecimal.valueOf(it).stripTrailingZeros().toPlainString())},
         format.dynamicRange?.takeIf {isHdr(format)},
-        format.ext.uppercase(Locale.ROOT).takeIf {QuickShareVariantDetails.Field.CONTAINER in fields},
-        format.id.takeIf {QuickShareVariantDetails.Field.SOURCE_ID in fields}?.let {stringResource(R.string.share_format_identity,it)}
+        format.ext.uppercase(Locale.ROOT)
     )
 }
 
@@ -716,11 +857,8 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
             enabled=enabled,
             title=stringResource(R.string.original_photo),
             size="",
-            audio=false,
-            photo=true,
             tag="share_preference_photo",
             subtitle=stringResource(R.string.photo_save_original),
-            reserveSize=false,
             click=onClick
         )
     }
@@ -729,7 +867,7 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
 /** Pre-discovery controls are explicitly preferences, not claims about source formats. */
 @Composable internal fun ShareInitialPreferences(
     selectedPreference:Int?,audioSelected:Boolean,enabled:Boolean,
-    onPreference:(Int)->Unit,onAudio:()->Unit,onMore:()->Unit,
+    onPreference:(Int)->Unit,onAudio:()->Unit,onMore:(()->Unit)?=null,
     videoVisible:Boolean=true,audioVisible:Boolean=true,
     sizes:Map<Int,MediaSize> = emptyMap(),audioSize:MediaSize?=null,qualities:Map<Int,Int> = emptyMap(),
     resolvedHeights:Map<Int,Int> = emptyMap()
@@ -739,8 +877,8 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
         Text(stringResource(R.string.share_compact_preference_hint),Modifier.fillMaxWidth().padding(bottom=8.dp),
             style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
         if(audioVisible) ShareFormatRow(audioSelected,enabled,
-            stringResource(R.string.share_preference_mp3_title),audioSize?.let {sizeLabel(it)}.orEmpty(),true,"share_preference_mp3",
-            subtitle=stringResource(R.string.share_preference_mp3_description),reserveSize=true,click=onAudio)
+            stringResource(R.string.share_preference_mp3_title),audioSize?.let {sizeLabel(it)}.orEmpty(),"share_preference_mp3",
+            subtitle=stringResource(R.string.share_preference_mp3_description),overviewIcon=FlowIcons.Audio,click=onAudio)
         if(videoVisible) {
             QuickShareCatalog.compactPreferences.forEach {height->
                 val title=when(height) {
@@ -759,20 +897,21 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
                 val subtitle=if(resolved!=null&&resolved!=height) stringResource(R.string.share_preset_resolves,"${resolved}p")
                     else stringResource(description)
                 ShareFormatRow(selectedPreference==height,enabled,stringResource(title),size,
-                    false,"share_preference_$height",subtitle=subtitle,reserveSize=true,click={onPreference(height)})
+                    "share_preference_$height",subtitle=subtitle,overviewIcon=FlowIcons.Video,click={onPreference(height)})
             }
         }
-        ShareMoreFormats("share_more",enabled,onMore)
+        if(onMore!=null) QuickShareOverviewMore(enabled,false,onMore)
     }
 }
 
-@Composable private fun ShareMoreFormats(tag:String,enabled:Boolean,click:()->Unit) {
-    TextButton(onClick=click,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag(tag)) {
-        Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.share_more_section_formats),style=MaterialTheme.typography.bodyLarge)
-            Text(stringResource(R.string.share_more_description),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+@Composable private fun ShareMoreFormats(tag:String,enabled:Boolean,click:()->Unit,expanded:Boolean=false,
+    checking:Boolean=false,modifier:Modifier=Modifier) {
+    TextButton(onClick=click,enabled=enabled,modifier=modifier.heightIn(min=48.dp).testTag(tag)) {
+        Text(stringResource(if(expanded) R.string.share_fewer_sources else R.string.share_more_sources))
+        if(checking) {
+            Spacer(Modifier.width(8.dp))
+            QuickShareCheckingSources()
         }
-        Icon(FlowIcons.Next,null,Modifier.size(20.dp))
     }
 }
 
@@ -784,63 +923,90 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
 }
 
 @Composable private fun shareSizeLabel(selection:Selection):String {
-    return sizeLabel(selection.outputSize)
+    return selection.outputSize?.let {sizeLabel(it)}.orEmpty()
 }
 
-@Composable internal fun ShareFormatRow(selected:Boolean,enabled:Boolean,title:String,size:String,audio:Boolean,tag:String,subtitle:String="",compact:Boolean=false,
-    sizePending:Boolean=false,metadataPending:Boolean=false,pulse:State<Float>?=null,reserveSize:Boolean=false,photo:Boolean=false,
-    qualityTier:Boolean=false,click:()->Unit) {
-    val interaction=remember {MutableInteractionSource()}
-    val tierFill=if(selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha=.38f)
-        else MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha=.55f)
-    val tierBorder=if(selected) MaterialTheme.colorScheme.primary.copy(alpha=.58f)
-        else MaterialTheme.colorScheme.outlineVariant.copy(alpha=.72f)
-    Surface(
-        modifier=if(qualityTier) Modifier.fillMaxWidth().padding(vertical=3.dp) else Modifier,
-        shape=RoundedCornerShape(if(qualityTier) 16.dp else 12.dp),
-        color=if(qualityTier) tierFill else Color.Transparent,
-        contentColor=MaterialTheme.colorScheme.onSurface,
-        border=if(qualityTier) BorderStroke(1.dp,tierBorder) else null
-    ) {
-        val textLayout=LocalLayoutDirection.current
-        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-            Row(Modifier.fillMaxWidth().heightIn(min=if(qualityTier) 68.dp else 64.dp).testTag(tag)
-                .selectable(selected,interactionSource=interaction,indication=null,enabled=enabled,role=Role.RadioButton,onClick=click)
-                .padding(horizontal=if(qualityTier) 8.dp else 4.dp,vertical=if(qualityTier) 10.dp else 12.dp),
-                verticalAlignment=Alignment.CenterVertically) {
-                // Physical left: [Selection Circle] [File Size]
-                Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    FlowSelectionIndicator(selected,enabled)
-                    if(sizePending&&pulse!=null) {
-                        ShareFormatSize(size,sizePending,pulse,tag)
-                    } else if(size.isNotEmpty()) {
-                        Text(size,modifier=Modifier.testTag("${tag}_size"),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
-                    } else if(reserveSize) {
-                        Spacer(Modifier.width(48.dp))
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-                // Physical right: [Title + Subtitle] [Icon] (RTL start has Icon on far right, Column to its left)
-                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                    Row(Modifier.weight(1f),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(12.dp)) {
-                        if(audio) Icon(FlowIcons.Audio,null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.onSurface)
-                        else if(photo) Icon(FlowIcons.Photo,null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.onSurface)
-                        else Icon(painterResource(R.drawable.ic_share_video),null,Modifier.size(24.dp),tint=MaterialTheme.colorScheme.onSurface)
-                        CompositionLocalProvider(LocalLayoutDirection provides textLayout) {
-                            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp),horizontalAlignment=Alignment.Start) {
-                                Text(title,modifier=Modifier.testTag("${tag}_title"),
-                                    fontWeight=if(qualityTier) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-                                    textAlign=androidx.compose.ui.text.style.TextAlign.Start,
-                                    style=(if(qualityTier) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge).copy(textDirection=androidx.compose.ui.text.style.TextDirection.Content),
-                                    maxLines=1,overflow=TextOverflow.Ellipsis)
-                                if(metadataPending&&pulse!=null) FormatPlaceholderBar(pulse,Modifier.width(120.dp).height(10.dp).testTag("${tag}_metadata_pending"))
-                                else if(subtitle.isNotEmpty()) Text(subtitle,Modifier.testTag("${tag}_description"),style=MaterialTheme.typography.bodySmall.copy(textDirection=androidx.compose.ui.text.style.TextDirection.Content),color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=2,overflow=TextOverflow.Ellipsis)
-                            }
-                        }
-                    }
-                }
+@Composable private fun QuickShareOverviewMore(enabled:Boolean,checking:Boolean,open:()->Unit) {
+    QuickShareActionRow(QuickShareAction("share_more",R.string.share_overview_more,FlowIcons.Library,
+        if(checking) ActionEnd.Checking else ActionEnd.Navigate,
+        stringResource(R.string.share_more_description)),enabled,open)
+}
+
+private enum class ActionEnd { Navigate, Expand, Collapse, Checking }
+private data class QuickShareAction(
+    val tag:String,val label:Int,val icon:ImageVector,val end:ActionEnd=ActionEnd.Navigate,val supportingText:String?=null
+)
+
+@Composable private fun QuickShareActionRow(action:QuickShareAction,enabled:Boolean,onClick:()->Unit) {
+    TextButton(onClick=onClick,enabled=enabled,shape=RoundedCornerShape(10.dp),
+        modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag(action.tag).semantics {
+            if(action.end==ActionEnd.Expand||action.end==ActionEnd.Collapse) selected=action.end==ActionEnd.Collapse
+        },contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) {
+        Icon(action.icon,null,Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(action.label),style=MaterialTheme.typography.labelLarge)
+            action.supportingText?.let {description->
+                val descriptionModifier=if(enabled) Modifier else Modifier.testTag("${action.tag}_disabled_reason")
+                Text(description,descriptionModifier,style=MaterialTheme.typography.bodySmall,
+                    color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        if(action.end==ActionEnd.Checking) QuickShareCheckingSources()
+        else Icon(when(action.end) {
+            ActionEnd.Expand->Icons.Outlined.ExpandMore
+            ActionEnd.Collapse->Icons.Outlined.ExpandLess
+            else->FlowIcons.Next
+        },null,Modifier.size(20.dp))
+    }
+}
+
+@Composable private fun QuickShareCheckingSources() {
+    val label=stringResource(R.string.share_checking_sources)
+    CircularProgressIndicator(Modifier.size(16.dp).testTag("share_more_checking")
+        .semantics {contentDescription=label},strokeWidth=2.dp)
+}
+
+@Composable private fun ShareFormatRow(
+    selected:Boolean,enabled:Boolean,title:String,size:String,tag:String,subtitle:String="",
+    sizePending:Boolean=false,pulse:State<Float>?=null,onDrawn:(()->Unit)?=null,
+    overviewIcon:ImageVector?=null,click:()->Unit
+) {
+    val colors=MaterialTheme.colorScheme
+    val config=LocalConfiguration.current
+    val stackSize=config.fontScale>=1.35f||config.screenWidthDp<340
+    val metrics:@Composable ()->Unit={
+        if(sizePending&&pulse!=null) ShareFormatSize(size,true,pulse,tag)
+        else if(size.isNotBlank()) Text(size,Modifier.testTag("${tag}_size"),
+            style=MaterialTheme.typography.labelMedium,color=colors.onSurfaceVariant)
+    }
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().heightIn(min=if(overviewIcon==null) 48.dp else 56.dp).testTag(tag)
+            .then(if(onDrawn!=null&&enabled) Modifier.drawWithContent {
+                drawContent()
+                onDrawn()
+            } else Modifier)
+            .clip(RoundedCornerShape(10.dp))
+            .background(if(selected) colors.primaryContainer.copy(alpha=.42f) else Color.Transparent)
+             .selectable(selected,interactionSource=remember {MutableInteractionSource()},
+                 indication=LocalIndication.current.takeIf {overviewIcon!=null},
+                enabled=enabled,role=Role.RadioButton,onClick=click)
+            .padding(horizontal=8.dp,vertical=6.dp),
+            verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+            if(overviewIcon==null) FlowSelectionIndicator(selected,enabled)
+            else Icon(overviewIcon,null,Modifier.size(22.dp),tint=if(enabled) colors.onSurface else colors.onSurfaceVariant)
+            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                Text(title,Modifier.testTag("${tag}_title"),style=MaterialTheme.typography.titleSmall
+                    .copy(textDirection=androidx.compose.ui.text.style.TextDirection.Content),
+                    color=if(selected) colors.onPrimaryContainer else colors.onSurface)
+                if(subtitle.isNotBlank()) Text(subtitle,Modifier.testTag("${tag}_description"),
+                    style=MaterialTheme.typography.bodySmall,color=colors.onSurfaceVariant)
+                if(stackSize) metrics()
+            }
+            if(!stackSize&&(size.isNotBlank()||sizePending)) metrics()
+            if(overviewIcon!=null) FlowSelectionIndicator(selected,enabled)
+        }
+        if(overviewIcon==null) HorizontalDivider(color=colors.outlineVariant.copy(alpha=.36f))
     }
 }
 
@@ -855,7 +1021,7 @@ import com.zdownloader.app.ui.spectrumPluralStringResource as pluralStringResour
 @Composable internal fun qualityTitle(format:Format):String {
     if(format.generatedSlideshow) return stringResource(R.string.generated_slideshow)
     val edge=QuickShareCatalog.numericVideoQuality(format) ?: return stringResource(R.string.share_unknown_quality)
-    return "${edge}p"
+    return encodedDimensionsText(format) ?: "${edge}p"
 }
 
 /** Isolate encoded width×height so an RTL paragraph cannot visually swap them. */

@@ -4,20 +4,23 @@ import org.json.JSONObject
 import java.net.URI
 
 data class PlaylistSizeHint(val bytes:Long,val estimated:Boolean,val video:Boolean,val audio:Boolean,val quality:Int?)
-data class PlaylistEntry(val key:String,val url:String?,val position:Int,val title:String?,val thumbnail:String?=null,val duration:Double?=null,val reason:String?=null,val collection:Boolean=false,val sizeHint:PlaylistSizeHint?=null,val mediaId:String?=null,val extractor:String?=null) {
+data class PlaylistEntry(val key:String,val url:String?,val position:Int,val title:String?,val thumbnail:String?=null,val duration:Double?=null,val reason:String?=null,val collection:Boolean=false,val sizeHint:PlaylistSizeHint?=null,val mediaId:String?=null,val extractor:String?=null,val seasonNumber:Int?=null,val episodeNumber:Int?=null) {
     val selectable get()=url!=null&&reason==null&&!collection
 }
-data class PlaylistPage(val url:String,val title:String?,val creator:String?,val thumbnail:String?,val total:Int?,val items:List<PlaylistEntry>,val nextOffset:Int,val hasMore:Boolean) {
+data class PlaylistSeasonWarning(val seasonNumber:Int?,val title:String?)
+data class PlaylistPage(val url:String,val title:String?,val creator:String?,val thumbnail:String?,val total:Int?,val items:List<PlaylistEntry>,val nextOffset:Int,val hasMore:Boolean,val collectionType:String?=null,val seasonNumber:Int?=null,val unverifiedSeasons:List<PlaylistSeasonWarning> = emptyList()) {
     companion object {
         fun parse(j:JSONObject,url:String):PlaylistPage {
             if(j.has("error")) throw MediaException(ErrorCode.parse(j.optString("error")))
             val a=j.getJSONArray("items")
             require(a.length()<=100)
+            val warnings=j.optJSONArray("unverified_seasons")
             return PlaylistPage(url,j.text("title"),j.text("creator"),j.text("thumbnail"),j.number("total")?.toInt(),
                 (0 until a.length()).map {i-> val e=a.getJSONObject(i)
                     val hint=e.optJSONObject("size_hint")?.let {h->h.number("bytes")?.takeIf {it<Long.MAX_VALUE.toDouble()}?.let {bytes->PlaylistSizeHint(bytes.toLong(),h.optBoolean("estimated"),h.optBoolean("video"),h.optBoolean("audio"),h.number("quality")?.toInt())}}
-                    PlaylistEntry(e.getString("key"),e.text("url")?.let {runCatching {UrlPolicy.normalize(it)}.getOrNull()},e.getInt("position"),e.text("title"),e.text("thumbnail"),e.number("duration"),e.text("reason"),e.optBoolean("collection"),hint,e.text("id"),e.text("extractor"))
-                },j.getInt("next_offset"),j.optBoolean("has_more"))
+                    PlaylistEntry(e.getString("key"),e.text("url")?.let {runCatching {UrlPolicy.normalize(it)}.getOrNull()},e.getInt("position"),e.text("title"),e.text("thumbnail"),e.number("duration"),e.text("reason"),e.optBoolean("collection"),hint,e.text("id"),e.text("extractor"),e.number("season_number")?.toInt()?.takeIf {it in 1..999},e.number("episode_number")?.toInt()?.takeIf {it in 1..9999})
+                },j.getInt("next_offset"),j.optBoolean("has_more"),j.text("collection_type"),j.number("season_number")?.toInt()?.takeIf {it in 1..999},
+                (0 until (warnings?.length() ?: 0)).mapNotNull {index->runCatching {warnings!!.getJSONObject(index)}.getOrNull()?.let {w->PlaylistSeasonWarning(w.number("season_number")?.toInt()?.takeIf {it in 1..999},w.text("title"))}})
         }
     }
 }
@@ -55,6 +58,12 @@ data class PlaylistPolicy(val audio:Boolean=false,val output:String="original",v
     companion object {fun parse(value:String):PlaylistPolicy {val j=JSONObject(value);return PlaylistPolicy(j.optBoolean("audio"),j.optString("output","original"),j.optInt("height",720),QualityFallback.valueOf(j.optString("fallback","AT_MOST")),j.optInt("bitrate",192))}}
 }
 object PlaylistUrls {
+    fun isTopCinemaCollection(url:String):Boolean {
+        val u=runCatching {URI(url)}.getOrNull() ?: return false
+        val segments=u.path.split('/').filter {it.isNotBlank()}
+        return u.scheme=="https"&&u.host?.lowercase() in setOf("topcinemaa.one","www.topcinemaa.one","topcinema.cam","www.topcinema.cam")&&
+            u.userInfo==null&&(u.port==-1||u.port==443)&&segments.size==2&&segments[0].equals("series",true)
+    }
     fun ambiguous(url:String):Boolean {
         val u=runCatching {URI(url)}.getOrNull() ?: return false
         val query=u.rawQuery.orEmpty().split('&').map {it.substringBefore('=')}.toSet()
@@ -62,7 +71,7 @@ object PlaylistUrls {
     }
     fun candidate(url:String):Boolean {
         val u=runCatching {URI(url)}.getOrNull() ?: return false
-        return u.rawQuery.orEmpty().split('&').any {it.substringBefore('=')=="list"}||Regex("/(playlist|sets|albums?|collections?|showcase)(/|$)",RegexOption.IGNORE_CASE).containsMatchIn(u.path)
+        return isTopCinemaCollection(url)||u.rawQuery.orEmpty().split('&').any {it.substringBefore('=')=="list"}||Regex("/(playlist|sets|albums?|collections?|showcase)(/|$)",RegexOption.IGNORE_CASE).containsMatchIn(u.path)
     }
 }
 

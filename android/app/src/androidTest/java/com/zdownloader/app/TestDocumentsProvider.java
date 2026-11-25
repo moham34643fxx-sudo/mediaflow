@@ -23,6 +23,7 @@ public class TestDocumentsProvider extends DocumentsProvider {
     private boolean refuseMutation;
     private boolean failMetadataAfterMutation;
     private String failedQuery;
+    private final ConcurrentHashMap<String, String> createFailures = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String,Integer> deletions=new ConcurrentHashMap<>();
     private File root() { File f = new File(getContext().getCacheDir(), "saf-contract"); f.mkdirs(); return f; }
     private File file(String id) throws FileNotFoundException { File f = "root".equals(id) ? root() : files.get(id); if(f == null) throw new FileNotFoundException(id); return f; }
@@ -32,7 +33,7 @@ public class TestDocumentsProvider extends DocumentsProvider {
         finally {android.os.Binder.restoreCallingIdentity(token);}
     }
     private String authority() {return getContext().getPackageName()+".documents";}
-    private boolean isCandidate() {return getContext().getPackageName().equals("com.zdownloader.app.candidate0965.test");}
+    private boolean isCandidate() {return getContext().getPackageName().equals("com.zdownloader.app.test");}
     @Override public boolean onCreate() {
         grant();
         return true;
@@ -43,6 +44,11 @@ public class TestDocumentsProvider extends DocumentsProvider {
         if("revokeTree".equals(method)) {long token=android.os.Binder.clearCallingIdentity();try {getContext().revokeUriPermission(DocumentsContract.buildTreeDocumentUri(authority(),arg),Intent.FLAG_GRANT_READ_URI_PERMISSION|Intent.FLAG_GRANT_WRITE_URI_PERMISSION);} finally {android.os.Binder.restoreCallingIdentity(token);}return new android.os.Bundle();}
         if("mutationMode".equals(method)) {stableIds=extras.getBoolean("stable");refuseMutation=extras.getBoolean("refuse");failMetadataAfterMutation=extras.getBoolean("failMetadata");failedQuery=null;return new android.os.Bundle();}
         if("failQuery".equals(method)) {failedQuery=arg;return new android.os.Bundle();}
+        if("failAuditCreate".equals(method) && isCandidate() &&
+                arg.matches("\\.audit-publication-[0-9a-f-]{36}\\.pending")) {
+            createFailures.put(arg, extras.getString("failure"));
+            return new android.os.Bundle();
+        }
         if("deletions".equals(method)) {android.os.Bundle count=new android.os.Bundle();count.putInt("count",deletions.getOrDefault(arg,0));return count;}
         if("delayQuery".equals(method)) {queryDelays.put(arg,Math.min(5000,Math.max(1,extras.getLong("millis",2500))));startedQueries.remove(arg);finishedQueries.remove(arg);return new android.os.Bundle();}
         if("queryState".equals(method)) {android.os.Bundle state=new android.os.Bundle();state.putBoolean("started",startedQueries.contains(arg));state.putBoolean("finished",finishedQueries.contains(arg));return state;}
@@ -75,6 +81,14 @@ public class TestDocumentsProvider extends DocumentsProvider {
         return cursor;
     }
     @Override public String createDocument(String parent, String mime, String name) throws FileNotFoundException {
+        String failure = createFailures.remove(name);
+        if (failure != null) switch (failure) {
+            case "no-space": throw new FileNotFoundException("open failed: ENOSPC (No space left on device)");
+            case "permission": throw new SecurityException("Synthetic permission denial");
+            case "unavailable": throw new FileNotFoundException("open failed: ENOENT (No such file or directory)");
+            case "write": throw new FileNotFoundException("open failed: EIO (I/O error)");
+            default: throw new IllegalArgumentException("Unknown audit fixture failure");
+        }
         String id = UUID.randomUUID().toString(); File f = new File(file(parent),name);
         try { if(!(DocumentsContract.Document.MIME_TYPE_DIR.equals(mime) ? f.mkdir() : f.createNewFile())) throw new FileNotFoundException(name); } catch(java.io.IOException e) { throw new FileNotFoundException(e.getMessage()); }
         files.put(id,f);mimes.put(id,mime); return id;

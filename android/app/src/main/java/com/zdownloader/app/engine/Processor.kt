@@ -265,7 +265,14 @@ import javax.inject.Singleton
                 }
             }
             control.check()
-            if(result!=0 || !raw.isFile || raw.length() == 0L) { raw.delete(); throw MediaException(when(result) {-2->ErrorCode.DOWNLOAD_INTERRUPTED;-3->ErrorCode.INSUFFICIENT_STORAGE;-4->ErrorCode.FILE_WRITE_FAILED;else->ErrorCode.CONVERSION_FAILED}) }
+            if(result!=0 || !raw.isFile || raw.length() == 0L) {
+                val code=NativeMp3EncoderFailure.code(result)
+                NetworkDiagnostics.record("media","mp3_encoder_failed",code,operation=output.parentFile?.name,
+                    details=org.json.JSONObject().put("native_return_code",result).put("output_exists",raw.isFile)
+                        .put("encoder_output_bytes",raw.length()).put("bitrate_kbps",selection.bitrate))
+                raw.delete()
+                throw MediaException(code)
+            }
             val encodedAt=android.os.SystemClock.elapsedRealtime()
             progress.phase(AudioProcessingPhase.FINALIZING)
             NetworkDiagnostics.record("media","mp3_encoding_timing",null,operation=output.parentFile?.name,

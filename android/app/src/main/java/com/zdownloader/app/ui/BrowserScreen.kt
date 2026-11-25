@@ -24,6 +24,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -37,6 +38,16 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.zdownloader.app.domain.BrowserMediaLinks
 import com.zdownloader.app.R
 import com.zdownloader.app.BuildConfig
+import com.zdownloader.app.adblock.BrowserAdblock
+import com.zdownloader.app.adblock.BrowserAdblockDiagnostics
+import com.zdownloader.app.adblock.BrowserCosmeticBridge
+import com.zdownloader.app.adblock.BrowserRequestFilter
+import com.zdownloader.app.adblock.BrowserServiceWorkerInterceptor
+import com.zdownloader.app.adblock.BrowserYoutubePlayerScriptlet
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicReference
 
 private data class QuickBookmark(val title:String,val url:String) {
     val host=java.net.URI(url).host.removePrefix("www.").removePrefix("m.")
@@ -52,14 +63,26 @@ internal fun BrowserScreen(
     authTitle: String? = null,
     onAuthSuccess: (() -> Unit)? = null
 ) {
+    val appContext = LocalContext.current.applicationContext
+    val adblockState by BrowserAdblock.state.collectAsState()
+    val loadPlayerScript = !authMode && BrowserAdblockDiagnostics.isEnabledForQa()
+    val playerScript by produceState<String?>(null, appContext, loadPlayerScript) {
+        if (loadPlayerScript) value = withContext(Dispatchers.IO) {
+            BrowserYoutubePlayerScriptlet.load(appContext)
+        }
+    }
     var webView by remember { mutableStateOf<WebView?>(null) }
     var currentUrl by remember { mutableStateOf(initialUrl) }
+    val pageUrlForFiltering = remember(initialUrl) { AtomicReference(initialUrl) }
     var urlInput by remember { mutableStateOf(initialUrl) }
     var pageTitle by remember { mutableStateOf("") }
     var progress by remember { mutableFloatStateOf(0f) }
     var detectedUrl by remember { mutableStateOf<String?>(null) }
     var browserError by remember {mutableStateOf<Int?>(null)}
     var browserGeneration by remember {mutableIntStateOf(0)}
+    var showAdblockSettings by remember {mutableStateOf(false)}
+    var blockedRequestCount by remember {mutableLongStateOf(0L)}
+    var blockedPopupCount by remember {mutableLongStateOf(0L)}
     val retryState=remember(initialUrl) {BrowserRetryState(initialUrl)}
     val focusManager = LocalFocusManager.current
     val lifecycleOwner=LocalLifecycleOwner.current
@@ -84,7 +107,8 @@ internal fun BrowserScreen(
         while (true) {
             kotlinx.coroutines.delay(1000)
             val cm = runCatching { CookieManager.getInstance() }.getOrNull()
-            if (cm != null && com.zdownloader.app.engine.FacebookSessionManager.hasAuthCookies(cm)) {
+            val trustedAuthPage=!authMode||FacebookAuthNavigationPolicy.isFacebookAuthOrigin(currentUrl)
+            if (cm != null && trustedAuthPage && com.zdownloader.app.engine.FacebookSessionManager.hasAuthCookies(cm)) {
                 if (com.zdownloader.app.engine.FacebookSessionManager.isSessionExpired() ||
                     !com.zdownloader.app.engine.FacebookSessionManager.hasActiveSession()) {
                     cm.flush()
@@ -152,6 +176,25 @@ internal fun BrowserScreen(
         try {java.net.URI(currentUrl).host?.lowercase(java.util.Locale.ROOT)?.removePrefix("www.")?.removePrefix("m.")}
         catch(_:java.net.URISyntaxException) {null}
     }
+    val authOrigin=remember(currentUrl) {FacebookAuthNavigationPolicy.inspect(currentUrl)}
+    val authOriginScroll=rememberScrollState()
+    val adblockHost=remember(currentUrl) {
+        try {java.net.URI(currentUrl).host?.trimEnd('.')?.lowercase(java.util.Locale.ROOT)}
+        catch(_:java.net.URISyntaxException) {null}
+    }
+    LaunchedEffect(appContext,authMode) {
+        if(!authMode) BrowserAdblock.initialize(appContext)
+    }
+    LaunchedEffect(showAdblockSettings) {
+        while (showAdblockSettings) {
+            blockedRequestCount=BrowserAdblock.blockedRequestCount()
+            blockedPopupCount=BrowserAdblock.blockedPopupCount()
+            kotlinx.coroutines.delay(750)
+        }
+    }
+    LaunchedEffect(adblockState.enabled,adblockState.excludedHosts,adblockState.engineReady,adblockHost) {
+        webView?.evaluateJavascript(BrowserCosmeticBridge.REAPPLY_SCRIPT,null)
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize().testTag("browser_screen"),
@@ -180,20 +223,36 @@ internal fun BrowserScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(
-                                Icons.Outlined.Lock,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = authTitle ?: stringResource(R.string.facebook_secure_connection),
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            if(authOrigin.kind==FacebookAuthOriginKind.FACEBOOK_HTTPS) {
+                                Icon(Icons.Outlined.Lock,contentDescription=null,tint=MaterialTheme.colorScheme.primary,
+                                    modifier=Modifier.size(18.dp))
+                            } else {
+                                Text("!",color=MaterialTheme.colorScheme.error,fontWeight=FontWeight.Bold,
+                                    modifier=Modifier.testTag("browser_auth_origin_warning"))
+                            }
+                            Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = authTitle ?: stringResource(R.string.facebook_auth_title),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                val originText=when(authOrigin.kind) {
+                                    FacebookAuthOriginKind.FACEBOOK_HTTPS -> stringResource(R.string.facebook_auth_origin_facebook,authOrigin.host.orEmpty())
+                                    FacebookAuthOriginKind.EXTERNAL_HTTPS -> stringResource(R.string.facebook_auth_origin_external,authOrigin.host.orEmpty())
+                                    FacebookAuthOriginKind.BLOCKED_HTTP -> stringResource(R.string.facebook_auth_origin_insecure,authOrigin.host.orEmpty())
+                                    FacebookAuthOriginKind.BLOCKED_UNVERIFIED -> authOrigin.host?.let {
+                                        stringResource(R.string.facebook_auth_origin_unverified,it)
+                                    } ?: stringResource(R.string.facebook_auth_origin_unknown)
+                                }
+                                Text(originText,modifier=Modifier.fillMaxWidth().horizontalScroll(authOriginScroll)
+                                    .testTag("browser_auth_origin"),style=MaterialTheme.typography.labelSmall,
+                                    maxLines=1,softWrap=false,overflow=TextOverflow.Clip,
+                                    color=if(authOrigin.kind==FacebookAuthOriginKind.FACEBOOK_HTTPS)
+                                        MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error)
+                            }
                         }
 
                         FlowIconButton(FlowIcons.Retry, stringResource(R.string.retry),
@@ -255,6 +314,14 @@ internal fun BrowserScreen(
 
                         FlowIconButton(FlowIcons.Retry,stringResource(R.string.retry),
                             {if(browserError!=null||webView==null) retryPage() else webView?.reload()})
+                        if (!authMode) {
+                            FlowIconButton(
+                                FlowIcons.Security,
+                                stringResource(R.string.adblock_accessibility),
+                                {showAdblockSettings=true},
+                                Modifier.testTag("browser_adblock_settings")
+                            )
+                        }
                         FlowIconButton(FlowIcons.Close,stringResource(R.string.close),onClose,Modifier.testTag("browser_close"))
                     }
                 }
@@ -331,42 +398,57 @@ internal fun BrowserScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            key(browserGeneration) {AndroidView(
+            if (!loadPlayerScript || playerScript != null) key(browserGeneration) {AndroidView(
                 factory = { context ->
                     val host=BrowserWebViewHost(context)
                     try {
-                    WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
-                    WebView(context).apply {
-                        host.attach(this)
-                        webView=this
-                        // BrowserWebViewHost owns the child's FrameLayout.LayoutParams.
+                     WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
+                      WebView(context).apply {
+                          host.attach(this)
+                          webView=this
+                          BrowserServiceWorkerInterceptor.registerWebView(
+                              this,
+                              retryState.target,
+                              authMode
+                          )
+                           if(!authMode) BrowserAdblock.initialize(context)
+                          val documentStartCosmetics=if(authMode) false else BrowserCosmeticBridge.install(this,playerScript)
+                         // BrowserWebViewHost owns the child's FrameLayout.LayoutParams.
                         // Replacing them with generic ViewGroup params crashes measurement.
                         settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
                             databaseEnabled = true
                             mediaPlaybackRequiresUserGesture = false
-                            mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
-                            cacheMode = WebSettings.LOAD_DEFAULT
+                              cacheMode = WebSettings.LOAD_DEFAULT
+                              setSupportMultipleWindows(!authMode)
+                              javaScriptCanOpenWindowsAutomatically = false
                             // Keep the installed provider's actual capabilities/version.
-                            // A fixed Chrome UA causes sites to choose incompatible paths.
-                        }
-                        CookieManager.getInstance().setAcceptCookie(true)
-                        CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-                        webChromeClient = object : WebChromeClient() {
+                             // A fixed Chrome UA causes sites to choose incompatible paths.
+                         }
+                         configureBrowserWebViewSecurity(this,authMode)
+                         CookieManager.getInstance().setAcceptCookie(true)
+                         webChromeClient = object : WebChromeClient() {
                             override fun onProgressChanged(view: WebView?, newProgress: Int) {
                                 if(webView===view) progress = newProgress / 100f
                             }
                             override fun onReceivedTitle(view: WebView?, title: String?) {
                                 if(webView===view) pageTitle = title.orEmpty()
                             }
+                            override fun onCreateWindow(view:WebView?,isDialog:Boolean,isUserGesture:Boolean,resultMsg:android.os.Message?):Boolean {
+                                if(!authMode) BrowserAdblock.recordBlockedPopup()
+                                return false
+                            }
                         }
-                        webViewClient=browserNavigationClient(navigation={view,url->if(webView===view) {
-                            currentUrl=url;urlInput=url
-                            val cm = runCatching { CookieManager.getInstance() }.getOrNull()
-                            if (cm != null && com.zdownloader.app.engine.FacebookSessionManager.hasAuthCookies(cm)) {
-                                cm.flush()
-                                com.zdownloader.app.engine.FacebookSessionManager.markSessionValid()
+                          webViewClient=browserNavigationClient(navigation={view,url->if(webView===view) {
+                              BrowserServiceWorkerInterceptor.updatePage(view,url)
+                               if(!authMode) BrowserCosmeticBridge.updatePageUrl(view,url)
+                              currentUrl=url;pageUrlForFiltering.set(url);urlInput=url
+                             val cm = runCatching { CookieManager.getInstance() }.getOrNull()
+                             val trustedAuthPage=!authMode||FacebookAuthNavigationPolicy.isFacebookAuthOrigin(url)
+                             if (cm != null && trustedAuthPage && com.zdownloader.app.engine.FacebookSessionManager.hasAuthCookies(cm)) {
+                                 cm.flush()
+                                 com.zdownloader.app.engine.FacebookSessionManager.markSessionValid()
                                 if (authMode) {
                                     onAuthSuccess?.invoke()
                                 }
@@ -377,7 +459,34 @@ internal fun BrowserScreen(
                         }},pageError={view,url,method->if(webView===view) {retryState.failed(url,method);browserError=R.string.browser_page_failed;progress=0f}},rendererGone={view->
                             if(webView===view) {retryState.rendererGone();webView=null;detectedUrl=null;progress=0f;browserError=R.string.browser_renderer_failed}
                             host.release(rendererGone=true)
-                        },requested=retryState::requested)
+                          },requested=retryState::requested,pageStarted={view,url->
+                              if(webView===view) {
+                                  BrowserServiceWorkerInterceptor.updatePage(view,url)
+                                  if(authMode) {
+                                     currentUrl=url
+                                     urlInput=url
+                                     if(!FacebookAuthNavigationPolicy.allowsAuthNavigation(url)) view.stopLoading()
+                                  } else {
+                                       BrowserCosmeticBridge.beginPage(view,url)
+                                      pageUrlForFiltering.set(url)
+                                      BrowserAdblock.pageStarted(url)
+                                     if(!documentStartCosmetics)
+                                         view.evaluateJavascript(BrowserCosmeticBridge.fallbackScript(),null)
+                                 }
+                             }
+                          },intercept={request->
+                              if(authMode) null else BrowserRequestFilter.intercept(request,pageUrlForFiltering.get())
+                          },blockMainFrameRedirect={request->
+                              !authMode&&BrowserRequestFilter.shouldBlockMainFrameRedirect(request,pageUrlForFiltering.get())
+                          },mainFrameNavigationAllowed={url->
+                             !authMode||FacebookAuthNavigationPolicy.allowsAuthNavigation(url)
+                         },blockedMainFrameNavigation={view,url->
+                             if(authMode&&webView===view) {
+                                 currentUrl=url
+                                 urlInput=url
+                                 detectedUrl=null
+                             }
+                         })
                         loadUrl(retryState.target)
                     }
                     } catch(_:RuntimeException) {host.release();webView=null;browserError=R.string.browser_unavailable}
@@ -402,6 +511,86 @@ internal fun BrowserScreen(
                 }
             }
         }
+    }
+    if(showAdblockSettings&&!authMode) {
+        val host=adblockHost
+        val blocked=blockedRequestCount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        val popups=blockedPopupCount.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+        AlertDialog(
+            onDismissRequest={showAdblockSettings=false},
+            title={Text(stringResource(R.string.adblock_dialog_title))},
+            text={
+                Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                    Row(verticalAlignment=Alignment.CenterVertically) {
+                        Text(stringResource(R.string.adblock_global_toggle),Modifier.weight(1f))
+                        Switch(
+                            checked=adblockState.enabled,
+                            onCheckedChange={BrowserAdblock.setEnabled(appContext,it)},
+                            modifier=Modifier.testTag("browser_adblock_global_switch")
+                        )
+                    }
+                    if(host!=null) {
+                        Row(verticalAlignment=Alignment.CenterVertically) {
+                            Text(
+                                stringResource(R.string.adblock_site_exception,host),
+                                Modifier.weight(1f),
+                                style=MaterialTheme.typography.bodyMedium
+                            )
+                            Switch(
+                                checked=host in adblockState.excludedHosts,
+                                onCheckedChange={BrowserAdblock.setHostExcluded(appContext,host,it)},
+                                modifier=Modifier.testTag("browser_adblock_site_switch")
+                            )
+                        }
+                    }
+                    Text(
+                        pluralStringResource(R.plurals.adblock_blocked_resources,blocked,blocked),
+                        modifier=Modifier.testTag("browser_adblock_blocked_resources"),
+                        style=MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        pluralStringResource(R.plurals.adblock_blocked_popups,popups,popups),
+                        modifier=Modifier.testTag("browser_adblock_blocked_popups"),
+                        style=MaterialTheme.typography.bodySmall
+                    )
+                    Text(
+                        if(adblockState.engineReady) stringResource(
+                            R.string.adblock_filter_counts,
+                            adblockState.networkRules,
+                            adblockState.cosmeticRules
+                        ) else if(adblockState.loading) stringResource(R.string.adblock_loading)
+                        else if(adblockState.nativeAvailable) stringResource(R.string.adblock_unavailable)
+                        else stringResource(R.string.adblock_native_unavailable),
+                        style=MaterialTheme.typography.bodySmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        stringResource(R.string.adblock_update_policy),
+                        style=MaterialTheme.typography.bodySmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        stringResource(R.string.adblock_webview_limits),
+                        style=MaterialTheme.typography.bodySmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if(loadPlayerScript) Text(
+                        stringResource(R.string.adblock_player_scriptlet_reload),
+                        style=MaterialTheme.typography.bodySmall,
+                        color=MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton={
+                TextButton(
+                    onClick={showAdblockSettings=false},
+                    modifier=Modifier.testTag("browser_adblock_close")
+                ) {
+                    Text(stringResource(R.string.close))
+                }
+            },
+            modifier=Modifier.testTag("browser_adblock_dialog")
+        )
     }
 }
 

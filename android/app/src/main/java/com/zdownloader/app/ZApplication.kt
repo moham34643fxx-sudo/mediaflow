@@ -2,6 +2,7 @@ package com.zdownloader.app
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
+import com.zdownloader.app.adblock.BrowserServiceWorkerInterceptor
 import com.zdownloader.app.data.DownloadRepository
 import com.zdownloader.app.engine.QueueCoordinator
 import com.zdownloader.app.engine.Extractor
@@ -32,6 +33,9 @@ class ZApplication : Application(), coil.ImageLoaderFactory, androidx.work.Confi
     override fun onCreate() {
         com.zdownloader.app.data.SettingsRepository.shouldShowWelcome(this)
         super.onCreate()
+        // Install before an Activity can create a WebView or register a worker.
+        // The client is pass-through unless an ordinary browser page is active.
+        BrowserServiceWorkerInterceptor.install()
         CoroutineScope(SupervisorJob()+Dispatchers.IO).launch {
             try {
                 runCatching { com.zdownloader.app.engine.NetworkDiagnostics.start(this@ZApplication) }

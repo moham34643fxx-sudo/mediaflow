@@ -90,12 +90,12 @@ zextractor.classify = _zd_record
             "html5" to "https://www.w3schools.com/html/html5_video.asp",
             "youtube" to "https://www.youtube.com/watch?v=jNQXAC9IVRw",
             "vimeo" to "https://vimeo.com/76979871",
-            "facebook" to "https://www.facebook.com/share/v/1TBGC8WbKh/")
+            "facebook" to "https://www.facebook.com/reel/1102243642315985/")
         if(args.getString("instantMatrix")=="true") {
             sources.clear()
             sources.putAll(linkedMapOf(
                 "youtube" to "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-                "facebook" to "https://www.facebook.com/share/v/1TBGC8WbKh/",
+                "facebook" to "https://www.facebook.com/reel/1102243642315985/",
                 "instagram" to "https://www.instagram.com/reel/Chunk8-jurw/",
                 "tiktok" to "https://www.tiktok.com/@scout2015/video/6718335390845095173",
                 "direct-mp4" to "https://www.w3schools.com/html/mov_bbb.mp4",

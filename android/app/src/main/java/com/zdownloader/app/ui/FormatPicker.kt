@@ -105,7 +105,7 @@ internal fun codecLabel(codec:String?):String = when {
         LazyColumn(Modifier.weight(1f,false).fillMaxWidth().testTag("format_sheet"),contentPadding=PaddingValues(start=20.dp,end=20.dp,bottom=12.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
             if(audio) {
                 item { Text(stringResource(R.string.audio_format),style=MaterialTheme.typography.titleMedium);FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    listOf("original","mp3","m4a","aac","flac","opus").forEach { value ->
+                    AudioOutputFormats.picker.forEach { value ->
                         val size=runCatching {Selection.audio(media,value,media.formats.firstOrNull {it.id==audioSourceId},bitrate).outputSize}.getOrNull()
                         val title=if(value=="original") stringResource(R.string.share_source_copy,Selection.audio(media,"original",media.formats.firstOrNull {it.id==audioSourceId}).output.uppercase()) else value.uppercase()
                         FilterChip(output==value,{onOutput(value)},modifier=Modifier.testTag("audio_output_$value"),label={Text(title+" — "+sizeLabel(size))}) }

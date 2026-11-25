@@ -7,9 +7,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.net.Uri
 import android.provider.MediaStore
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.toPixelMap
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
@@ -60,8 +57,8 @@ class CompactAudioPlayerTest {
     private suspend fun await(timeoutMillis:Long=25_000,floatingWindow:Boolean?=null,pumpCompose:Boolean=true,
         predicate:()->Boolean) {
         try {withTimeout(timeoutMillis) {while(true) {
-            // Pump the empty Compose rule while waiting for the popup's
-            // lifecycle owner to attach the shared playback controller.
+            // Pump the empty Compose rule while waiting for the active playback
+            // Activity to attach the shared controller.
             if(pumpCompose) compose.waitForIdle()
             // Accessibility must run off the app main thread: the same thread
             // services requests for this process's overlay view hierarchy.
@@ -109,7 +106,7 @@ class CompactAudioPlayerTest {
             .put("screen_interactive",app.getSystemService(android.os.PowerManager::class.java).isInteractive)
             .put("keyguard_locked",app.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked)
             .put("overlay_permission",android.provider.Settings.canDrawOverlays(app))
-            .put("compact_windows",popups().size).put("external_openers",externalOpeners().size).put("full_windows",fullPlayers().size)
+            .put("external_openers",externalOpeners().size).put("full_windows",fullPlayers().size)
             .put("activities",JSONArray(visibleActivities().map {activity->
                 JSONObject().put("class",activity.javaClass.simpleName)
                     .put("stage",ActivityLifecycleMonitorRegistry.getInstance().getLifecycleStageOf(activity).name)
@@ -120,7 +117,6 @@ class CompactAudioPlayerTest {
     }
     private fun visibleActivities()=listOf(Stage.RESUMED,Stage.STARTED,Stage.PAUSED,Stage.STOPPED)
         .flatMap {ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(it)}.distinct()
-    private fun popups()=visibleActivities().filterIsInstance<InAppAudioPreviewActivity>()
     private fun externalOpeners()=visibleActivities().filterIsInstance<ExternalAudioOpenActivity>()
     private fun fullPlayers()=visibleActivities().filterIsInstance<PlayerActivity>()
     private fun previewTimingEvidence():JSONObject {
@@ -153,7 +149,7 @@ class CompactAudioPlayerTest {
         underlying.onActivity {it.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
     }
 
-    @Test fun externalAudioCodecsUseOneSessionlessPreviewWithoutLaunchingTheInAppPlayer()=runBlocking<Unit> {
+    @Test fun externalAudioCodecsUseOneSessionlessPreviewWithoutLaunchingTheFullPlayer()=runBlocking<Unit> {
         assertTrue(android.provider.Settings.canDrawOverlays(app))
         SettingsRepository(app).text("language","en")
         underlying.close();underlyingClosed=true
@@ -175,8 +171,7 @@ class CompactAudioPlayerTest {
             assertEquals(listOf("com.zdownloader.app.playback.AudioPopupActivity"),app.packageManager.queryIntentActivities(probe,0).map {it.activityInfo.name})
             val uri=send(source,mime)
             await(floatingWindow=true) {ExternalAudioPreview.player?.let {it.currentMediaItem?.mediaId==uri.toString()&&it.isPlaying&&it.currentPosition>100}==true}
-            compose.onNodeWithTag("compact_audio_player").assertDoesNotExist()
-            assertEquals(0,main {fullPlayers().size});assertEquals(0,main {popups().size})
+            assertEquals(0,main {fullPlayers().size})
             assertTrue(hasFloatingWindow())
             assertEquals(0,main {activeMediaFlowSessionCount()})
             assertFalse(main {PlaybackRuntime.active})
@@ -195,122 +190,44 @@ class CompactAudioPlayerTest {
             .put("one_preview_at_a_time",true)
     }
 
-    @Test fun internalAudioPauseSeekAndFullHandoffKeepTheExactSessionAndPosition()=runBlocking<Unit> {
+    @Test fun internalAudioUsesFullPlayerAndMiniPlayerWithoutDuplicatingTheSession()=runBlocking<Unit> {
         val uri=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(uri.toString(),title=arabicTitle)}
-        // Drive Compose frames while waiting for the popup to acquire its UI lifecycle owner.
-        compose.waitUntil(25_000) {
-            connection.state.value.current?.uri==uri.toString()&&connection.state.value.playing&&connection.state.value.position>300
-        }
-        compose.onNodeWithTag("compact_audio_player").assertIsDisplayed()
-        assertEquals(0,main {fullPlayers().size})
-        compose.onNodeWithTag("compact_audio_toggle").performClick()
+        await {connection.state.value.current?.uri==uri.toString()&&connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
+        assertEquals(1,main {fullPlayers().count {!it.isFinishing}})
+        assertTrue(main {externalOpeners().isEmpty()})
+        compose.onNodeWithTag("audio_player").assertIsDisplayed()
+        val controller=main {connection.player.value!!}
+        compose.onNodeWithTag("player_play_pause").performClick()
         await {!connection.state.value.playing}
         main {connection.seek(5000)}
         await {kotlin.math.abs(connection.state.value.position-5000)<300}
-        val player=main {connection.player.value!!}
-        compose.onNodeWithTag("compact_audio_full").performClick()
-        await {fullPlayers().isNotEmpty()&&popups().isEmpty()}
-        assertSame(player,main {connection.player.value})
-        assertEquals(uri.toString(),main {connection.state.value.current?.uri})
-        assertTrue("Full player restarted or moved the paused audio",main {kotlin.math.abs(connection.state.value.position-5000)<300})
-        assertFalse(main {connection.state.value.playing})
-        assertEquals(1,main {connection.player.value!!.mediaItemCount})
-        compose.onNodeWithTag("player_play_pause").performClick()
-        await {connection.state.value.playing&&connection.state.value.position>5400}
-        report.put("internal_file",true).put("seek_ms",5000).put("same_controller_on_full_handoff",true).put("no_restart_or_duplicate",true)
-    }
-
-    @Test fun brandedCoverAndRtlFollowBothThemesAndRecreationDoesNotRestartAudio()=runBlocking<Unit> {
-        val settings=SettingsRepository(app)
-        // Normal-player layout uses an owned library fixture. Temporary external
-        // grants are exercised through the explicit preview-handoff test.
-        val uri=publish(files.getValue("cover"),"audio/mpeg")
-        main {connection.playUri(uri.toString(),title=arabicTitle)}
-        await {connection.state.value.current?.uri==uri.toString()&&connection.state.value.playing}
-        val controller=main {connection.player.value!!}
-        main {controller.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
-        assertEquals(androidx.media3.common.Player.REPEAT_MODE_ONE,main {controller.repeatMode})
-        for((language,theme) in listOf("ar" to "dark","ar" to "light","en" to "light","en" to "dark")) {
-            phase="theme-$language-$theme"
-            settings.text("language",language);settings.text("theme",theme)
-            val fullLabel=if(language=="ar") "تشغيل في الخلفية" else "Play in background"
-            compose.waitUntil(15_000) {compose.onAllNodesWithText(fullLabel).fetchSemanticsNodes().isNotEmpty()}
-            try {
-                compose.waitUntil(15_000) {compose.onAllNodesWithTag("embedded_artwork",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty()&&
-                    compose.onAllNodesWithTag("compact_audio_artwork_fallback",useUnmergedTree=true).fetchSemanticsNodes().isEmpty()}
-            } catch(failure:Throwable) {
-                val media=main {connection.state.value.current}
-                report.put("cover_metadata_present",media?.artwork!=null)
-                    .put("cover_uri_safe",EmbeddedArtwork.safeUri(app,media?.artwork)!=null)
-                    .put("fallback_visible",compose.onAllNodesWithTag("compact_audio_artwork_fallback",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
-                    .put("embedded_node_visible",compose.onAllNodesWithTag("embedded_artwork",useUnmergedTree=true).fetchSemanticsNodes().isNotEmpty())
-                runCatching {
-                    val bitmap=compose.onNodeWithTag("compact_audio_player").captureToImage().asAndroidBitmap()
-                    File(home,"popup-ar-dark-art-failed.png").outputStream().use {bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
-                }
-                throw AssertionError("Embedded cover preview did not load: ${report}",failure)
-            }
-            compose.waitForIdle()
-            compose.onNodeWithTag("compact_audio_title",useUnmergedTree=true).assertTextEquals(arabicTitle)
-            compose.onNodeWithTag("compact_audio_artist",useUnmergedTree=true).assertTextEquals(artist)
-            compose.onAllNodes(hasText("content://",substring=true)).assertCountEquals(0)
-            val logo=compose.onNodeWithTag("embedded_artwork",useUnmergedTree=true).fetchSemanticsNode().boundsInRoot
-            val close=compose.onNodeWithTag("compact_audio_close").fetchSemanticsNode().boundsInRoot
-            if(language=="ar") assertTrue(logo.left>close.right) else assertTrue(logo.right<close.left)
-            val inset=(12*app.resources.displayMetrics.density).toInt()
-            val actual=settings.current()
-            val themeEvidence=JSONObject().put("requested_language",language).put("requested_theme",theme)
-                .put("actual_language",actual.language).put("actual_theme",actual.theme)
-            report.put("latest_theme",themeEvidence)
-            try {
-                compose.waitUntil(15_000) {
-                    val pixels=compose.onNodeWithTag("compact_audio_player").captureToImage().toPixelMap()
-                    val x=pixels.width/2;val y=pixels.height-inset;val background=pixels[x,y]
-                    val brightness=(background.red+background.green+background.blue)/3
-                    themeEvidence.put("sample_x",x).put("sample_y",y).put("image_width",pixels.width).put("image_height",pixels.height)
-                        .put("rgba",JSONArray(listOf(background.red,background.green,background.blue,background.alpha)))
-                        .put("brightness",brightness)
-                    if(theme=="light") brightness>.8f else brightness<.3f
-                }
-            } catch(failure:Throwable) {
-                val bitmap=compose.onNodeWithTag("compact_audio_player").captureToImage().asAndroidBitmap()
-                File(home,"popup-$language-$theme-failed.png").outputStream().use {check(bitmap.compress(Bitmap.CompressFormat.PNG,100,it))}
-                throw AssertionError("Theme wait failed: $themeEvidence",failure)
-            }
-            val image=compose.onNodeWithTag("compact_audio_player").captureToImage()
-            val bitmap=image.asAndroidBitmap()
-            File(home,"popup-$language-$theme.png").outputStream().use {assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it))}
-        }
         val position=main {connection.state.value.position}
-        main {popups().single().recreate()}
-        await {popups().size==1&&connection.state.value.position>position+300}
-        compose.onNodeWithTag("compact_audio_player").assertIsDisplayed()
         assertSame(controller,main {connection.player.value})
-        compose.onNodeWithTag("compact_audio_toggle").performClick()
-        await {!connection.state.value.playing}
-        val paused=main {connection.state.value.position}
-        compose.onNodeWithTag("compact_audio_full").performClick()
-        await {popups().isEmpty()&&fullPlayers().isNotEmpty()}
+        assertEquals(uri.toString(),main {connection.state.value.current?.uri})
+        assertTrue("The full player moved the paused audio",main {kotlin.math.abs(position-5000)<300})
+        assertFalse(main {connection.state.value.playing})
+        assertEquals(1,main {controller.mediaItemCount})
+
+        compose.onNodeWithTag("player_back").performClick()
+        await {fullPlayers().isEmpty()&&connection.state.value.current?.uri==uri.toString()}
+        compose.onNodeWithTag("mini_player").assertIsDisplayed()
         assertSame(controller,main {connection.player.value})
-        assertTrue(main {kotlin.math.abs(connection.state.value.position-paused)<300})
-        assertArrayEquals("The same source must survive compact-to-full handoff",files.getValue("cover").readBytes(),app.contentResolver.openInputStream(uri)!!.use {it.readBytes()})
-        main {fullPlayers().single().finish()}
-        await {fullPlayers().isEmpty()}
-        val plain=publish(files.getValue("mp3"),"audio/mpeg")
-        main {connection.playUri(plain.toString(),title=arabicTitle)}
-        await {connection.state.value.current?.uri==plain.toString()&&connection.state.value.playing}
-        compose.waitUntil(10_000) {compose.onAllNodesWithTag("compact_audio_artwork_fallback").fetchSemanticsNodes().isNotEmpty()}
-        compose.onNodeWithTag("embedded_artwork").assertDoesNotExist()
-        assertEquals("Normal preview must stay in the existing app window without opening permission settings",1,main {popups().count {!it.isFinishing}})
-        report.put("theme_and_rtl",true).put("real_cover_and_branded_fallback",true).put("recreation_keeps_session",true)
+        assertFalse(main {connection.state.value.playing})
+        assertTrue(main {kotlin.math.abs(connection.state.value.position-5000)<300})
+
+        compose.onNodeWithTag("mini_player").performClick()
+        await {fullPlayers().any {!it.isFinishing}}
+        assertSame(controller,main {connection.player.value})
+        assertEquals(uri.toString(),main {connection.state.value.current?.uri})
+        assertEquals(1,main {controller.mediaItemCount})
+        report.put("internal_audio_full_player",true).put("mini_player_reopens_same_session",true)
+            .put("seek_ms",5000).put("no_restart_or_duplicate",true)
     }
 
-    @Test fun slowExternalMetadataDoesNotLaunchAnInAppPreview()=runBlocking<Unit> {
+    @Test fun slowExternalMetadataCompletesWithoutDuplicatingThePlaybackSession()=runBlocking<Unit> {
         send(files.getValue("mp3"),"audio/mpeg",slow=true)
         await {connection.state.value.playing&&connection.state.value.current?.uri==expectedUri?.toString()&&externalOpeners().isEmpty()}
-        compose.onNodeWithTag("compact_audio_player").assertDoesNotExist()
-        assertTrue(main {popups().isEmpty()})
         assertEquals(1,main {activeMediaFlowSessionCount()})
         report.put("slow_provider_completes",true).put("external_preview_activities",0).put("single_media_session",true)
     }
@@ -323,26 +240,25 @@ class CompactAudioPlayerTest {
             await {externalOpeners().isEmpty()}
             assertFalse(main {connection.state.value.playing})
             assertTrue(main {connection.state.value.queue.isEmpty()})
-            assertTrue(main {popups().isEmpty()})
             assertEquals(0,main {fullPlayers().size})
-            compose.onNodeWithTag("compact_audio_player").assertDoesNotExist()
         }
         report.put("external_entrypoint_rejects_unsupported_inputs",true).put("no_preview_activity",true)
     }
 
-    @Test fun inAppAudioPreviewAfterExternalVideoDoesNotKeepAnOldRequest()=runBlocking<Unit> {
+    @Test fun internalAudioAfterExternalVideoUsesFullPlayerWithoutAnOldRequest()=runBlocking<Unit> {
         val first=send(files.getValue("m4a"),"audio/mp4")
         await {connection.state.value.current?.uri==first.toString()&&connection.state.value.playing&&externalOpeners().isEmpty()}
-        assertTrue("External audio must not create the in-app preview",main {popups().isEmpty()})
         val video=File(home,"video.mp4")
         instrument.context.assets.open("status-original.mp4").use {input->video.outputStream().use {input.copyTo(it)}}
         val movie=send(video,"video/mp4")
         await {fullPlayers().isNotEmpty()&&connection.state.value.current?.uri==movie.toString()&&connection.state.value.current?.video==true&&connection.state.value.playing}
         val local=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(local.toString(),title=arabicTitle)}
-        await {connection.state.value.current?.uri==local.toString()&&connection.state.value.playing&&popups().size==1}
-        compose.onNodeWithTag("compact_audio_title",useUnmergedTree=true).assertTextEquals(arabicTitle)
-        compose.onNodeWithTag("compact_audio_toggle").assertIsEnabled()
+        await {connection.state.value.current?.uri==local.toString()&&connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
+        compose.onNodeWithTag("audio_player").assertIsDisplayed()
+        compose.onNodeWithTag("player_title").assertTextEquals(arabicTitle)
+        assertEquals(1,main {fullPlayers().count {!it.isFinishing}})
+        assertTrue(main {externalOpeners().isEmpty()})
         report.put("video_stays_fullscreen",true).put("old_external_request_not_reused_for_internal_audio",true)
     }
 
@@ -350,13 +266,13 @@ class CompactAudioPlayerTest {
         SettingsRepository(app).text("language","en")
         val uri=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(uri.toString(),title=arabicTitle)}
-        await {connection.state.value.playing&&popups().size==1}
+        await {connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
         main {connection.player.value!!.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
         val token=activeMediaFlowSessionToken()
         val system=android.media.session.MediaController(app,token)
-        compose.onNodeWithTag("compact_audio_background").performClick()
+        compose.onNodeWithTag("player_background").performClick()
         phase="background-dismiss"
-        await {popups().isEmpty()}
+        await {fullPlayers().isEmpty()}
         await {system.playbackState?.state==android.media.session.PlaybackState.STATE_PLAYING}
         assertEquals(1,activeMediaFlowSessionCount())
         assertTrue("Background handoff must publish the foreground media notification",
@@ -408,24 +324,25 @@ class CompactAudioPlayerTest {
             .put("same_session_on_return",true).put("no_automatic_overlay",true).put("explicit_stop_releases_service",true)
     }
 
-    @Test fun dismissingCompactSurfaceKeepsAudioAndFullPlayerCanStopIt()=runBlocking<Unit> {
+    @Test fun leavingFullPlayerKeepsAudioInMiniPlayerAndFullPlayerCanStopIt()=runBlocking<Unit> {
         val uri=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(uri.toString(),title=arabicTitle)}
-        await {connection.state.value.playing&&popups().size==1}
+        await {connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
         main {connection.player.value!!.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
         val token=activeMediaFlowSessionToken()
-        compose.onNodeWithTag("compact_audio_close").performClick()
-        phase="dismiss-surface"
-        await {popups().isEmpty()&&connection.state.value.playing}
+        compose.onNodeWithTag("player_back").performClick()
+        phase="leave-full-player"
+        await {fullPlayers().isEmpty()&&connection.state.value.playing}
+        compose.onNodeWithTag("mini_player").assertIsDisplayed()
         assertEquals(token,activeMediaFlowSessionToken())
         assertFalse(hasFloatingWindow())
-        main {connection.open(app)}
-        phase="dismiss-open-full"
+        compose.onNodeWithTag("mini_player").performClick()
+        phase="mini-player-open-full"
         await {fullPlayers().isNotEmpty()}
         compose.onNodeWithTag("player_stop").assertIsDisplayed().performClick()
-        phase="dismiss-stop"
+        phase="mini-player-stop"
         await {!PlaybackRuntime.active}
-        report.put("dismiss_keeps_playing",true).put("separate_stop",true)
+        report.put("mini_player_keeps_playing",true).put("full_player_can_stop",true)
     }
 
     @Test fun deniedOverlayKeepsAudioInTheExistingNotificationSession()=runBlocking<Unit> {
@@ -434,14 +351,14 @@ class CompactAudioPlayerTest {
         val uri=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(uri.toString(),title=arabicTitle);connection.attach()}
         try {
-            await {connection.state.value.playing&&popups().size==1}
+            await {connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
             val controller=main {connection.player.value!!}
             main {controller.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
             assertEquals("The short audio fixture must repeat throughout floating-window interactions",
                 androidx.media3.common.Player.REPEAT_MODE_ONE,main {controller.repeatMode})
-            compose.onNodeWithTag("compact_audio_floating").performClick()
+            compose.onNodeWithTag("player_floating").performClick()
             clickSystemText("Use notification only")
-            await {popups().isEmpty()&&controller.isPlaying}
+            await {fullPlayers().isEmpty()&&controller.isPlaying}
             assertSame(controller,main {connection.player.value})
             await {app.getSystemService(android.app.NotificationManager::class.java).activeNotifications.any {it.id==57001}}
             assertFalse(android.provider.Settings.canDrawOverlays(app))
@@ -456,11 +373,11 @@ class CompactAudioPlayerTest {
         val uri=publish(files.getValue("m4a"),"audio/mp4")
         main {connection.playUri(uri.toString(),title=arabicTitle);connection.attach()}
         try {
-            await {connection.state.value.playing&&popups().size==1}
+            await {connection.state.value.playing&&fullPlayers().any {!it.isFinishing}}
             val controller=main {connection.player.value!!}
             main {controller.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
-            compose.onNodeWithTag("compact_audio_floating").performClick()
-            await {popups().isEmpty()&&controller.isPlaying}
+            compose.onNodeWithTag("player_floating").performClick()
+            await {fullPlayers().isEmpty()&&controller.isPlaying}
             assertFalse("No duplicate overlay inside MediaFlow",hasFloatingWindow())
             instrument.uiAutomation.executeShellCommand("input keyevent KEYCODE_HOME").close()
             withTimeout(10_000) {while(!hasFloatingWindow()) delay(100)}
@@ -502,7 +419,7 @@ class CompactAudioPlayerTest {
             phase="external-audio-playing"
             await(floatingWindow=true) {
                 ExternalAudioPreview.player?.let {it.currentMediaItem?.mediaId==uri.toString()&&it.isPlaying}==true&&
-                    popups().isEmpty()
+                    fullPlayers().isEmpty()
             }
             val preview=main {checkNotNull(ExternalAudioPreview.player)}
             assertEquals("External preview must remain sessionless",0,activeMediaFlowSessionCount())
@@ -560,7 +477,7 @@ class CompactAudioPlayerTest {
             val first=main {checkNotNull(ExternalAudioPreview.player)}
             assertEquals(0,main {activeMediaFlowSessionCount()})
             assertFalse(main {PlaybackRuntime.active})
-            assertTrue(main {popups().isEmpty()&&fullPlayers().isEmpty()})
+            assertTrue(main {fullPlayers().isEmpty()})
             assertEquals(0,app.getSystemService(android.app.NotificationManager::class.java).activeNotifications.count {it.id==57001})
             captureScreen("floating-sessionless-playing")
             tapFloatingPlaybackControl()
@@ -730,10 +647,18 @@ class CompactAudioPlayerTest {
             // Return through the launcher before requesting playback, as a user would.
             phase="return-to-main"
             app.startActivity(app.packageManager.getLaunchIntentForPackage(app.packageName)!!)
+            fun focusedOwnPlaybackActivity() = visibleActivities().firstOrNull {
+                (it is MainActivity||it is PlayerActivity)&&it.hasWindowFocus()&&
+                    ActivityLifecycleMonitorRegistry.getInstance().getLifecycleStageOf(it)==Stage.RESUMED
+            }
+            await {focusedOwnPlaybackActivity()!=null}
+            // Android may restore the PlayerActivity that was above Home in the task.
+            if(main {focusedOwnPlaybackActivity() is PlayerActivity}) {
+                assertTrue(instrument.uiAutomation.performGlobalAction(
+                    android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
+            }
             await {
-                visibleActivities().filterIsInstance<MainActivity>().any {
-                    ActivityLifecycleMonitorRegistry.getInstance().getLifecycleStageOf(it)==Stage.RESUMED&&it.hasWindowFocus()
-                }
+                focusedOwnPlaybackActivity() is MainActivity
             }
             main {connection.playUri(uri.toString(),title=englishTitle,open=false)}
             phase="preview-to-normal"
@@ -791,7 +716,7 @@ class CompactAudioPlayerTest {
                 await(timeoutMillis=60_000,floatingWindow=true) {
                     ExternalAudioPreview.player?.let {
                         it.currentMediaItem?.mediaId==uri.toString()&&it.isPlaying
-                    }==true&&popups().isEmpty()&&fullPlayers().isEmpty()
+                    }==true&&fullPlayers().isEmpty()
                 }
                 assertEquals("External title previews remain sessionless",0,activeMediaFlowSessionCount())
                 assertFalse(PlaybackRuntime.active)
@@ -1135,7 +1060,7 @@ class CompactAudioPlayerTest {
         if(!ownsSession) return@runBlocking
         val failures=mutableListOf<Throwable>()
         suspend fun step(block:suspend ()->Unit) {try {block()} catch(error:Throwable) {failures+=error}}
-        step {main {ExternalAudioPreview.stop();connection.clear();popups().forEach {it.finish()};fullPlayers().forEach {it.finish()}}}
+        step {main {ExternalAudioPreview.stop();connection.clear();fullPlayers().forEach {it.finish()}}}
         // Close the underlying lifecycle owner before disconnecting; returning
         // from a full video otherwise legitimately reattaches its controller.
         step {if(::underlying.isInitialized&&!underlyingClosed) underlying.close()}

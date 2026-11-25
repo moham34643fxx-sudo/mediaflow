@@ -11,6 +11,15 @@ import org.junit.Test
 import java.net.SocketTimeoutException
 
 class RetryAndExtractionPolicyTest {
+    @Test fun publicationRetryReusesValidatedOutputWithoutReacquiringTracks() {
+        for(checkpoint in listOf("MERGED","VALIDATED")) {
+            assertTrue(QueueCoordinator.shouldReuseProcessedOutput(checkpoint,outputExists=true))
+            assertFalse(QueueCoordinator.shouldDownloadTracks(checkpoint))
+        }
+        assertFalse(QueueCoordinator.shouldReuseProcessedOutput("VALIDATED",outputExists=false))
+        assertTrue(QueueCoordinator.shouldDownloadTracks("DOWNLOAD"))
+    }
+
 
     @Test
     fun rateLimitDoesNotReExtractUnlessExpired() {
@@ -247,7 +256,7 @@ class RetryAndExtractionPolicyTest {
     fun adversarialDeterministicRetryTerminationOracle() {
         // 1. Non-recoverable error (e.g., HTTP_FORBIDDEN after in-flight refresh failed)
         // Must fail immediately on the queue without retry
-        val nonRecoverableCanRetry = ErrorCode.HTTP_FORBIDDEN.recoverable && 0 < 3
+        val nonRecoverableCanRetry = RetryPolicy.shouldRetry(ErrorCode.HTTP_FORBIDDEN,0,3)
         assertFalse("HTTP_FORBIDDEN is non-recoverable at queue level; fails immediately", nonRecoverableCanRetry)
 
         // 2. Recoverable errors (e.g. RATE_LIMITED, SOURCE_CORRUPT, READ_TIMEOUT)
@@ -257,7 +266,7 @@ class RetryAndExtractionPolicyTest {
         var terminalFailure = false
 
         while (currentRetries <= retryLimit + 2) {
-            val canRetry = ErrorCode.SOURCE_CORRUPT.recoverable && currentRetries < retryLimit
+            val canRetry = RetryPolicy.shouldRetry(ErrorCode.SOURCE_CORRUPT,currentRetries,retryLimit)
             if (canRetry) {
                 currentRetries++
             } else {

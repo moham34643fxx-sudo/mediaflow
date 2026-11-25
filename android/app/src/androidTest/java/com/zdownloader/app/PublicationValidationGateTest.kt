@@ -38,14 +38,21 @@ class PublicationValidationGateTest {
 
     @Before fun verifySource() = runBlocking<Unit> {
         check(android.os.Build.VERSION.SDK_INT >= 29) { "MediaStore pending publication requires API 29+" }
-        val path = requireNotNull(InstrumentationRegistry.getArguments().getString("gateFixturePath"))
-        source = File(path).canonicalFile
-        val allowed = File(requireNotNull(app.getExternalFilesDir(null)), "source-paired-performance").canonicalPath + File.separator
-        require(source.path.startsWith(allowed) && source.isFile && source.length() == 1128375L)
-        assertEquals("0cd83d944a6ca7822b4a8306cecc60a36e859b041f6702c6a1ad9ead78924451", hash(source.readBytes()))
-        Processor().validate(source, false, true, expectedDuration = 5.055, expectedContainer = "mp4")
         home = File(app.cacheDir, "publication-gates-${UUID.randomUUID()}")
         check(!home.exists() && home.mkdirs())
+        val path = InstrumentationRegistry.getArguments().getString("gateFixturePath")
+        if (path != null) {
+            source = File(path).canonicalFile
+            val allowed = File(requireNotNull(app.getExternalFilesDir(null)), "source-paired-performance").canonicalPath + File.separator
+            require(source.path.startsWith(allowed) && source.isFile && source.length() == 1128375L)
+            assertEquals("0cd83d944a6ca7822b4a8306cecc60a36e859b041f6702c6a1ad9ead78924451", hash(source.readBytes()))
+        } else {
+            source = File(home, "publication-source.mp4")
+            InstrumentationRegistry.getInstrumentation().context.assets.open("status-original.mp4").use { input ->
+                source.outputStream().use { input.copyTo(it) }
+            }
+        }
+        Processor().validate(source, false, true, expectedDuration = if (path != null) 5.055 else null, expectedContainer = "mp4")
         val context = object : ContextWrapper(app) { override fun getFilesDir() = home }
         database = Room.inMemoryDatabaseBuilder(context, ZDatabase::class.java).build()
         storage = StorageRepository(context, dao)
@@ -127,7 +134,7 @@ class PublicationValidationGateTest {
         val preserved = withTimeout(10_000) { beginExport(other).await() }
         val fixture = newFixture()
         val uri = requireNotNull(app.contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, ".${fixture.row.id}.pending.mp4")
+            put(MediaStore.MediaColumns.DISPLAY_NAME, "mediaflow-${fixture.row.id}.pending.mp4")
             put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
             put(MediaStore.MediaColumns.RELATIVE_PATH, "Movies/MediaFlow")
             put(MediaStore.MediaColumns.IS_PENDING, 1)
@@ -182,7 +189,7 @@ class PublicationValidationGateTest {
             arrayOf(MediaStore.MediaColumns.DISPLAY_NAME, MediaStore.MediaColumns.IS_PENDING), null, null, null)).use {
             check(it.count == 1 && it.moveToFirst())
             val pending = it.getInt(1)
-            val expectedName = if (pending == 1) ".${fixture.row.id}.pending.mp4" else fixture.row.filename
+            val expectedName = if (pending == 1) "mediaflow-${fixture.row.id}.pending.mp4" else fixture.row.filename
             check(it.getString(0) == expectedName)
             pending
         }

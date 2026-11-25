@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -41,6 +42,7 @@ class PlayerActivity:ComponentActivity() {
     private var audioOnlyHandoff=false
     private var closingPlayer=false
     private var videoClosedOnStop=false
+    private var orientationMediaId:String?=null
     internal var selectingSubtitle=false
     internal fun playerText(id:Int,vararg args:Any)=(stringContext ?: this).getString(id,*args)
     internal val connection get()=(application as ZApplication).playback
@@ -48,19 +50,22 @@ class PlayerActivity:ComponentActivity() {
     internal fun backgroundAudio()=audioHandoff.background()
     internal fun floatingAudio()=audioHandoff.floating()
     internal fun stopAudio()=audioHandoff.stop()
-    internal fun applyVideoOrientation(mode:VideoOrientationMode,aspect:Float?) {
-        if(!pip) requestedOrientation=VideoOrientation.requestedOrientation(mode,aspect)
+    internal fun applyVideoOrientation(mode:VideoOrientationMode,aspect:Float?,mediaId:String?) {
+        orientationMediaId=mediaId
+        val requested=VideoOrientation.requestedOrientation(mode,aspect)
+        if(!pip&&requestedOrientation!=requested) requestedOrientation=requested
     }
     private fun applyInitialOrientation() {
         if(waitingForExternalVideo) {
-            applyVideoOrientation(VideoOrientationMode.FOLLOW_DEVICE,null)
+            if(!pip&&requestedOrientation!=ActivityInfo.SCREEN_ORIENTATION_LOCKED)
+                requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_LOCKED
             return
         }
         val state=connection.state.value
         val media=state.current
         val mode=VideoOrientationMode.default(connection.repository.boolean("auto_rotate",true))
         applyVideoOrientation(if(media?.video==true&&!state.extras.getBoolean("audio_only")) mode else VideoOrientationMode.FOLLOW_DEVICE,
-            media?.takeIf {it.video}?.displayAspect ?: state.videoDisplayAspect)
+            media?.takeIf {it.video}?.displayAspect ?: state.videoDisplayAspect,media?.uri)
     }
     internal var pip by mutableStateOf(false)
     private fun resumePendingExternalOpen() {
@@ -72,7 +77,8 @@ class PlayerActivity:ComponentActivity() {
     val pipSupported get()=Build.VERSION.SDK_INT>=26&&packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)
     override fun onCreate(savedInstanceState:Bundle?) {
         super.onCreate(savedInstanceState)
-        if(ExternalAudioOpen.acceptsIntent(this,intent)) {
+        if(ExternalAudioOpen.acceptsIntent(this,intent)&&
+            PlaybackOpenPolicy.destination(audio=true,external=true)==PlaybackOpenDestination.EXTERNAL_FLOATING_PREVIEW) {
             startActivity(Intent(intent).setClass(this,ExternalAudioOpenActivity::class.java));finish();return
         }
         if(intent.action==Intent.ACTION_VIEW) {
@@ -106,15 +112,30 @@ class PlayerActivity:ComponentActivity() {
     }
     override fun onNewIntent(intent:Intent) {
         super.onNewIntent(intent);setIntent(intent)
-        if(ExternalAudioOpen.acceptsIntent(this,intent)) {
+        if(ExternalAudioOpen.acceptsIntent(this,intent)&&
+            PlaybackOpenPolicy.destination(audio=true,external=true)==PlaybackOpenDestination.EXTERNAL_FLOATING_PREVIEW) {
             waitingForExternalVideo=false
             startActivity(Intent(intent).setClass(this,ExternalAudioOpenActivity::class.java));return
         }
         if(intent.action==Intent.ACTION_VIEW) {
             val requestId=java.util.UUID.randomUUID().toString();externalRequestId=requestId;waitingForExternalVideo=true;externalVideoStartupTimedOut=false
-            applyVideoOrientation(VideoOrientationMode.FOLLOW_DEVICE,null)
+            if(!pip&&requestedOrientation!=ActivityInfo.SCREEN_ORIENTATION_LOCKED)
+                requestedOrientation=ActivityInfo.SCREEN_ORIENTATION_LOCKED
             connection.playExternal(Intent(intent),requestId)
-        } else {waitingForExternalVideo=false;externalRequestId=null;resumePendingExternalOpen()}
+        } else {
+            waitingForExternalVideo=false;externalRequestId=null;resumePendingExternalOpen()
+            val state=connection.state.value
+            val media=state.current
+            if(media?.uri!=orientationMediaId) {
+                val isVideo=media?.video==true&&!state.extras.getBoolean("audio_only")
+                applyVideoOrientation(
+                    if(isVideo) VideoOrientationMode.default(connection.repository.boolean("auto_rotate",true))
+                    else VideoOrientationMode.FOLLOW_DEVICE,
+                    if(isVideo) state.videoDisplayAspect ?: media.displayAspect else null,
+                    media?.uri
+                )
+            }
+        }
     }
     override fun onSaveInstanceState(outState:Bundle) {
         externalRequestId?.let {outState.putString(STATE_EXTERNAL_REQUEST_ID,it)}

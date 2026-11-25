@@ -25,6 +25,8 @@ def page(info, original_url, offset, limit, validate, check):
             return None
     def number(value):
         return value if isinstance(value, (float, int)) and not isinstance(value, bool) and math.isfinite(value) and value > 0 else None
+    def index(value, maximum):
+        return int(value) if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= maximum else None
     def thumbnail(entry):
         direct = url(entry.get('thumbnail'))
         if direct:
@@ -52,8 +54,16 @@ def page(info, original_url, offset, limit, validate, check):
         link = (media if entry.get('_type', 'video') == 'video' and webpage == original_url else None) or webpage or media or url(entry.get('original_url'))
         nested = entry.get('_type') in ('playlist', 'multi_video') or entry.get('entries') is not None
         availability = entry.get('availability')
-        reason = ('COLLECTION' if nested else 'AUTHENTICATION_REQUIRED' if availability in ('private', 'premium_only', 'subscriber_only', 'needs_auth')
-                  else 'VIDEO_NOT_FOUND' if not link or availability == 'unavailable' else None)
+        if nested:
+            reason = 'COLLECTION'
+        elif availability == 'private':
+            reason = 'PRIVATE_CONTENT'
+        elif availability in ('premium_only', 'subscriber_only', 'needs_auth'):
+            reason = 'AUTHENTICATION_REQUIRED'
+        elif not link or availability == 'unavailable':
+            reason = 'VIDEO_NOT_FOUND'
+        else:
+            reason = None
         identity = '|'.join(str(v or '') for v in (position, entry.get('ie_key'), entry.get('id'), link))
         # Some multi-video extractors already return a fully described single
         # representation. Reuse its small size hint without extracting anything.
@@ -71,10 +81,22 @@ def page(info, original_url, offset, limit, validate, check):
         items.append({'key': hashlib.sha256(identity.encode()).hexdigest(), 'url': link,
                       'id': text(entry.get('id')), 'extractor': text(entry.get('ie_key') or entry.get('extractor_key')),
                       'position': position, 'title': text(entry.get('title')), 'duration': number(entry.get('duration')),
-                      'thumbnail': thumbnail(entry), 'reason': reason, 'collection': nested, 'size_hint': hint})
+                      'thumbnail': thumbnail(entry), 'reason': reason, 'collection': nested, 'size_hint': hint,
+                      'season_number': index(entry.get('season_number'), 999),
+                      'episode_number': index(entry.get('episode_number'), 9999)})
     total = number(info.get('playlist_count')) or number(info.get('n_entries'))
+    unverified_seasons = []
+    for season in itertools.islice(info.get('mediaflow_unverified_seasons') or [], 40):
+        if not isinstance(season, dict):
+            continue
+        unverified_seasons.append({
+            'season_number': index(season.get('season_number'), 999),
+            'title': text(season.get('title')),
+        })
     return {'kind': 'playlist' if is_collection else 'single', 'title': text(info.get('title')),
             'creator': text(info.get('uploader') or info.get('channel')), 'thumbnail': thumbnail(info),
             'total': int(total) if total else None, 'items': items, 'offset': offset,
             'next_offset': offset + len(items), 'has_more': more,
-            'url': original_url}
+            'url': original_url, 'collection_type': text(info.get('mediaflow_collection_type'), 64),
+            'season_number': index(info.get('mediaflow_season_number'), 999),
+            'unverified_seasons': unverified_seasons}

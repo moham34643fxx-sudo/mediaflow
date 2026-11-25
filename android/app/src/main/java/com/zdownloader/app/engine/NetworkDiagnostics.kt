@@ -19,6 +19,7 @@ object NetworkDiagnostics {
     private val generation = java.util.concurrent.atomic.AtomicLong()
     private val writeFailures = java.util.concurrent.atomic.AtomicLong()
     private var observed: Network? = null
+    @Volatile internal var tlsFailureEvidenceCaptureForTests=false
     private val dropped = java.util.concurrent.atomic.AtomicLong(0)
     private val writer=java.util.concurrent.ThreadPoolExecutor(1,1,0,java.util.concurrent.TimeUnit.SECONDS,java.util.concurrent.ArrayBlockingQueue<Runnable>(128),java.util.concurrent.ThreadPoolExecutor.AbortPolicy())
     init {
@@ -160,6 +161,34 @@ object NetworkDiagnostics {
         }
         return ErrorCode.NETWORK_UNAVAILABLE
     }
+    private fun safeTlsFailureEvidence(host:String,error:Throwable):JSONObject {
+        val report=JSONObject()
+        val safeHost=Regex("(?i)^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
+        if(host.length in 1..253&&host.matches(safeHost)&&!host.matches(Regex("[0-9.]+")))
+            report.put("endpoint_host",host.lowercase(java.util.Locale.ROOT))
+        val seen=java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Throwable,Boolean>())
+        var current:Throwable?=error
+        while(current!=null&&seen.size<12&&seen.add(current)) {
+            if(current is java.security.cert.CertPathValidatorException) {
+                val path=current.certPath?.certificates.orEmpty()
+                if(current.index in -1..32) report.put("certificate_path_index",current.index)
+                report.put("certificate_path_length",path.size.coerceAtMost(32))
+                val indexes=(0 until minOf(path.size,8)).toMutableList()
+                if(current.index in 8 until path.size) indexes+=current.index
+                val certificates=org.json.JSONArray()
+                for(index in indexes) runCatching {
+                    val certificate=path[index] as? java.security.cert.X509Certificate ?: return@runCatching
+                    val digest=java.security.MessageDigest.getInstance("SHA-256").digest(certificate.encoded)
+                    certificates.put(JSONObject().put("path_index",index)
+                        .put("sha256",digest.joinToString("") {"%02X".format(it)}))
+                }
+                report.put("certificates_sha256",certificates)
+                break
+            }
+            current=current.cause
+        }
+        return report
+    }
     class Trace(val operation:String=java.util.UUID.randomUUID().toString()) : EventListener() {
         @Volatile var stage="request"
         private val started=System.nanoTime()/1_000_000
@@ -180,7 +209,12 @@ object NetworkDiagnostics {
         override fun requestHeadersStart(call:Call) {AnalysisTrace.mark(operation,"first_network_request");phase("http")}
         override fun responseHeadersEnd(call:Call,response:Response) { record("okhttp","http_${response.code}",httpCode(response.code),operation=operation,attempt=attempt,httpStatus=response.code);phase("body") }
         override fun connectFailed(call:Call,inetSocketAddress:InetSocketAddress,proxy:Proxy,protocol:Protocol?,ioe:IOException) {record("okhttp",stage,classify(ioe,stage),operation=operation)}
-        override fun callFailed(call:Call,ioe:IOException) {record("okhttp",if(call.isCanceled()) "cancelled" else stage,if(call.isCanceled()) ErrorCode.DOWNLOAD_INTERRUPTED else classify(ioe,stage),System.nanoTime()/1_000_000-started,operation)}
+        override fun callFailed(call:Call,ioe:IOException) {
+            val code=if(call.isCanceled()) ErrorCode.DOWNLOAD_INTERRUPTED else classify(ioe,stage)
+            val details=if(tlsFailureEvidenceCaptureForTests&&com.zdownloader.app.BuildConfig.INTERNAL_DIAGNOSTICS&&code==ErrorCode.TLS_FAILED)
+                runCatching {safeTlsFailureEvidence(call.request().url.host,ioe)}.getOrNull() else null
+            record("okhttp",if(call.isCanceled()) "cancelled" else stage,code,System.nanoTime()/1_000_000-started,operation,details=details)
+        }
         override fun callEnd(call:Call) {record("okhttp","complete",null,System.nanoTime()/1_000_000-started,operation)}
     }
     fun httpCode(code: Int): ErrorCode? = when(code) {

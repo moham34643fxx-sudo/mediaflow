@@ -195,7 +195,7 @@ class PremiumExperienceReviewTest {
         assertFalse(file.exists())
     }
     @Test fun firstStatusEntryUsesSystemConsentWithoutAnAccessCancellationLoop() {
-        assumeTrue("Run consent review only in the isolated review package",context.packageName.endsWith(".designreview"))
+        assumeTrue("Run consent review only in the isolated QA package",context.packageName=="com.zdownloader.app.candidate0965")
         ActivityScenario.launch(MainActivity::class.java).use {scenario->
             lateinit var model:StatusSaverViewModel
             scenario.onActivity {activity->

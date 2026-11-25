@@ -148,6 +148,8 @@ data class BatchSummary(@Embedded val batch:PlaylistBatch,val selected:Int,val c
     @Query("UPDATE downloads SET filename=:filename,uri=:uri WHERE id=:id AND status='COMPLETED'") abstract suspend fun renamedFile(id: String, filename: String, uri: String)
     @Query("UPDATE downloads SET filename=:name,uri=:newUri WHERE uri=:old AND status='COMPLETED'") abstract suspend fun fileRelinked(old:String,newUri:String,name:String)
     @Query("UPDATE downloads SET uri=NULL WHERE uri=:uri AND status='COMPLETED'") abstract suspend fun fileDeleted(uri:String)
+    @Query("UPDATE downloads SET destination=NULL WHERE id=:id AND status='FAILED' AND pendingUri IS NULL AND destination IS NOT NULL AND error IN ('STORAGE_PERMISSION_ERROR','STORAGE_DESTINATION_UNAVAILABLE')")
+    abstract suspend fun retryInDefaultDestination(id:String):Int
     @Query("UPDATE downloads SET selection=:selection,total=:total WHERE id=:id AND status IN ('DOWNLOADING','DOWNLOADING_VIDEO','DOWNLOADING_AUDIO')") abstract suspend fun refreshSelection(id: String, selection: String, total: Long?): Int
     @Query("UPDATE downloads SET status='WAITING_FOR_NETWORK',error=:reason,speed=0 WHERE id=:id AND status IN ('QUEUED','RESUMING','WAITING_FOR_NETWORK','RETRYING')") abstract suspend fun submissionWaiting(id:String,reason:String):Int
     @Query("UPDATE downloads SET error=:reason WHERE id=:id AND status IN ('QUEUED','RESUMING','WAITING_FOR_NETWORK','RETRYING','SCHEDULED')") abstract suspend fun submissionIssue(id:String,reason:String):Int

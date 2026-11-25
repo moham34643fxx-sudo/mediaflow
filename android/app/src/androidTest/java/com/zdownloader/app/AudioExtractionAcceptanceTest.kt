@@ -37,7 +37,7 @@ class AudioExtractionAcceptanceTest {
     private val fixtures get()=File(app.filesDir,"extraction-fixtures").apply {mkdirs()}
     private val evidence get()=File(app.filesDir,"extraction-review").apply {mkdirs()}
     private val engine get()=repo.engine
-    private fun safe() {check(app.packageName=="com.zdownloader.app.designreview")}
+    private fun safe() {check(app.packageName=="com.zdownloader.app.candidate0965")}
     private fun uri(file:File)=FileProvider.getUriForFile(app,"${app.packageName}.extraction.fixtures",file)
     private fun digest(file:File)=file.inputStream().use {MessageDigest.getInstance("SHA-256").let {md->val b=ByteArray(65536);while(true) {val n=it.read(b);if(n<0) break;md.update(b,0,n)};md.digest().joinToString("") {v->"%02x".format(v)}}}
     private suspend fun fixture(name:String,codec:String="aac",seconds:Int=8,multi:Boolean=false):File {
@@ -62,7 +62,7 @@ class AudioExtractionAcceptanceTest {
     }
     private fun info(file:File)=FFprobeKit.getMediaInformation(file.path).mediaInformation
     @After fun retainNativeDiagnostics() {
-        if(app.packageName=="com.zdownloader.app.designreview") {
+        if(app.packageName=="com.zdownloader.app.candidate0965") {
             File(evidence,"native-sessions.log").appendText(
                 com.arthenica.ffmpegkit.FFmpegKit.listSessions().takeLast(12).joinToString("\n") {"${it.sessionId}: ${it.returnCode}\n${it.allLogsAsString}"}+"\n")
             repo.task.value?.takeIf {!it.phase.active}?.let {task->

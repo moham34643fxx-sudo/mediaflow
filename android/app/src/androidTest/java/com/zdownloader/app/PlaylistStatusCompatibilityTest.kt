@@ -31,11 +31,12 @@ class PlaylistStatusCompatibilityTest {
         val name="playlist-status-compat-${UUID.randomUUID()}.db"
         val store=StatusStore(app,name)
         val saver=StatusSaveCoordinator(app,permissions,scanner,store,settings)
-        val tree=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.AUTH,StatusFixtureProvider.WA)
+        val tree=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.authority(instrumentation.context),StatusFixtureProvider.WA)
         val sources=mutableListOf<Uri>();val outputs=mutableSetOf<Uri>()
         try {
             prefs.edit().clear().commit()
-            app.startActivity(Intent().setComponent(ComponentName("com.zdownloader.app.test","com.zdownloader.app.StatusFixtureGrantActivity")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            app.startActivity(Intent().setComponent(ComponentName(instrumentation.context.packageName,StatusFixtureGrantActivity::class.java.name))
+                .putExtra("targetPackage",app.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             withTimeout(5000) {while(!permissions.readable(tree)) delay(25)}
             settings.text("destination","");permissions.choose(StatusSource.WHATSAPP,tree)
             val bitmap=Bitmap.createBitmap(64,48,Bitmap.Config.ARGB_8888)

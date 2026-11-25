@@ -11,7 +11,9 @@ class ExtractionPolicyTest {
         assertEquals("m4a",ExtractionPolicy.plan(aac,AudioOutput.ORIGINAL,0).extension)
         assertFalse(ExtractionPolicy.canCopy(aac,AudioOutput.MP3))
         assertNull(ExtractionPolicy.original("unknown_codec"))
-        assertEquals("mka",ExtractionPolicy.plan(track("opus"),AudioOutput.ORIGINAL,0).extension)
+        val opus=ExtractionPolicy.plan(track("opus"),AudioOutput.ORIGINAL,0)
+        assertEquals("mka",opus.extension)
+        assertEquals("audio/x-matroska",opus.mime)
     }
     @Test fun mp3ConversionDownmixesOnlyWhenNecessaryAndUsesSupportedNativeRate() {
         val p=ExtractionPolicy.plan(track("aac",6,96000),AudioOutput.MP3,192)

@@ -11,7 +11,7 @@ data class DownloadRequest(
 ) {
     init {
         require(height in heights)
-        require(if(audioOnly) output in listOf("original","mp3","m4a","aac","flac","opus") else output in listOf("auto","mp4","webm","mkv"))
+        require(if(audioOnly) AudioOutputFormats.supports(output) else output in listOf("auto","mp4","webm","mkv"))
         require(bitrate in listOf(128,192,256,320)&&retries in 0..5&&template.length<=4096)
     }
     fun json():String=JSONObject().put("version",1).put("height",height).put("audio",audioOnly)

@@ -23,9 +23,11 @@ import javax.inject.Singleton
     private val directShareExtensions=setOf("mp4","m4a","webm","jpg","jpeg","png","webp")
     private val metadata=ExtractorMetadata(cancellationScope,android.os.SystemClock::elapsedRealtime)
     private val playlistAdmission=PlaylistMetadataAdmission(android.os.SystemClock::elapsedRealtime)
-    private val videoHeaders=SharedAnalysis<Media>(cancellationScope)
+    private val videoHeaders=SharedAnalysis<VideoDimensionProgress>(cancellationScope)
     val sizePreviews by lazy {com.zdownloader.app.data.SizePreviewRepository(context,this)}
-    private data class Cached(val media: Media,val time: Long)
+    private data class Cached(val dimensions:VideoDimensionProgress,val time:Long) {
+        val media:Media get()=dimensions.media
+    }
     private val videoHeaderCache=LinkedHashMap<String,Cached>(8,.75f,true)
     private val cacheLock=Any()
     // Native resolver/Python calls may ignore thread interruption. Bound both the UI
@@ -92,23 +94,29 @@ import javax.inject.Singleton
     }
     /** Only video consumers wait for missing geometry. Audio uses base metadata
      * immediately and never joins these extra, strictly bounded HTTP reads. */
-    internal suspend fun videoMetadata(media:Media,trace:String):Media {
-        if(!VideoDimensionDiscovery.needed(media)) return media
-        val key=videoHeaderKey(media)
-        synchronized(cacheLock) {
-            videoHeaderCache[key]?.takeIf {FormatAvailability.reusable(it.media,android.os.SystemClock.elapsedRealtime()-it.time)}?.let {return it.media}
+    internal suspend fun videoMetadata(media:Media,trace:String):Media = videoDimensions(media,trace).media
+
+    internal suspend fun videoDimensions(media:Media,trace:String,retryIds:Set<String>?=null,
+        onProgress:(VideoDimensionProgress)->Unit={}):VideoDimensionProgress = withContext(Dispatchers.IO) {
+        val ids=VideoDimensionDiscovery.pendingIds(media,retryIds)
+        if(ids.isEmpty()) return@withContext VideoDimensionProgress(media)
+        val baseKey=videoHeaderKey(media)
+        if(retryIds==null) synchronized(cacheLock) {
+            videoHeaderCache[baseKey]?.takeIf {FormatAvailability.reusable(it.media,android.os.SystemClock.elapsedRealtime()-it.time)}
+                ?.let {return@withContext it.dimensions}
         }
-        return videoHeaders.run(key,{}) {
-            val measured=VideoDimensionDiscovery.enrich(media,trace,direct) {format,requestId->
+        val key=if(retryIds==null) baseKey else "$baseKey|retry:${ids.sorted().joinToString("") {"${it.length}:$it"}}"
+        videoHeaders.run(key,onProgress) {publish->
+            val measured=VideoDimensionDiscovery.enrich(media,trace,direct,ids,publish) {format,requestId->
                 val response=pythonCall("format_header",format.payload,requestId)
                 check(response.optString("schema")=="mediaflow_format_header_v1")
                 val encoded=response.getString("prefix")
                 check(encoded.length<=87_384)
                 android.util.Base64.decode(encoded,android.util.Base64.NO_WRAP).also {check(it.size<=65536)}
             }
-            synchronized(cacheLock) {
-                if(measured.formats.sumOf {it.payload.length.toLong()*2}<=512*1024)
-                    videoHeaderCache[key]=Cached(measured,android.os.SystemClock.elapsedRealtime())
+            if(retryIds==null) synchronized(cacheLock) {
+                if(measured.media.formats.sumOf {it.payload.length.toLong()*2}<=512*1024)
+                    videoHeaderCache[baseKey]=Cached(measured,android.os.SystemClock.elapsedRealtime())
                 while(videoHeaderCache.size>8||videoHeaderCache.values.sumOf {it.media.formats.sumOf {f->f.payload.length.toLong()*2}}>1024*1024)
                     videoHeaderCache.remove(videoHeaderCache.keys.first())
             }

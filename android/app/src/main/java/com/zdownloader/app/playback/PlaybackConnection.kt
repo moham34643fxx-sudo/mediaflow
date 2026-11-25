@@ -13,6 +13,15 @@ import com.zdownloader.app.R
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
+internal enum class PlaybackOpenDestination { FULL_SCREEN_PLAYER, EXTERNAL_FLOATING_PREVIEW }
+
+/** In-app playback opens the full player; only an external audio open starts the floating preview. */
+internal object PlaybackOpenPolicy {
+    fun destination(audio:Boolean,external:Boolean):PlaybackOpenDestination=
+        if(audio&&external) PlaybackOpenDestination.EXTERNAL_FLOATING_PREVIEW
+        else PlaybackOpenDestination.FULL_SCREEN_PLAYER
+}
+
 internal data class PlaybackState(val current:PlaybackMedia?=null,val queue:List<PlaybackMedia> = emptyList(),val index:Int=0,
     val position:Long=0,val duration:Long=0,val playing:Boolean=false,val ready:Boolean=false,val buffering:Boolean=false,
     val shuffle:Boolean=false,val repeat:Int=Player.REPEAT_MODE_OFF,val speed:Float=1f,val tracks:Tracks=Tracks.EMPTY,
@@ -194,7 +203,14 @@ internal class PlaybackConnection(context:Context) {
             return@runAction
         }
         p.play();snapshot();diagnostic="play_requested"
-         if(open) app.startActivity(Intent(app,if(media.video&&!audioOnly) PlayerActivity::class.java else InAppAudioPreviewActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        if(open) {
+            val destination=PlaybackOpenPolicy.destination(audio=!media.video||audioOnly,external=false)
+            val activity=when(destination) {
+                PlaybackOpenDestination.FULL_SCREEN_PLAYER->PlayerActivity::class.java
+                PlaybackOpenDestination.EXTERNAL_FLOATING_PREVIEW->error("Internal playback cannot open the external preview")
+            }
+            app.startActivity(Intent(app,activity).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }
     }}
     fun playUri(uri:String,title:String?=null,video:Boolean=false,open:Boolean=true)=play(listOf(PlaybackMedia(uri,title.orEmpty(),video)),open=open)
     fun playExternal(intent:Intent,requestId:String?=null)=playExternalRequest(intent,requestId) {context,incoming->ExternalMediaOpen.contentUri(context,incoming)}

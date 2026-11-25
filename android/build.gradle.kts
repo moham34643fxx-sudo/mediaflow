@@ -2,6 +2,9 @@
 // R8 8.13 cannot parse it; Android's compatibility table requires >=9.1.29.
 // Override only the shrinker, using the official narrowly scoped repository.
 buildscript {
+    configurations.classpath {
+        resolutionStrategy.activateDependencyLocking()
+    }
     repositories {
         maven("https://storage.googleapis.com/r8-releases/raw") {
             content {includeModule("com.android.tools","r8")}

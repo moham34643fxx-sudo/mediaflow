@@ -7,6 +7,20 @@ class QuickShareFormatsTest {
     private fun video(id:String,height:Int)=Format(id,"mp4",height,30.0,"h264","none",1000,1000.0,"https","{\"url\":\"https://example.com/video.mp4\"}",width=height*16/9)
     private val audio=Format("audio","m4a",null,null,"none","aac",1000,128.0,"https","{\"url\":\"https://example.com/audio.m4a\"}")
     private fun media(vararg values:Format)=Media("https://example.com/watch","id","Title","Source",null,null,10.0,values.toList())
+    @Test fun audioSurfacesAndPersistedRequestsShareOneSupportedOutputSet() {
+        val expected=setOf("original","mp3","m4a","aac","flac","opus")
+        assertEquals(expected,AudioOutputFormats.picker.toSet())
+        assertEquals(expected,AudioOutputFormats.quickShare.toSet())
+        assertEquals(AudioOutputFormats.picker.size,AudioOutputFormats.picker.distinct().size)
+        assertEquals(AudioOutputFormats.quickShare.size,AudioOutputFormats.quickShare.distinct().size)
+        for(output in AudioOutputFormats.picker) {
+            assertTrue(AudioOutputFormats.supports(output))
+            DownloadRequest(audioOnly=true,output=output)
+        }
+        assertFalse(AudioOutputFormats.supports("webm"))
+        try {DownloadRequest(audioOnly=true,output="webm");fail("An unlisted audio output was accepted")}
+        catch(_:IllegalArgumentException) {}
+    }
     @Test fun shareTextAcceptsOneRealHttpsLinkAndRejectsAmbiguousOrPrivatePayloads() {
         assertEquals("https://example.com/reel?id=123",QuickShareFormats.sharedUrl(listOf("Watch this: https://example.com/reel?id=123")))
         assertEquals("https://example.com/a",QuickShareFormats.sharedUrl(listOf("https://example.com/a","https://example.com/a")))

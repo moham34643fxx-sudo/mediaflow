@@ -12,6 +12,7 @@ import androidx.test.runner.lifecycle.Stage
 import com.chaquo.python.Python
 import com.zdownloader.app.domain.*
 import com.zdownloader.app.engine.AnalysisTrace
+import com.zdownloader.app.ui.QuickShareDimensions
 import com.zdownloader.app.ui.QuickShareViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -45,7 +46,7 @@ class QuickShareFirstTimeBenchmarkTest {
     @Test fun newUrlsAndRepeatedUrlReportRealOnScreenTimings()=runBlocking<Unit> {
         val args=InstrumentationRegistry.getArguments()
         check(app.packageName=="com.zdownloader.app.candidate0965") {
-            "This performance run is restricted to the isolated candidate package."
+            "This performance run is restricted to the unified audit candidate package."
         }
         val run=requireNotNull(args.getString("evidenceRun"))
         require(run.matches(Regex("[A-Za-z0-9_-]{1,64}")))
@@ -65,7 +66,7 @@ class QuickShareFirstTimeBenchmarkTest {
         )
         val trials=JSONArray()
         val report=JSONObject().put("device",android.os.Build.MODEL).put("sdk",android.os.Build.VERSION.SDK_INT)
-            .put("scope","Quick Share real Activity, Compose sheet, and selectable quality row; no download enqueued")
+            .put("scope","Visible sheet header and first enabled video row without scrolling or expanding; no download enqueued")
             .put("trials",trials)
 
         var activeScenario:ActivityScenario<ShareReceiverActivity>?=null
@@ -88,55 +89,46 @@ class QuickShareFirstTimeBenchmarkTest {
                 compose.waitUntil(15_000) {receiver()!=null}
                 val activity=requireNotNull(receiver())
                 val model=ViewModelProvider(activity)[QuickShareViewModel::class.java]
-                compose.waitUntil(15_000) {compose.onAllNodesWithTag("share_compact").fetchSemanticsNodes().isNotEmpty()}
-                sample.put("share_window_ms",SystemClock.elapsedRealtime()-begin)
-                compose.onNodeWithTag("share_preference_mp3").assertIsDisplayed().assertIsEnabled()
-                sample.put("preferences_on_screen_ms",SystemClock.elapsedRealtime()-begin)
-                    .put("preferences_before_metadata",model.state.value.media==null)
+                compose.waitUntil(15_000) {compose.onNodeWithTag("share_header").isDisplayed()}
+                val windowMs=SystemClock.elapsedRealtime()-begin
+                sample.put("share_window_ms",windowMs)
+                // Presets are collapsed by default. Observe the entry action, not a hidden preset.
+                val preferences=compose.onNodeWithTag("share_preferences")
+                fun observePreferences() {
+                    if(!sample.has("preferences_action_on_screen_ms")&&preferences.isDisplayed()) {
+                        sample.put("preferences_action_on_screen_ms",SystemClock.elapsedRealtime()-begin)
+                            .put("preferences_action_before_metadata",model.state.value.media==null)
+                    }
+                }
                 val traceId=model.state.value.traceId
 
                 var qualityTag:String?=null
                 var firstQualityOnScreenAt:Long?=null
                 var extractionStartedAt:Long?=null
-                var expandedForQuality=false
-                var expandedSourceTag:String?=null
-                var scrolledToExpandedSource=false
                 val qualityDeadline=SystemClock.elapsedRealtime()+90_000
                 while(qualityTag==null&&SystemClock.elapsedRealtime()<qualityDeadline) {
                     val media=model.state.value.media
                     if(extractionStartedAt==null&&model.state.value.analyzing)
                         extractionStartedAt=SystemClock.elapsedRealtime()
                     if(media!=null) {
-                        val compact=QuickShareCatalog.verifiedGroups(media)
-                            .filter {it.resolution in QuickShareCatalog.basicQualities}
-                            .mapNotNull {it.resolution?.let {height->"share_video_$height"}}
-                        qualityTag=compact.firstOrNull {tag->compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()}
+                        qualityTag=QuickShareCatalog.variantEntries(media).asSequence()
+                            .map {QuickShareDimensions.from(it.format)}
+                            .filter {it.edge!=null}
+                            .map {"share_video_quality_${it.key}"}
+                            .distinct()
+                            .firstOrNull {compose.onNodeWithTag(it).isDisplayed()}
                         if(qualityTag!=null) firstQualityOnScreenAt=SystemClock.elapsedRealtime()
-                        if(qualityTag==null&&!expandedForQuality&&media.videoOptions().isNotEmpty()&&
-                            compose.onAllNodesWithTag("share_more").fetchSemanticsNodes().isNotEmpty()) {
-                             compose.onNodeWithTag("share_more").performScrollTo().performClick()
-                            expandedForQuality=true
-                            compose.waitUntil(10_000) {compose.onAllNodesWithTag("share_expanded").fetchSemanticsNodes().isNotEmpty()}
-                        }
-                        if(qualityTag==null&&expandedForQuality) {
-                            val source=QuickShareCatalog.variantEntries(media).firstOrNull()?.format
-                            if(source!=null) expandedSourceTag="share_video_quality_${qualityLabel(source) ?: "unknown"}"
-                            val tag=expandedSourceTag
-                            if(!scrolledToExpandedSource&&tag!=null) {
-                                compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag(tag))
-                                scrolledToExpandedSource=true
-                            }
-                            expandedSourceTag?.takeIf {compose.onAllNodesWithTag(it).fetchSemanticsNodes().isNotEmpty()}
-                                ?.let {qualityTag=it;firstQualityOnScreenAt=SystemClock.elapsedRealtime()}
-                        }
                     }
+                    observePreferences()
                     if(qualityTag==null) delay(40)
                 }
-                assertNotNull("No real selectable video quality reached the share UI for $label",qualityTag)
-                sample.put("first_quality_on_screen_ms",requireNotNull(firstQualityOnScreenAt)-begin)
-                    .put("quality_after_window_ms",SystemClock.elapsedRealtime()-begin-sample.getLong("share_window_ms"))
+                val visibleTag=checkNotNull(qualityTag) {"No verified video quality visible in the compact sheet for $label"}
+                compose.onNodeWithTag(visibleTag).assertIsDisplayed().assertIsEnabled()
+                val qualityMs=requireNotNull(firstQualityOnScreenAt)-begin
+                sample.put("first_quality_on_screen_ms",qualityMs)
+                    .put("quality_after_window_ms",qualityMs-windowMs)
                     .put("extraction_started_observed_ms",extractionStartedAt?.minus(begin) ?: JSONObject.NULL)
-                    .put("quality_row_tag",qualityTag)
+                    .put("quality_row_tag",visibleTag)
                 val media=requireNotNull(model.state.value.media)
                 sample.put("source",media.source).put("format_count",media.formats.size)
                     .put("video_format_count",media.videoOptions().size)
@@ -155,11 +147,13 @@ class QuickShareFirstTimeBenchmarkTest {
                         "quality_catalog_ready","quick_share_catalog_ready","analysis_finished","share_analysis_terminal")) {
                         if(trace.has(stage)) sample.put("${stage}_ms",trace.getLong(stage)-begin)
                     }
-                    if(trace.has("activity_create_start")&&trace.has("preferences_interactive"))
-                        sample.put("activity_to_first_draw_ms",trace.getLong("preferences_interactive")-trace.getLong("activity_create_start"))
+                    if(trace.has("activity_create_start")&&trace.has("sheet_drawn"))
+                        sample.put("activity_to_first_draw_ms",trace.getLong("sheet_drawn")-trace.getLong("activity_create_start"))
                     sample.put("cache_hit",trace.optBoolean("cache_hit",false))
                     assertEquals("Unexpected result-cache state for $label",repeated,trace.optBoolean("cache_hit",false))
                 } else fail("Missing analysis trace for $label")
+                compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_preferences"))
+                preferences.assertIsDisplayed().assertIsEnabled()
                 trials.put(sample)
                 File(folder,"report.json").writeText(report.toString(2))
 

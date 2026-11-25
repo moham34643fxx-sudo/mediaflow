@@ -4,11 +4,12 @@ import androidx.compose.runtime.*
 import com.zdownloader.app.domain.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.withContext
 
 /** Derived UI data for one immutable extraction snapshot. No global cache or transport changes. */
 internal class QuickSharePresentation private constructor(
-    val media:Media,val groups:List<QualityGroup>,val videoSources:List<Format>,
+    val media:Media,val groups:List<QuickShareQualityGroup>,val videoSources:List<Format>,
     private val videoSelections:Map<String,Selection>,
     val preferenceSizes:Map<Int,MediaSize>,val mp3Size:MediaSize?,
     val variantFields:Map<String,Set<QuickShareVariantDetails.Field>>,
@@ -23,8 +24,10 @@ internal class QuickSharePresentation private constructor(
         suspend fun prepare(media:Media,labels:SizeLabelCache?=null):QuickSharePresentation = withContext(Dispatchers.Default) {
             ensureActive()
             val entries=QuickShareCatalog.videoEntries(media)
-            val variants=QuickShareCatalog.variantEntries(media)
-            val groups=QuickShareCatalog.verifiedGroups(media)
+            val groups=media.qualityGroups()
+            val variants=QuickShareCatalog.variantEntries(media,groups)
+            val sources=QuickShareCatalog.selectableSources(variants)
+            val qualityGroups=quickShareQualityGroups(QuickShareCatalog.selectableGroups(groups,sources).flatMap {it.candidates})
             if(labels!=null) {
                 labels.label(null)
                 for(entry in variants) {
@@ -34,7 +37,7 @@ internal class QuickSharePresentation private constructor(
                 }
                 // The audio section shows output variants of the default audio
                 // source. Prime those few size values once, not on every toggle.
-                for(output in listOf("mp3","m4a","aac","opus","flac","original")) {
+                for(output in AudioOutputFormats.quickShare) {
                     ensureActive()
                     runCatching {Selection.audio(media,output)}.getOrNull()?.let {labels.label(it.outputSize)}
                 }
@@ -64,7 +67,7 @@ internal class QuickSharePresentation private constructor(
             }.getOrNull()
             preferenceSizes.values.forEach {labels?.label(it)}
             mp3Size?.let {labels?.label(it)}
-            QuickSharePresentation(media,groups,QuickShareCatalog.selectableSources(variants),variants.mapNotNull {entry->
+            QuickSharePresentation(media,qualityGroups,sources,variants.mapNotNull {entry->
                 entry.selection?.let {entry.format.id to it}
             }.toMap(),preferenceSizes,mp3Size,QuickShareVariantDetails.fields(variants),preferenceQualities)
         }
@@ -72,8 +75,13 @@ internal class QuickSharePresentation private constructor(
 }
 
 @Composable internal fun rememberQuickSharePresentation(media:Media?,labels:SizeLabelCache):QuickSharePresentation? {
-    val prepared by produceState<QuickSharePresentation?>(null,media,labels) {
-        value=media?.let {QuickSharePresentation.prepare(it,labels)}
+    val latest by rememberUpdatedState(media)
+    val prepared by produceState<QuickSharePresentation?>(null,labels,media?.url,media?.id) {
+        // Finish the first playable presentation even if a burst of optional
+        // size updates arrives while it is being prepared.
+        snapshotFlow {latest}.conflate().collect {snapshot->
+            value=snapshot?.let {QuickSharePresentation.prepare(it,labels)}
+        }
     }
     // Same-source metadata can stay visible while a newer size snapshot is prepared.
     // Never display a previous link's rows after replacing or invalidating the share.

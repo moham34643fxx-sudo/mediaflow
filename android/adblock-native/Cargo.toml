@@ -1,0 +1,27 @@
+[package]
+name = "mediaflow-adblock-native"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "mediaflow_adblock"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "compile_filter_baseline"
+path = "src/bin/compile_filter_baseline.rs"
+
+[dependencies]
+adblock = { version = "=0.13.6", default-features = false, features = ["embedded-domain-resolver", "full-regex-handling", "css-validation"] }
+base64 = "=0.23.1"
+jni = "0.21.1"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "unwind"
+strip = "symbols"

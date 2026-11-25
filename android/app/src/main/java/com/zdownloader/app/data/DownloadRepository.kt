@@ -84,6 +84,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
         }
     }
     suspend fun resume(id: String) = dao.resume(id)
+    suspend fun retryInDefaultDestination(id:String) {
+        if(android.os.Build.VERSION.SDK_INT<29||dao.retryInDefaultDestination(id)!=1)
+            throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
+    }
     /** A confirmed submit may attach to an older request whose pause is still settling. */
     suspend fun prepareForSubmission(id:String):DownloadEntity {
         val before=dao.get(id) ?: throw MediaException(ErrorCode.INTERNAL_ENGINE_ERROR)

@@ -61,7 +61,7 @@ class PlaylistRemovalRegressionTest {
         } finally {db.close()}
     }
     @Test fun realRepositoryDefersNativeCleanupAndNeverDeletesCompletedFile()=runBlocking {
-        check(context.packageName=="com.zdownloader.app.designreview")
+        check(context.packageName=="com.zdownloader.app.candidate0965")
         val app=context.applicationContext as ZApplication;val dao=app.repository.dao
         val id="removal-${UUID.randomUUID()}";val cancelled="$id-cancelled";val saved="$id-saved"
         val completedFile=File(app.cacheDir,"$saved.mp4").apply {writeBytes(ByteArray(1024) {it.toByte()})}

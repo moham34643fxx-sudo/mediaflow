@@ -106,10 +106,8 @@ class QuickShareFormatsReviewTest {
         compose.onNodeWithTag("share_preference_360").assertIsSelected()
         compose.onNodeWithTag("share_preference_480").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("share_preference_720").performScrollTo().assertIsDisplayed()
-        listOf(360,480,720).forEach {height->
-            compose.onNodeWithTag("share_preference_$height").assertExists()
-            compose.onNodeWithTag("share_video_quality_$height").assertDoesNotExist()
-        }
+        listOf(360,480,720).forEach {height->compose.onNodeWithTag("share_preference_$height").assertExists()}
+        compose.onNodeWithTag("share_video_quality_unknown").assertDoesNotExist()
         compose.onNodeWithTag("share_more").performScrollTo().assertIsDisplayed()
     }
     @Test fun asynchronousSizeLabelsKeepSelectionAndRowGeometryStable() {

@@ -30,12 +30,27 @@ class MetadataHttpBridge internal constructor(private val client:OkHttpClient) :
         try {
             return call.execute().use {response->readResponse(response)}
         } catch(error:IOException) {
-            runCatching { android.util.Log.e("ZAnalysis","MetadataHttpBridge failed url=${config.optString("url")} error=$error",error) }
-            throw MetadataTransportException(if(closed.get()) "DOWNLOAD_INTERRUPTED" else
+            val code=if(closed.get()) "DOWNLOAD_INTERRUPTED" else
                 if(error is java.io.InterruptedIOException && error !is java.net.SocketTimeoutException)
                     if(trace.stage=="tls") "TLS_TIMEOUT" else "READ_TIMEOUT" else
-                if(error is MetadataTransportException) error.code else NetworkDiagnostics.classify(error,trace.stage).name).apply {initCause(error)}
+                if(error is MetadataTransportException) error.code else NetworkDiagnostics.classify(error,trace.stage).name
+            // Never log the request URL, raw exception, or stack: extractor URLs may be signed.
+            runCatching { android.util.Log.e("ZAnalysis","MetadataHttpBridge failed stage=${trace.stage} code=$code") }
+            throw MetadataTransportException(code,safeCauseClasses(error)).apply {initCause(error)}
         } finally {calls.remove(call)}
+    }
+
+    private fun safeCauseClasses(error:Throwable):String {
+        val rows=JSONArray()
+        val seen=java.util.Collections.newSetFromMap(java.util.IdentityHashMap<Throwable,Boolean>())
+        var current:Throwable?=error
+        val label=Regex("[A-Za-z0-9_.$]{1,120}")
+        while(current!=null&&rows.length()<12&&seen.add(current)) {
+            val name=current.javaClass.simpleName
+            rows.put(if(label.matches(name)) name else "Other")
+            current=current.cause
+        }
+        return rows.toString()
     }
 
     private fun request(config:JSONObject,payload:ByteArray?):Request {
@@ -84,4 +99,4 @@ class MetadataHttpBridge internal constructor(private val client:OkHttpClient) :
 }
 
 class MetadataHttpResponse(val status:Int,val reason:String,val headersJson:String,val body:ByteArray)
-class MetadataTransportException(val code:String):IOException(code)
+class MetadataTransportException(val code:String,val safeCauseClassesJson:String="[]"):IOException(code)

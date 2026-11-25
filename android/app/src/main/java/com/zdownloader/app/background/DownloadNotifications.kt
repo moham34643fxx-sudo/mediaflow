@@ -186,6 +186,7 @@ fun errorResource(code: ErrorCode): Int = when(code) {
     ErrorCode.READ_TIMEOUT -> R.string.error_read_timeout
     ErrorCode.TLS_FAILED, ErrorCode.TLS_TIMEOUT -> R.string.error_tls
     ErrorCode.HTTP_FORBIDDEN -> R.string.error_forbidden
+    ErrorCode.BOT_DETECTED -> R.string.error_bot_detected
     ErrorCode.MEDIA_URL_EXPIRED -> R.string.error_expired
     ErrorCode.EXTRACTION_TIMEOUT -> R.string.error_extraction_timeout
     ErrorCode.URL_POLICY_REJECTED -> R.string.error_policy
@@ -200,5 +201,5 @@ fun errorResource(code: ErrorCode): Int = when(code) {
     ErrorCode.LIVE_STREAM_DETECTED -> R.string.error_live_stream
     ErrorCode.QUALITY_UNAVAILABLE -> R.string.error_quality_unavailable
     ErrorCode.SERVER_UNAVAILABLE -> R.string.error_server_unavailable
-    ErrorCode.INVALID_URL -> R.string.error_invalid_url; ErrorCode.UNSUPPORTED_PLATFORM -> R.string.error_unsupported; ErrorCode.VIDEO_NOT_FOUND -> R.string.error_not_found; ErrorCode.PRIVATE_CONTENT -> R.string.error_private; ErrorCode.AUTHENTICATION_REQUIRED -> R.string.error_auth; ErrorCode.DRM_PROTECTED -> R.string.error_drm; ErrorCode.GEO_RESTRICTED -> R.string.error_geo; ErrorCode.RATE_LIMITED -> R.string.error_rate; ErrorCode.NETWORK_TIMEOUT -> R.string.error_timeout; ErrorCode.HTTP_ERROR -> R.string.error_http; ErrorCode.EXTRACTION_FAILED -> R.string.error_extraction; ErrorCode.FORMAT_UNAVAILABLE -> R.string.error_format; ErrorCode.INSUFFICIENT_STORAGE -> R.string.error_space; ErrorCode.STORAGE_PERMISSION_ERROR -> R.string.error_storage; ErrorCode.DOWNLOAD_INTERRUPTED -> R.string.error_interrupted; ErrorCode.MERGE_FAILED -> R.string.error_merge; ErrorCode.CONVERSION_FAILED -> R.string.error_conversion; ErrorCode.FILE_WRITE_FAILED -> R.string.error_write; ErrorCode.INTERNAL_ENGINE_ERROR -> R.string.error_internal
+    ErrorCode.INVALID_URL -> R.string.error_invalid_url; ErrorCode.UNSUPPORTED_PLATFORM -> R.string.error_unsupported; ErrorCode.VIDEO_NOT_FOUND -> R.string.error_not_found; ErrorCode.PRIVATE_CONTENT -> R.string.error_private; ErrorCode.AUTHENTICATION_REQUIRED -> R.string.error_auth; ErrorCode.DRM_PROTECTED -> R.string.error_drm; ErrorCode.GEO_RESTRICTED -> R.string.error_geo; ErrorCode.RATE_LIMITED -> R.string.error_rate; ErrorCode.NETWORK_TIMEOUT -> R.string.error_timeout; ErrorCode.HTTP_ERROR -> R.string.error_http; ErrorCode.EXTRACTION_FAILED -> R.string.error_extraction; ErrorCode.FORMAT_UNAVAILABLE -> R.string.error_format; ErrorCode.INSUFFICIENT_STORAGE -> R.string.error_space; ErrorCode.STORAGE_PERMISSION_ERROR -> R.string.error_storage; ErrorCode.STORAGE_DESTINATION_UNAVAILABLE -> R.string.error_destination_unavailable; ErrorCode.DOWNLOAD_INTERRUPTED -> R.string.error_interrupted; ErrorCode.MERGE_FAILED -> R.string.error_merge; ErrorCode.CONVERSION_FAILED -> R.string.error_conversion; ErrorCode.FILE_WRITE_FAILED -> R.string.error_write; ErrorCode.INTERNAL_ENGINE_ERROR -> R.string.error_internal
 }

@@ -8,22 +8,44 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import com.zdownloader.app.domain.Format
 import com.zdownloader.app.domain.Media
-import com.zdownloader.app.domain.qualityGroups
+import com.zdownloader.app.domain.QuickShareCatalog
+import com.zdownloader.app.engine.AnalysisTrace
+import com.zdownloader.app.ui.QuickShareDimensions
+import org.json.JSONArray
 
-/** Reveal a source inside its real quality tier; singleton tiers are selectable on the tier row. */
-internal fun ComposeTestRule.revealQuickShareVideoSource(media:Media,format:Format):String {
-    val group=checkNotNull(media.qualityGroups().firstOrNull {candidate->candidate.candidates.any {it.id==format.id}}) {
-        "No quality tier for source ${format.id}"
+/** Wait for the asynchronously prepared catalog to reach its actual first drawn frame. */
+internal fun ComposeTestRule.awaitQuickShareCatalog(traceId:String,timeoutMillis:Long=15_000) {
+    waitUntil(timeoutMillis) {
+        val traces=JSONArray(AnalysisTrace.snapshot())
+        (0 until traces.length()).any {index->
+            val trace=traces.getJSONObject(index)
+            trace.optString("id")==traceId&&trace.has("complete_catalog_drawn")
+        }
     }
-    val tier=group.resolution?.toString() ?: "unknown"
-    val tierTag="share_video_quality_$tier"
-    onNodeWithTag("share_formats").performScrollToNode(hasTestTag(tierTag))
-    if(group.candidates.size==1) return tierTag
+}
 
+/** Match the UI's actual source list, excluding formats that cannot currently resolve. */
+internal fun selectableQuickShareVideoSources(media:Media):List<Format> =
+    QuickShareCatalog.selectableSources(QuickShareCatalog.variantEntries(media))
+
+/** Find the actual row or alternative representing this eligible source. */
+internal fun ComposeTestRule.revealQuickShareVideoSource(media:Media,format:Format):String {
+    val selectable=selectableQuickShareVideoSources(media)
+    val source=checkNotNull(selectable.firstOrNull {it.id==format.id}) {
+        "Source ${format.id} is not a currently selectable Quick Share video"
+    }
+    val dimensions=QuickShareDimensions.from(source)
+    val tier=dimensions.key
+    val tierTag="share_video_quality_$tier"
+    val formats=onNodeWithTag("share_formats")
+    formats.performScrollToNode(hasTestTag(tierTag))
+    if(selectable.none {it.id!=source.id&&QuickShareDimensions.from(it)==dimensions}) return tierTag
     val sourceTag="share_video_variant_${format.id}"
-    if(onAllNodesWithTag(sourceTag).fetchSemanticsNodes().isEmpty()) {
-        onNodeWithTag("share_video_quality_toggle_$tier").performClick()
-        waitUntil(10_000) {onAllNodesWithTag(sourceTag).fetchSemanticsNodes().isNotEmpty()}
+    if(!runCatching {formats.performScrollToNode(hasTestTag(sourceTag))}.isSuccess) {
+        val toggleTag="share_video_quality_toggle_$tier"
+        formats.performScrollToNode(hasTestTag(toggleTag))
+        onNodeWithTag(toggleTag).performClick()
+        formats.performScrollToNode(hasTestTag(sourceTag))
     }
     return sourceTag
 }

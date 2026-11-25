@@ -10,11 +10,10 @@ internal object FormatLoadingPresentation {
     // identity; an append-only cache would violate numeric ordering for late formats.
     fun sources(state:QuickShareState):List<Format> = QuickShareCatalog.allVideoSources(state.media)
 
-    fun pendingRows(state:QuickShareState):Int = when {
-        !state.expanded||state.sourceUrl==null||!state.discoveringFormats||state.error!=null -> 0
-        state.media==null -> 3
-        else -> 1 // More work is pending; its format count/qualities are not known yet.
-    }
+    fun pendingRows(state:QuickShareState,presented:Boolean=state.media!=null):Int =
+        if(!presented&&state.sourceUrl!=null&&state.error==null&&(state.discoveringFormats||state.media!=null)) 1 else 0
+
+    fun morePending(state:QuickShareState,showVideo:Boolean):Boolean = state.expanded&&showVideo&&state.pendingDimensionIds.isNotEmpty()
 
     fun sizePending(state:QuickShareState,selection:Selection,sourceSize:Boolean):Boolean {
         val displayed=if(sourceSize) selection.transferSize else selection.outputSize

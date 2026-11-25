@@ -10,17 +10,21 @@ internal class DiagnosticsExport {
         "queue_wait_ms","inspection_ms","mux_ms","validation_ms","extraction_ms","expected_frames","decoded_frames","submitted_samples","range_frames","workers","first_range_frames",
         "video_bytes","audio_bytes","output_bytes","video_download_ms","audio_download_ms","post_download_total_ms","end_to_end_ms",
         "copy_duration_ms","readback_validation_ms","copy_and_verification_ms","bytes","buffer_size_kb","return_code","codec_error","width","height","fps",
-        "preference","count","recorded_formats","decode_tail_ms","normalized_formats","accepted_formats","accepted_video_sources","accepted_audio_sources")
+        "preference","count","recorded_formats","decode_tail_ms","normalized_formats","accepted_formats","accepted_video_sources","accepted_audio_sources",
+        "android_api","internal_available_bytes","external_available_bytes","source_output_bytes","encoder_output_bytes","native_return_code","bitrate_kbps")
     private val flags=setOf("cancelled","recoverable","transient","input_eos","output_eos","validated","video_copy","stream_copy","transcoded","full_audio_decode","initialized","hardware","software",
         "screen_interactive","app_foreground","hardware_av1","hardware_vp9","hardware_avc","hardware_hevc","available","validated","wifi","cellular","vpn","proxy","privateDns","underlyingValidated","underlyingInternetPresent",
-        "complete_source_evidence","video_decoded_before_eof","audio_decoded_before_eof")
+        "complete_source_evidence","video_decoded_before_eof","audio_decoded_before_eof","custom_destination","output_exists")
     private val enums=mapOf("stack" to setOf("android","analysis","media","queue","scheduler","storage","capture","formats","python","okhttp","share","notification"),
         "container" to setOf("mp4","mkv","webm","m4a","aac","mp3","opus","ogg","flac"),
         "extension" to setOf("mp4","webm","mkv","m4a","aac","opus","ogg","mp3","flac","ts"),
         "video_codec" to setOf("av1","vp9","vp8","h264","hevc","unknown","none"),
         "audio_codec" to setOf("aac","opus","vorbis","mp3","flac","unknown","none"),
         "reason" to setOf("offered","codec_audio_incompatible","policy_not_offered"),
-        "decoder_step" to setOf("configure","start","stop","release","released"))
+        "decoder_step" to setOf("configure","start","stop","release","released"),
+        "publication_phase" to setOf("preflight","stale_publication_cleanup","journal_prepare","saf_create","mediastore_insert","pending_owner_check","output_copy","output_size_verify","saf_rename","mediastore_publish","publication_finalize","database_complete"),
+        "exception_type" to setOf("ErrnoException","SecurityException","FileNotFoundException","IOException","UnsupportedOperationException","IllegalStateException","IllegalArgumentException","Other"),
+        "cause_type" to setOf("ErrnoException","SecurityException","FileNotFoundException","IOException","UnsupportedOperationException","IllegalStateException","IllegalArgumentException","Other"))
     private fun alias(value:String)=aliases.getOrPut(value) {"op${aliases.size+1}"}
     fun write(rows:List<String>,destination:java.io.Writer) {
         check(com.zdownloader.app.BuildConfig.INTERNAL_DIAGNOSTICS) {"Internal diagnostics unavailable"}
@@ -88,6 +92,6 @@ internal class DiagnosticsExport {
             "python_queued","python_worker_started","python_runtime_start","python_module_start","python_call_start","python_call_returned",
             "background_extraction_started","background_formats_resolved","queue_claimed","queue_saved","terminal_failure","automatic_retry",
             "uidt_job_started","uidt_job_stopped","user_foreground_started","user_foreground_runner_failed","worker_started","worker_failed",
-            "mp3_encoding_timing","mp3_tags_timing","mp3_validation_timing")
+            "mp3_encoding_timing","mp3_tags_timing","mp3_validation_timing","mp3_encoder_failed","publication_failure")
     }
 }

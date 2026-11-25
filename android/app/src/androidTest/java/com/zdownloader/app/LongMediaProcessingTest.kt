@@ -22,7 +22,7 @@ import java.util.UUID
 class LongMediaProcessingTest {
     @Test fun shortAndLongAudioAndVideoKeepQualityAndPublishCorrectly():Unit=runBlocking {
         val instrument=InstrumentationRegistry.getInstrumentation()
-        check(instrument.targetContext.packageName=="com.zdownloader.app.designreview")
+        check(instrument.targetContext.packageName=="com.zdownloader.app.candidate0965")
         val app=instrument.targetContext.applicationContext as ZApplication
         val fixture=File(app.getExternalFilesDir(null),"video-review/long-audio.m4a")
         val videoFixture=File(app.getExternalFilesDir(null),"video-review/user-video.mp4")

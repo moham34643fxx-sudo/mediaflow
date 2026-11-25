@@ -5,7 +5,6 @@ Hand that parser the already fetched, decoded small manifest. Everything is
 discarded with the analysis; cookies, headers and proxy routing are part of the
 identity. Site selection, live/DRM checks and format parsing remain upstream.
 """
-import hashlib
 import io
 import math
 import re
@@ -146,8 +145,7 @@ class ManifestHandoff:
             self.reused += 1
             return Response(io.BytesIO(document), url, headers, status, reason, extensions)
         parsed = urlsplit(request.url)
-        row = {'host': parsed.hostname, 'path_sha256': hashlib.sha256(parsed.path.encode()).hexdigest()[:16],
-               'method': request.method, 'headers_ms': 0, 'body_ms': 0, 'bytes_read': 0}
+        row = {'method': request.method, 'headers_ms': 0, 'body_ms': 0, 'bytes_read': 0}
         if len(self.trace) < 32:
             self.trace.append(row)
         start = time.monotonic()

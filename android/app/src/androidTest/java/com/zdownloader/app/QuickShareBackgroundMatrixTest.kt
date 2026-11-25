@@ -328,7 +328,7 @@ class QuickShareBackgroundMatrixTest {
     @Test fun cap1080On720Only() {scenario("verified-720-under-1080","https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4")}
     @Test fun mp3() {scenario("mp3","https://www.w3schools.com/html/mov_bbb.mp4",audio=true)}
     @Test fun audioOriginal() {scenario("audio-original","https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd",audio=true,audioOutput="original")}
-    @Test fun facebookSharedLink() {scenario("facebook-shared-link","https://www.facebook.com/share/v/1TBGC8WbKh/")}
+    @Test fun facebookSharedLink() {scenario("facebook-shared-link","https://www.facebook.com/reel/1102243642315985/")}
     @Test fun genericHtml5() {scenario("generic-html5","https://www.w3schools.com/html/html5_video.asp")}
     @Test fun instagramReel() {scenario("instagram-reel","https://www.instagram.com/reel/Chunk8-jurw/")}
     @Test fun tiktokVideo() {scenario("tiktok-video","https://www.tiktok.com/@scout2015/video/6718335390845095173")}

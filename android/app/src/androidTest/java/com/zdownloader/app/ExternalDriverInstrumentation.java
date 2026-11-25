@@ -33,6 +33,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
             return new String(output.toByteArray(),StandardCharsets.UTF_8);
         }
     }
+    private String targetPackage() {return getTargetContext().getPackageName();}
     private AccessibilityNodeInfo clickable(AccessibilityNodeInfo node) {
         for(int index=0;node!=null&&index<8;index++,node=node.getParent()) if(node.isClickable()) return node;
         return null;
@@ -47,7 +48,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
     }
     private boolean click(String text,boolean bottom) throws Exception {
         AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
-        if(root==null||!"com.zdownloader.app".contentEquals(root.getPackageName())) return false;
+        if(root==null||!targetPackage().contentEquals(root.getPackageName())) return false;
         AccessibilityNodeInfo best=null;int y=-1;
         List<AccessibilityNodeInfo> matches=new ArrayList<>();matching(root,text,matches);
         for(AccessibilityNodeInfo match:matches) {
@@ -65,7 +66,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
     }
     private boolean selected(String text) {
         AccessibilityNodeInfo root=getUiAutomation().getRootInActiveWindow();
-        if(root==null||!"com.zdownloader.app".contentEquals(root.getPackageName())) return false;
+        if(root==null||!targetPackage().contentEquals(root.getPackageName())) return false;
         List<AccessibilityNodeInfo> matches=new ArrayList<>();matching(root,text,matches);
         for(AccessibilityNodeInfo match:matches) for(AccessibilityNodeInfo item=match;item!=null;item=item.getParent())
             if(item.isCheckable()&&item.isChecked()||item.isSelected()) return true;
@@ -82,7 +83,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
         JSONObject report=new JSONObject();
         try {
             if("independent-network-probe".equals(arguments.getString("scenario"))) {
-                String before=shell("pidof com.zdownloader.app").trim();
+                String before=shell("pidof "+targetPackage()).trim();
                 org.json.JSONArray samples=new org.json.JSONArray();
                 String[] urls={"https://speed.cloudflare.com/__down?bytes=1048576",
                     "https://storage.googleapis.com/shaka-demo-assets/angel-one/audio_en_2c_128k_aac.mp4"};
@@ -109,7 +110,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
                     samples.put(sample.put("bytes",bytes).put("total_ms",end-start)
                         .put("body_bytes_per_second",first==0?0:bytes*1000/Math.max(1,end-first)));
                 }
-                String after=shell("pidof com.zdownloader.app").trim();
+                String after=shell("pidof "+targetPackage()).trim();
                 report.put("target_pid_before",before).put("target_pid_after",after).put("samples",samples)
                     .put("scope","Independent test UID; no target instrumentation, pause, restart, or preference change. Other domains and per-app VPN routing may differ.");
                 Files.write(new File(folder,"independent-network-probe.json").toPath(),report.toString(2).getBytes(StandardCharsets.UTF_8));
@@ -187,14 +188,14 @@ public class ExternalDriverInstrumentation extends Instrumentation {
             if(root!=null&&"com.zdownloader.app.test".contentEquals(root.getPackageName())) break;
             if(SystemClock.elapsedRealtime()>deadline) throw new AssertionError("Request was not durably accepted");SystemClock.sleep(100);
         }
-        String beforePid=shell("pidof com.zdownloader.app").trim();
+        String beforePid=shell("pidof "+targetPackage()).trim();
         report.put("target_instrumented",false).put("pid_before",beforePid).put("quality_preference",label).put("policy_height",audioOnly?"0":height)
             .put("audio_only",audioOnly).put("audio_output",audioOutput).put("preference_selected",true).put("accepted",true);
         shell("am start -W -n com.zdownloader.app.test/com.zdownloader.app.ShareOriginActivity -f 0x34000000 --ez finishFixture true");
         boolean foreground=argumentBoolean("foreground",false);
         report.put("foreground_requested",foreground).put("main_activity_opened",foreground);
         if(foreground) {
-            shell("am start -W -n com.zdownloader.app/.MainActivity");
+            shell("am start -W -n "+targetPackage()+"/.MainActivity");
             long navigationDeadline=SystemClock.elapsedRealtime()+10000;
             while(!click("التنزيلات",true)&&!click("Downloads",true)) {
                 if(SystemClock.elapsedRealtime()>navigationDeadline) break;
@@ -206,11 +207,11 @@ public class ExternalDriverInstrumentation extends Instrumentation {
         // intentionally excludes from automatic recovery until user launch).
         boolean crash=argumentBoolean("crash",true);
         report.put("process_crash_injected",crash);
-        if(crash) report.put("crash_command",shell("am crash --user 0 com.zdownloader.app"));
+        if(crash) report.put("crash_command",shell("am crash --user 0 "+targetPackage()));
         if(!foreground) shell("input keyevent KEYCODE_SLEEP");
         deadline=SystemClock.elapsedRealtime()+Long.parseLong(arguments.getString("observationSeconds","600"))*1000;
         long lastCapture=0;
-        String where="(owner_package_name='com.zdownloader.app')AND(date_added>="+startedSeconds+")AND(is_pending=0)";
+        String where="(owner_package_name='"+targetPackage()+"')AND(date_added>="+startedSeconds+")AND(is_pending=0)";
         while(true) {
             if(foreground&&SystemClock.elapsedRealtime()-lastCapture>5000) {
                 captureForeground(folder,"foreground-latest");lastCapture=SystemClock.elapsedRealtime();
@@ -226,7 +227,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
             if(SystemClock.elapsedRealtime()>deadline) throw new AssertionError("No autonomous publication after process crash; last query: "+rows);
             SystemClock.sleep(1000);
         }
-        String afterPid=shell("pidof com.zdownloader.app").trim();
+        String afterPid=shell("pidof "+targetPackage()).trim();
         if(beforePid.isEmpty()||crash&&beforePid.equals(afterPid)) throw new AssertionError("Distinct restarted target process not verified");
         report.put("pid_after",afterPid).put("manual_resume",false).put("main_activity_opened",foreground)
             .put("screen_interactive_at_publication",getTargetContext().getSystemService(android.os.PowerManager.class).isInteractive())
@@ -265,7 +266,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
         try {
             MediaSessionManager manager=getTargetContext().getSystemService(MediaSessionManager.class);
             for(MediaController controller:manager.getActiveSessions(null)) {
-                if(!"com.zdownloader.app".equals(controller.getPackageName())) continue;
+                if(!targetPackage().equals(controller.getPackageName())) continue;
                 MediaMetadata metadata=controller.getMetadata();
                 if(metadata==null) continue;
                 String mediaId=metadata.getString(MediaMetadata.METADATA_KEY_MEDIA_ID);
@@ -286,7 +287,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
             try(java.io.OutputStream output=getTargetContext().getContentResolver().openOutputStream(audio)) {output.write(wav());}
             boolean committedBeforeKill=argumentBoolean("commitBeforeKill",false);
             Bundle delay=new Bundle();delay.putLong("millis",committedBeforeKill?750:6000);provider("delayQuery",id,delay);
-            Intent view=new Intent(Intent.ACTION_VIEW).setComponent(new android.content.ComponentName("com.zdownloader.app","com.zdownloader.app.playback.PlayerActivity"))
+            Intent view=new Intent(Intent.ACTION_VIEW).setComponent(new android.content.ComponentName(targetPackage(),"com.zdownloader.app.playback.PlayerActivity"))
                 .setDataAndType(audio,"audio/wav").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK|Intent.FLAG_GRANT_READ_URI_PERMISSION);
             view.setClipData(android.content.ClipData.newRawUri("Audio recovery fixture",audio));
             getTargetContext().startActivity(view);
@@ -305,19 +306,19 @@ public class ExternalDriverInstrumentation extends Instrumentation {
                 }
                 if(!sessionWasPlaying) throw new AssertionError("External request did not commit to an active MediaSession before process death");
             }
-            String pidBefore=shell("pidof com.zdownloader.app").trim();
-            shell("input keyevent KEYCODE_HOME");SystemClock.sleep(300);shell("am crash com.zdownloader.app");
+            String pidBefore=shell("pidof "+targetPackage()).trim();
+            shell("input keyevent KEYCODE_HOME");SystemClock.sleep(300);shell("am crash "+targetPackage());
             deadline=SystemClock.elapsedRealtime()+5000;
-            while(!shell("pidof com.zdownloader.app").trim().isEmpty()&&SystemClock.elapsedRealtime()<deadline) SystemClock.sleep(50);
-            String pidAfterKill=shell("pidof com.zdownloader.app").trim();
+            while(!shell("pidof "+targetPackage()).trim().isEmpty()&&SystemClock.elapsedRealtime()<deadline) SystemClock.sleep(50);
+            String pidAfterKill=shell("pidof "+targetPackage()).trim();
             if(pidBefore.isEmpty()||!pidAfterKill.isEmpty()) throw new AssertionError("Target process was not confirmed dead before recreation: "+pidBefore+" -> "+pidAfterKill);
             delay.putLong("millis",3000);provider("delayQuery",id,delay);
-            Intent resume=new Intent().setComponent(new android.content.ComponentName("com.zdownloader.app","com.zdownloader.app.playback.PlayerActivity"))
+            Intent resume=new Intent().setComponent(new android.content.ComponentName(targetPackage(),"com.zdownloader.app.playback.PlayerActivity"))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             getTargetContext().startActivity(resume);
             deadline=SystemClock.elapsedRealtime()+8000;
-            while(shell("pidof com.zdownloader.app").trim().isEmpty()&&SystemClock.elapsedRealtime()<deadline) SystemClock.sleep(100);
-            String pidAfterRestore=shell("pidof com.zdownloader.app").trim();
+            while(shell("pidof "+targetPackage()).trim().isEmpty()&&SystemClock.elapsedRealtime()<deadline) SystemClock.sleep(100);
+            String pidAfterRestore=shell("pidof "+targetPackage()).trim();
             deadline=SystemClock.elapsedRealtime()+5000;boolean replayed=false;
             while(SystemClock.elapsedRealtime()<deadline) {
                 Bundle state=provider("queryState",id,null);
@@ -347,7 +348,7 @@ public class ExternalDriverInstrumentation extends Instrumentation {
             if(requestReplayed!=argumentBoolean("expectReplay",false)) throw new AssertionError("Unexpected replay state: "+report);
         } finally {
             try {provider("clearQuery",id,null);} catch(Exception ignored) {}
-            try {shell("am force-stop com.zdownloader.app");} catch(Exception ignored) {}
+            try {shell("am force-stop "+targetPackage());} catch(Exception ignored) {}
             try {DocumentsContract.deleteDocument(getTargetContext().getContentResolver(),audio);} catch(Exception ignored) {}
         }
     }

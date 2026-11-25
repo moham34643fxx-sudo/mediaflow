@@ -19,7 +19,7 @@ class ConsumerNavigationAuditTest {
     @Test fun primaryAndSecondaryScreensRemainReachableInArabicAndEnglish():Unit=runBlocking {
         val instrument=InstrumentationRegistry.getInstrumentation()
         val app=instrument.targetContext.applicationContext as ZApplication
-        check(app.packageName=="com.zdownloader.app.designreview")
+        check(app.packageName=="com.zdownloader.app.candidate0965")
         val settings=SettingsRepository(app);val original=settings.current()
         val folder=File(app.filesDir,"quickshare-review/navigation-audit").apply {mkdirs()}
         val pages=JSONArray()

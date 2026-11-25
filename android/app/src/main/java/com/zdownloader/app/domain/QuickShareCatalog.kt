@@ -65,13 +65,20 @@ internal object QuickShareCatalog {
         return selectableSources(videoEntries(media))
     }
     /** Expanded pickers retain every eligible source identity, not just the tier recommendation. */
-    fun variantEntries(media:Media):List<VideoEntry> = media.qualityGroups().sortedBy {it.resolution ?: Int.MAX_VALUE}
+    fun variantEntries(media:Media,groups:List<QualityGroup> = media.qualityGroups()):List<VideoEntry> = groups.sortedBy {it.resolution ?: Int.MAX_VALUE}
         .flatMap {it.candidates}.mapNotNull {format ->
             // A source may expire between grouping and selection; omit only that unavailable row.
             try {VideoEntry(format,Selection.video(media,format))} catch(_: MediaException) {null}
         }
     // Unknown bitrate or equal rounded metadata cannot prove two source IDs redundant.
     fun selectableSources(entries:List<VideoEntry>):List<Format> = entries.filter {it.selection!=null}.map {it.format}
+    fun selectableGroups(groups:List<QualityGroup>,sources:List<Format>):List<QualityGroup> {
+        val ids=sources.mapTo(hashSetOf()) {it.id}
+        return groups.mapNotNull {group->
+            val candidates=group.candidates.filter {it.id in ids}.distinctBy {it.id}
+            candidates.takeIf {it.isNotEmpty()}?.let {group.copy(candidates=it)}
+        }
+    }
     fun unratedSources(media:Media?):List<Format> = media?.formats.orEmpty()
         .filter {it.video&&verifiedQualityEdge(it)==null&&FormatAvailability.eligible(it)}.distinctBy {it.id}.sortedBy {it.id}
 }

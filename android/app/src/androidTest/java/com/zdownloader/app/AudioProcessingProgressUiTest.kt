@@ -15,7 +15,7 @@ import org.junit.Test
 class AudioProcessingProgressUiTest {
     @get:Rule val compose=createEmptyComposeRule()
     @Test fun approximateEncodingAndFinalizationAreDistinctFromFullValidation() {
-        check(InstrumentationRegistry.getInstrumentation().targetContext.packageName=="com.zdownloader.app.designreview")
+        check(InstrumentationRegistry.getInstrumentation().targetContext.packageName=="com.zdownloader.app.candidate0965")
         val context=InstrumentationRegistry.getInstrumentation().targetContext
         val id="processing-ui-check"
         val progress=AudioProcessingProgress.start(id,10.0)

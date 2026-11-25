@@ -1,0 +1,2 @@
+# The release guard checks the original upstream notice bytes on every platform.
+app/src/main/assets/legal/dependencies/native-*.txt -text

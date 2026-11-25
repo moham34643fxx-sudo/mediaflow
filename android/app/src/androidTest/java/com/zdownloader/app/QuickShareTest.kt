@@ -3,8 +3,11 @@ package com.zdownloader.app
 import android.content.ComponentName
 import android.content.Intent
 import android.graphics.Bitmap
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.lifecycle.ActivityLifecycleCallback
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
@@ -70,26 +73,27 @@ class QuickShareTest {
     private fun originVisible():Boolean=automation.windows.any {window->
         window.type==android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION&&window.root?.packageName?.toString()=="com.zdownloader.app.test"
     }
-    private fun waitForPreview() {
+    private fun waitForPreview():com.zdownloader.app.ui.QuickShareState {
         var model:com.zdownloader.app.ui.QuickShareViewModel?=null
         val activity=shareActivity()!!
         instrumentation.runOnMainSync {model=androidx.lifecycle.ViewModelProvider(activity)[com.zdownloader.app.ui.QuickShareViewModel::class.java]}
         compose.waitUntil(90000) {model!!.state.value.error!=null||model!!.state.value.media!=null&&!model!!.state.value.analyzing&&model!!.state.value.mp3Available}
-        assertNull("Optional preview failed",model!!.state.value.error)
+        val state=model!!.state.value
+        assertNull("Preview failed",state.error)
+        compose.awaitQuickShareCatalog(state.traceId)
+        return state
     }
-    private fun openAudioFormats() {
-        compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_more_audio"))
-        compose.onNodeWithTag("share_more_audio").performClick()
-        waitForPreview()
-        compose.waitForIdle()
+    private fun waitForAudioFixture() {
+        val preview=waitForPreview()
+        val media=requireNotNull(preview.media)
+        assertTrue("The MP4 fixture must actually expose video and audio",
+            selectableQuickShareVideoSources(media).isNotEmpty()&&media.audioOptions().isNotEmpty())
     }
     @Test fun playlistContextAsksForScopeAndMalformedReplacementCannotSubmitOldSelection()=runBlocking {
         val url="https://www.youtube.com/watch?v=fixture&list=fixture-list"
         val before=app.repository.dao.batches().first().map {it.id}.toSet()
         try {
              source(url)
-             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_more"))
-             compose.onNodeWithTag("share_more").performClick()
              compose.waitUntil(15000) {runCatching {compose.onAllNodesWithTag("playlist_single").fetchSemanticsNodes().isNotEmpty()}.getOrDefault(false)}
             compose.onNodeWithTag("playlist_single").assertIsDisplayed()
             compose.onNodeWithTag("playlist_entire").assertIsDisplayed()
@@ -108,17 +112,27 @@ class QuickShareTest {
             settings.text("language","en")
             source(url)
             val activity=shareActivity()!!
-            var model:com.zdownloader.app.ui.QuickShareViewModel?=null
-            instrumentation.runOnMainSync {model=androidx.lifecycle.ViewModelProvider(activity)[com.zdownloader.app.ui.QuickShareViewModel::class.java]}
-            compose.waitUntil(90_000) {
-                val media=model!!.state.value.media
-                media!=null&&media.qualityGroups().any {it.resolution==480}&&
-                    compose.onAllNodesWithTag("share_preference_480").fetchSemanticsNodes().isNotEmpty()
+             var model:com.zdownloader.app.ui.QuickShareViewModel?=null
+             instrumentation.runOnMainSync {model=androidx.lifecycle.ViewModelProvider(activity)[com.zdownloader.app.ui.QuickShareViewModel::class.java]}
+             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_preferences"))
+             compose.onNodeWithTag("share_preferences").performClick()
+             compose.waitUntil(90_000) {
+                 val media=model!!.state.value.media
+                 media!=null&&!model!!.state.value.analyzing&&media.qualityGroups().any {it.resolution==480}
             }
-            val actualMedia=requireNotNull(model!!.state.value.media)
-            val actualSelection=requireNotNull(VideoPreferenceSelection.ready(actualMedia,480))
-            assertEquals(480,verifiedQualityEdge(actualSelection.primary))
-            compose.onNodeWithTag("share_preference_480").performScrollTo().performClick().assertIsSelected()
+             val ready=model!!.state.value
+             compose.awaitQuickShareCatalog(ready.traceId)
+             val actualMedia=requireNotNull(ready.media)
+             val actualSelection=requireNotNull(VideoPreferenceSelection.ready(actualMedia,480))
+             assertEquals(480,verifiedQualityEdge(actualSelection.primary))
+             val formats=compose.onNodeWithTag("share_formats")
+             val preferenceTag="share_preference_480"
+             val preference=compose.onNodeWithTag(preferenceTag)
+             // The lazy item contains the whole preferences panel; bring the row itself into view.
+             formats.performScrollToNode(hasTestTag(preferenceTag))
+             preference.performScrollTo().assertIsDisplayed().assertIsEnabled().performClick()
+             assertFalse("Selecting a preference must not close Quick Share",activity.isFinishing||activity.isDestroyed)
+             preference.assertIsSelected()
             assertEquals(480,model!!.state.value.qualityPreference)
             compose.onNodeWithTag("share_download").assertIsEnabled()
             capture("share-compact-en-selected")
@@ -130,16 +144,17 @@ class QuickShareTest {
             assertTrue(model!!.state.value.media!!.qualityGroups().any {it.resolution==480})
             compose.onNodeWithTag("share_download").assertIsEnabled()
             compose.onNodeWithTag("share_back").performClick()
-            // Compact mode intentionally retains instant preference controls after
-            // discovery; all source audio/video formats share its More entry.
+            // Reopening More without switching media type must keep the video's preference.
             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_more"))
             compose.onNodeWithTag("share_more").performClick()
             waitForPreview()
-            compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_audio_original"))
+             val tag="share_video_quality_${com.zdownloader.app.ui.QuickShareDimensions.from(actualSelection.primary).key}"
+             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag(tag))
+             compose.onNodeWithTag(tag).assertIsDisplayed()
             capture("share-confirmed-formats-en")
             compose.onNodeWithTag("share_back").performClick()
-            compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_preference_480"))
-            compose.onNodeWithTag("share_preference_480").assertIsSelected()
+             formats.performScrollToNode(hasTestTag(preferenceTag))
+             preference.performScrollTo().assertIsDisplayed().assertIsSelected()
             compose.onNodeWithTag("share_download").assertIsEnabled()
             assertTrue(app.repository.dao.observe().first().none {it.url==url})
         } finally {
@@ -186,8 +201,7 @@ class QuickShareTest {
         try {
             settings.text("language","en")
             source(url)
-            openAudioFormats()
-            compose.waitUntil(90000) {compose.onAllNodesWithTag("share_audio_mp3").fetchSemanticsNodes().isNotEmpty()}
+            waitForAudioFixture()
             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_audio_mp3"))
             compose.onNodeWithTag("share_audio_mp3").performScrollTo().performClick().assertIsSelected()
             capture("share-selected-mp3-en")
@@ -254,8 +268,7 @@ class QuickShareTest {
         val url="https://www.w3schools.com/html/mov_bbb.mp4?share-repeat=${UUID.randomUUID()}"
         try {
             source(url)
-            openAudioFormats()
-            compose.waitUntil(90000) {compose.onAllNodesWithTag("share_audio_mp3").fetchSemanticsNodes().isNotEmpty()}
+            waitForAudioFixture()
             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_audio_mp3"))
             compose.onNodeWithTag("share_audio_mp3").performScrollTo().performClick()
             val receiver=shareActivity()!!
@@ -284,41 +297,70 @@ class QuickShareTest {
             settings.text("language","en")
             source(url)
             compose.waitUntil(15000) {compose.onAllNodesWithTag("share_compact").fetchSemanticsNodes().isNotEmpty()}
-            compose.onNodeWithTag("share_download").assertIsDisplayed()
-            capture("share-large-font-compact")
-            compose.onNodeWithText("Original").performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) {get->
+            assertEquals(1.5f,shareActivity()!!.resources.configuration.fontScale,0.01f)
+            waitForAudioFixture()
+             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_audio_mp3"))
+             compose.onNodeWithTag("share_audio_mp3").assertIsDisplayed()
+             compose.onNodeWithTag("share_download").assertIsDisplayed()
+             compose.onNodeWithTag("share_media_mode").assertDoesNotExist()
+             capture("share-large-font-compact")
+             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_more"))
+             compose.onNodeWithTag("share_more").performClick()
+             compose.onNodeWithTag("share_expanded").assertIsDisplayed()
+             compose.onNodeWithTag("share_audio_mode").assertIsDisplayed().assertIsEnabled().performClick().assertIsSelected()
+             compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_audio_original"))
+             compose.onNodeWithTag("share_audio_original_description",useUnmergedTree=true)
+                 .assertTextEquals("M4A")
+            compose.onNodeWithTag("share_audio_original_title",useUnmergedTree=true)
+                .assertTextContains("Original audio",substring=true)
+                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) {get->
                 val layouts=mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
-                assertTrue(get(layouts));assertTrue(layouts.isNotEmpty())
-                File(folder,"large-font-text-layout.json").writeText(org.json.JSONArray(layouts.map {layout->
-                    JSONObject().put("text",layout.layoutInput.text.text).put("width",layout.size.width).put("height",layout.size.height)
-                        .put("paragraph_width",layout.multiParagraph.width).put("line_width",layout.getLineRight(0)-layout.getLineLeft(0))
-                        .put("paragraph_height",layout.multiParagraph.height).put("overflow_width",layout.didOverflowWidth)
-                        .put("overflow_height",layout.didOverflowHeight).put("line_count",layout.lineCount)
-                }).toString(2))
-                layouts.forEach {layout->
-                    assertEquals("The complete Original label fits one accessible row",1,layout.lineCount)
-                    assertFalse("Large-font label must not be ellipsized",layout.isLineEllipsized(0))
-                    // Paragraph width is the available measure space (488 px
-                    // here), not the rendered line (163 px). Check the actual
-                    // line bounds and allow only integer-pixel rounding.
-                    assertTrue("Large-font label width",layout.getLineRight(0)-layout.getLineLeft(0)<=layout.size.width+1f)
-                    assertFalse("Large-font label height",layout.didOverflowHeight)
-                }
+                 assertTrue(get(layouts));assertTrue(layouts.isNotEmpty())
+                 File(folder,"large-font-text-layout.json").writeText(org.json.JSONArray(layouts.map {layout->
+                     JSONObject().put("text",layout.layoutInput.text.text).put("width",layout.size.width).put("height",layout.size.height)
+                         .put("paragraph_width",layout.multiParagraph.width).put("overflow_height",layout.didOverflowHeight)
+                         .put("lines",org.json.JSONArray().apply {
+                             repeat(layout.lineCount) {line->
+                                 put(JSONObject().put("left",layout.getLineLeft(line)).put("right",layout.getLineRight(line))
+                                     .put("ellipsized",layout.isLineEllipsized(line)))
+                             }
+                         })
+                 }).toString(2))
+                 layouts.forEach {layout->
+                     assertFalse("Large-font label must fit vertically",layout.didOverflowHeight)
+                     assertTrue(layout.lineCount>0)
+                     // The paragraph can use the full column while Text measures to its intrinsic width.
+                     repeat(layout.lineCount) {line->
+                         assertFalse(layout.isLineEllipsized(line))
+                         assertTrue("Large-font line must fit the rendered text bounds",
+                             layout.getLineLeft(line)>=-1f&&layout.getLineRight(line)<=layout.size.width+1f)
+                     }
+                 }
             }
-            compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_more"));compose.onNodeWithTag("share_more").performClick()
-            compose.onNodeWithTag("share_expanded").assertIsDisplayed()
-            compose.onNodeWithTag("share_download").assertIsDisplayed()
+             compose.onNodeWithTag("share_download").assertIsDisplayed()
+             compose.onNodeWithTag("share_media_mode").assertIsDisplayed()
             capture("share-large-font-expanded")
-            compose.onNodeWithTag("share_back").performClick()
-            compose.onNodeWithTag("share_compact").assertIsDisplayed()
-            val receiver=shareActivity()!!
-            val top=compose.onNodeWithTag("share_compact").fetchSemanticsNode().boundsInWindow.top
-            shell("input tap ${app.resources.displayMetrics.widthPixels/2} ${maxOf(100,(top/2).toInt())}")
+             compose.onNodeWithTag("share_back").performClick()
+             compose.onNodeWithTag("share_compact").assertIsDisplayed()
+             val receiver=shareActivity()!!
+             val handle=compose.onNodeWithTag("share_drag_handle",useUnmergedTree=true).fetchSemanticsNode()
+             val (statusBarBottom,sheetEdge)=compose.runOnIdle {
+                 val insets=requireNotNull(ViewCompat.getRootWindowInsets(receiver.window.decorView)).getInsets(
+                     WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+                 )
+                 val coordinates=handle.layoutInfo.coordinates
+                 insets.top to coordinates.localToScreen(Offset(coordinates.size.width/2f,0f))
+             }
+             assertTrue("A tappable scrim must remain beneath the status bar; inset=$statusBarBottom sheet=${sheetEdge.y}",
+                 sheetEdge.y-statusBarBottom>2f)
+             val scrimY=((sheetEdge.y+statusBarBottom)/2).toInt()
+             shell("input tap ${sheetEdge.x.toInt()} $scrimY")
             compose.waitUntil(10000) {receiver.isFinishing||receiver.isDestroyed}
             eventually {originVisible()}
-            assertTrue(app.repository.dao.observe().first().none {it.url==url})
-            File(folder,"share-large-font.json").writeText(JSONObject().put("font_scale",1.5).put("cta_visible_compact",true)
-                .put("cta_visible_expanded",true).put("outside_dismissal_returned",true).put("queue_rows",0).toString(2))
+             assertTrue(app.repository.dao.observe().first().none {it.url==url})
+             File(folder,"share-large-font.json").writeText(JSONObject().put("font_scale",1.5).put("cta_visible_compact",true)
+                 .put("cta_visible_expanded",true).put("outside_dismissal_returned",true).put("queue_rows",0)
+                 .put("status_bar_bottom_px",statusBarBottom).put("sheet_edge_px",sheetEdge.y).put("outside_tap_y_px",scrimY).toString(2))
         } finally {
             shareActivity()?.let {activity->instrumentation.runOnMainSync {activity.finish()}}
             if(scale=="null") shell("settings delete system font_scale") else shell("settings put system font_scale $scale")

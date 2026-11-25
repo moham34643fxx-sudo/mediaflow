@@ -45,7 +45,7 @@ object QuickShareFormats {
     fun audioChoices(media:Media,source:Format,mp3Available:Boolean):List<QuickShareChoice> {
         val usable=usable(media)
         val options=usable.audioOptions()
-        return listOf("mp3","m4a","aac","opus","flac","original").mapNotNull {output->
+        return AudioOutputFormats.quickShare.mapNotNull {output->
             val selected=if(output=="original"||copyCompatible(source,output)) source
                 else compatibleAudioSource(options,source,output) ?: source
             val selection=runCatching {audioSelection(usable,output,selected)}.getOrNull() ?: return@mapNotNull null

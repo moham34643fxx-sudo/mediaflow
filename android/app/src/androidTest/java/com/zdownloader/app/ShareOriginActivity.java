@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 /** A standalone test-APK caller; intentionally has no target-app/Kotlin runtime dependency. */
 public class ShareOriginActivity extends Activity {
@@ -38,10 +37,11 @@ public class ShareOriginActivity extends Activity {
         Button direct = new Button(this);
         directButton = direct;
         direct.setText("Share directly to ZD");
-        String targetPackage = InstrumentationRegistry.getInstrumentation().getTargetContext().getPackageName();
+        ComponentName receiver = new ComponentName(
+            "com.zdownloader.app.candidate0965", "com.zdownloader.app.ShareReceiverActivity");
         direct.setOnClickListener(view -> startActivity(new Intent(Intent.ACTION_SEND)
             .setType("text/plain").putExtra(Intent.EXTRA_TEXT,"Watch this media: " + url)
-            .setComponent(new ComponentName(targetPackage,ShareReceiverActivity.class.getName()))));
+            .setComponent(receiver)));
         layout.addView(direct);
         Button chooser = new Button(this);
         chooser.setText("Open Android share chooser");

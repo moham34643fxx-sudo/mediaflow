@@ -6,6 +6,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
+import java.net.URI
+import java.util.Locale
 
 enum class FacebookSessionStatus {
     NOT_CONNECTED,
@@ -16,6 +18,7 @@ enum class FacebookSessionStatus {
 object FacebookSessionManager {
     @Volatile
     private var sessionExpired: Boolean = false
+    private val facebookCookieHosts = setOf("facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com")
 
     private val _status = MutableStateFlow(computeStatus())
     val status: StateFlow<FacebookSessionStatus> = _status.asStateFlow()
@@ -37,11 +40,48 @@ object FacebookSessionManager {
     }
 
     @JvmStatic
+    internal fun getFacebookCookiesForUrl(
+        url: String,
+        cm: CookieManager? = runCatching { CookieManager.getInstance() }.getOrNull()
+    ): String {
+        if (sessionExpired || !isFacebookCookieUrl(url) || cm == null) return ""
+        val cookies = try {
+            cm.getCookie(url).orEmpty()
+        } catch (_: RuntimeException) {
+            return ""
+        }
+        return cookies.takeIf(::hasAuthCookies).orEmpty()
+    }
+
+    internal fun isFacebookCookieUrl(url: String): Boolean {
+        if (url.length > 8192) return false
+        val uri = try {
+            URI(url)
+        } catch (_: java.net.URISyntaxException) {
+            return false
+        }
+        val host = uri.host?.lowercase(Locale.ROOT) ?: return false
+        return uri.scheme.equals("https", ignoreCase = true) &&
+            isFacebookCookieHost(host) &&
+            uri.userInfo == null &&
+            (uri.port == -1 || uri.port == 443) &&
+            !uri.rawAuthority.orEmpty().endsWith(':')
+    }
+
+    internal fun isFacebookCookieHost(host: String): Boolean {
+        val normalized = host.lowercase(Locale.ROOT)
+        return normalized in facebookCookieHosts
+    }
+
+    @JvmStatic
     fun hasAuthCookies(cm: CookieManager? = runCatching { CookieManager.getInstance() }.getOrNull()): Boolean {
         if (cm == null) return false
-        val cookieStr = getFacebookCookies(cm)
-        if (cookieStr.isBlank()) return false
-        val parts = cookieStr.split(";")
+        return hasAuthCookies(getFacebookCookies(cm))
+    }
+
+    private fun hasAuthCookies(cookieHeader: String): Boolean {
+        if (cookieHeader.isBlank()) return false
+        val parts = cookieHeader.split(";")
         val hasCUser = parts.any { part ->
             val trimmed = part.trim()
             trimmed.startsWith("c_user=") && trimmed.substringAfter("c_user=").isNotBlank()

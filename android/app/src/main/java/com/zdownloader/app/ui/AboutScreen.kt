@@ -1,5 +1,6 @@
 package com.zdownloader.app.ui
 
+import android.widget.Toast
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -17,7 +18,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
@@ -34,6 +37,10 @@ import com.zdownloader.app.BuildConfig
 import com.zdownloader.app.R
 import com.zdownloader.app.ui.spectrumStringResource as text
 
+private const val FFMPEG_SOURCE_URL =
+    "https://github.com/arthenica/FFmpeg/tree/34277e12e80031c7f89494ba543684bc1dd0be8f"
+private const val FFMPEG_KIT_SOURCE_URL =
+    "https://github.com/JamaisMagic/ffmpeg-kit-16KB/tree/c7ca204219d549f563799bacbbdfeb19e31530f2"
 
 @Composable
 private fun AboutWaves() {
@@ -56,7 +63,7 @@ private fun AboutWaves() {
 }
 
 @Composable
-internal fun AboutScreen(back: () -> Unit, privacy: () -> Unit) {
+internal fun AboutScreen(back: () -> Unit, privacy: () -> Unit, licenses: () -> Unit) {
     val brandGradient=flowAccentGradient()
     var entered by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { entered = true }
@@ -175,6 +182,7 @@ internal fun AboutScreen(back: () -> Unit, privacy: () -> Unit) {
                             )
                         }
                     }
+                    NativeLibraryNotices(licenses)
                     Text(
                         text(R.string.about_copyright),
                         Modifier.fillMaxWidth().padding(top = 32.dp, bottom = 24.dp).testTag("about_copyright"),
@@ -184,6 +192,38 @@ internal fun AboutScreen(back: () -> Unit, privacy: () -> Unit) {
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun NativeLibraryNotices(licenses: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val openFailed = text(R.string.about_source_open_failed)
+    fun openSource(url: String) {
+        try {
+            uriHandler.openUri(url)
+        } catch (_: IllegalArgumentException) {
+            Toast.makeText(context, openFailed, Toast.LENGTH_SHORT).show()
+        }
+    }
+    Column(Modifier.fillMaxWidth().padding(top = 24.dp)) {
+        Text(text(R.string.about_ffmpeg_notice), style = MaterialTheme.typography.bodyMedium)
+        Text(text(R.string.about_ffmpeg_copyright), style = MaterialTheme.typography.bodySmall)
+        Text(
+            text(R.string.about_lame_notice),
+            modifier = Modifier.padding(top = 8.dp),
+            style = MaterialTheme.typography.bodySmall
+        )
+        TextButton(onClick = licenses, modifier = Modifier.testTag("about_native_licenses")) {
+            Text(text(R.string.about_third_party_notices))
+        }
+        TextButton(onClick = { openSource(FFMPEG_SOURCE_URL) }, modifier = Modifier.testTag("about_ffmpeg_source")) {
+            Text(text(R.string.about_ffmpeg_source))
+        }
+        TextButton(onClick = { openSource(FFMPEG_KIT_SOURCE_URL) }) {
+            Text(text(R.string.about_ffmpeg_kit_source))
         }
     }
 }

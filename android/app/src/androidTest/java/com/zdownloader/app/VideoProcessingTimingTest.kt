@@ -17,7 +17,7 @@ import java.util.UUID
 class VideoProcessingTimingTest {
     @Test fun remuxAndFullAv1ValidationAreTimedSeparatelyWithoutTranscoding()=runBlocking {
         val instrument=InstrumentationRegistry.getInstrumentation();val context=instrument.targetContext
-        check(context.packageName=="com.zdownloader.app.designreview")
+        check(context.packageName=="com.zdownloader.app.candidate0965")
         val directory=File(context.filesDir,"video-timing-${UUID.randomUUID()}").apply {mkdirs()}
         val input=File(directory,"input.mp4");val output=File(directory,"output.mp4")
         try {

@@ -7,7 +7,34 @@ import html
 import json
 import time
 import http.cookiejar
-from urllib.parse import urlsplit, quote
+from urllib.parse import urlsplit, urljoin, quote
+
+
+FACEBOOK_COOKIE_HOSTS = frozenset((
+    'facebook.com', 'www.facebook.com', 'm.facebook.com', 'web.facebook.com'))
+
+
+def install_session_cookies(cookiejar, cookies):
+    """Install WebView cookies as host-only cookies for known Facebook origins."""
+    if cookiejar is None or not hasattr(cookiejar, 'set_cookie'):
+        return 0
+    count = 0
+    for cookie in cookies:
+        if not isinstance(cookie, dict) or cookie.get('hostOnly') is not True:
+            continue
+        name = cookie.get('name')
+        value = cookie.get('value')
+        domain = cookie.get('domain')
+        if not name or not value or not isinstance(domain, str) or domain not in FACEBOOK_COOKIE_HOSTS:
+            continue
+        cookiejar.set_cookie(http.cookiejar.Cookie(
+            version=0, name=str(name), value=str(value), port=None, port_specified=False,
+            domain=domain, domain_specified=False, domain_initial_dot=False,
+            path='/', path_specified=True, secure=True, expires=int(time.time() + 86400 * 30),
+            discard=False, comment=None, comment_url=None, rest={'HttpOnly': None}, rfc2109=False
+        ))
+        count += 1
+    return count
 
 
 def annotate_formats(document, formats):
@@ -22,16 +49,8 @@ def annotate_formats(document, formats):
     for fmt in formats:
         label = labels.get(fmt.get('format_id'))
         if label:
+            # A representation tier does not establish its aspect ratio or geometry.
             fmt['mediaflow_source_quality_label'] = label
-            orig_h = fmt.get('height') or 0
-            orig_w = fmt.get('width') or 0
-            if orig_h == 0 or orig_w == 0:
-                try:
-                    target_edge = int(label[:-1])
-                    fmt['height'] = (target_edge * 16) // 9
-                    fmt['width'] = target_edge
-                except Exception:
-                    pass
     return formats
 
 
@@ -46,6 +65,140 @@ def unescape_string(s):
     return s
 
 
+def _progressive_format(match, format_id):
+    if match is None:
+        return None
+    url = unescape_string(match.group(1))
+    if not url.startswith('https://'):
+        return None
+    # Legacy SD/HD keys identify a download, not a numbered quality or size.
+    return {'format_id': format_id, 'url': url, 'ext': 'mp4',
+            'vcodec': 'h264', 'acodec': 'aac', 'protocol': 'https'}
+
+
+_META_TAG_PATTERN = re.compile(r'<meta\b[^>]*>', re.IGNORECASE)
+_VIDEO_TAG_PATTERN = re.compile(r'<video\b[^>]*>', re.IGNORECASE)
+_TITLE_TAG_PATTERN = re.compile(r'<title\b[^>]*>([\s\S]{0,2048}?)</title\s*>', re.IGNORECASE)
+_HTML_ATTRIBUTE_PATTERN = re.compile(r'''([:\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))''')
+
+
+def _tag_attributes(tag):
+    attrs = {}
+    for match in _HTML_ATTRIBUTE_PATTERN.finditer(tag):
+        value = next((part for part in match.groups()[1:] if part is not None), '')
+        attrs.setdefault(match.group(1).lower(), html.unescape(value))
+    return attrs
+
+
+def _safe_facebook_image(value, base_url='https://www.facebook.com/'):
+    value = html.unescape(str(value or '')).strip()
+    if not value or len(value) > 4096:
+        return None
+    try:
+        candidate = urljoin(base_url, value)
+        parsed = urlsplit(candidate)
+        host = (parsed.hostname or '').lower().rstrip('.')
+        port = parsed.port
+    except (TypeError, ValueError):
+        return None
+    allowed = any(host == domain or host.endswith('.' + domain)
+                  for domain in ('facebook.com', 'fbcdn.net', 'fbsbx.com'))
+    if parsed.scheme.lower() != 'https' or not host or not allowed or parsed.username or parsed.password:
+        return None
+    if port not in (None, 443):
+        return None
+    return candidate
+
+
+_FACEBOOK_METADATA_NAMES = frozenset((
+    'og:title', 'twitter:title', 'og:image:secure_url', 'og:image',
+    'twitter:image', 'twitter:image:src',
+))
+
+
+def _facebook_meta_contents(page):
+    meta = {}
+    for match in _META_TAG_PATTERN.finditer(page or ''):
+        attrs = _tag_attributes(match.group(0))
+        key = (attrs.get('property') or attrs.get('name') or '').strip().lower()
+        content = attrs.get('content')
+        if key in _FACEBOOK_METADATA_NAMES and content:
+            meta.setdefault(key, content)
+    return meta
+
+
+def _clean_facebook_title(value):
+    title = re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]*>', ' ', value or ''))).strip()
+    if title.lower() in {
+        'facebook', 'facebook video', 'facebook watch', 'watch | facebook', 'log in or sign up'
+    }:
+        return ''
+    return title[:240].strip()
+
+
+def _facebook_page_title(meta, page, video_id):
+    title = next((cleaned for key in ('og:title', 'twitter:title')
+                  if (cleaned := _clean_facebook_title(meta.get(key)))), None)
+    if title is None:
+        title_match = _TITLE_TAG_PATTERN.search(page or '')
+        title = _clean_facebook_title(title_match.group(1) if title_match else '')
+    return title or f'Facebook Video {video_id}'
+
+
+def _facebook_page_thumbnail(meta, page):
+    thumbnail = None
+    for key in ('og:image:secure_url', 'og:image', 'twitter:image', 'twitter:image:src'):
+        thumbnail = _safe_facebook_image(meta.get(key))
+        if thumbnail:
+            break
+    if not thumbnail:
+        video_match = _VIDEO_TAG_PATTERN.search(page or '')
+        if video_match:
+            thumbnail = _safe_facebook_image(_tag_attributes(video_match.group(0)).get('poster'))
+    return thumbnail
+
+
+def parse_facebook_page_metadata(page, video_id):
+    metadata = _facebook_meta_contents(page)
+    return {
+        'title': _facebook_page_title(metadata, page, video_id),
+        'thumbnail': _facebook_page_thumbnail(metadata, page),
+    }
+
+
+def _merge_facebook_page_metadata(info, metadata, video_id):
+    if not isinstance(info, dict) or not isinstance(metadata, dict):
+        return info
+    page_title = metadata.get('title')
+    current_title = str(info.get('title') or '').strip()
+    generic_titles = {
+        '', 'facebook', 'facebook video', 'facebook watch', 'watch | facebook',
+        'log in or sign up', f'facebook video {video_id}'.lower(),
+    }
+    if page_title and current_title.lower() in generic_titles and page_title != f'Facebook Video {video_id}':
+        info['title'] = page_title
+    thumbnail = _safe_facebook_image(metadata.get('thumbnail'))
+    if thumbnail and not _safe_facebook_image(info.get('thumbnail')):
+        info['thumbnail'] = thumbnail
+    return info
+
+
+_FACEBOOK_AUTH_PATTERNS = tuple(re.compile(pattern, re.IGNORECASE) for pattern in (
+    r'\b(?:this|the)\s+(?:video|content|post)\s+(?:requires|needs)\s+authentication\b',
+    r'\b(?:you must|you need to|please)\s+(?:log\s*in|sign\s*in)\s+(?:to|before)\s+(?:view|watch|access|see)\s+(?:this|the)\s+(?:video|content|post)\b',
+    r'\b(?:log\s*in|sign\s*in)\s+(?:to|before)\s+(?:view|watch|access|see)\s+(?:this|the)\s+(?:video|content|post)\b',
+    r'\bpermission\s+to\s+view\s+(?:this|the)\s+(?:video|content|post)\b',
+    r'\b(?:this\s+)?(?:video|content)\s+is\s+only\s+available\s+to\s+(?:logged[ -]?in|registered)\s+users\b',
+    r'\b(?:facebook\s+)?session\s+expired\b',
+    r'\b(?:facebook\s+)?login\s+required\s+to\s+(?:view|watch|access)\s+(?:this|the)\s+(?:video|content|post)\b',
+))
+
+
+def facebook_auth_signal(value):
+    text = re.sub(r'\s+', ' ', html.unescape(str(value or ''))).lower()
+    return any(pattern.search(text) for pattern in _FACEBOOK_AUTH_PATTERNS)
+
+
 def configure(engine, source_url):
     host = (urlsplit(source_url).hostname or '').lower()
     if host not in ('facebook.com', 'fb.watch') and not host.endswith('.facebook.com'):
@@ -58,21 +211,8 @@ def configure(engine, source_url):
         cookies_json_str = str(js_bridge.getFacebookCookiesJson(source_url))
         if cookies_json_str and cookies_json_str != '[]':
             cookie_list = json.loads(cookies_json_str)
-            if hasattr(engine, 'cookiejar') and engine.cookiejar is not None:
-                domain = '.facebook.com'
-                count = 0
-                for c in cookie_list:
-                    name = c.get('name')
-                    value = c.get('value')
-                    if name and value:
-                        ck = http.cookiejar.Cookie(
-                            version=0, name=str(name), value=str(value), port=None, port_specified=False,
-                            domain=domain, domain_specified=True, domain_initial_dot=True,
-                            path='/', path_specified=True, secure=True, expires=int(time.time() + 86400 * 30),
-                            discard=False, comment=None, comment_url=None, rest={'HttpOnly': None}, rfc2109=False
-                        )
-                        engine.cookiejar.set_cookie(ck)
-                        count += 1
+            count = install_session_cookies(getattr(engine, 'cookiejar', None), cookie_list)
+            if count:
                 try:
                     jclass('android.util.Log').i('ZAnalysis', f'Loaded {count} facebook cookies into engine.cookiejar')
                 except Exception:
@@ -87,6 +227,25 @@ def configure(engine, source_url):
         @classmethod
         def ie_key(cls):
             return FacebookIE.ie_key()
+
+        def _download_webpage(self, url_or_request, *args, **kwargs):
+            webpage = super()._download_webpage(url_or_request, *args, **kwargs)
+            if not isinstance(webpage, str) or not webpage:
+                return webpage
+            try:
+                page_url = (url_or_request if isinstance(url_or_request, str) else
+                            getattr(url_or_request, 'url', None) or
+                            getattr(url_or_request, 'full_url', None))
+                parsed = urlsplit(page_url)
+                host = (parsed.hostname or '').lower().rstrip('.')
+                is_facebook = (host in ('facebook.com', 'fb.watch') or
+                               host.endswith('.facebook.com'))
+                if is_facebook and not parsed.path.startswith('/plugins/'):
+                    self._mediaflow_page_metadata = parse_facebook_page_metadata(
+                        webpage, getattr(self, '_mediaflow_video_id', ''))
+            except (TypeError, ValueError):
+                pass
+            return webpage
 
         def _parse_mpd_formats(self, document, *args, **kwargs):
             return annotate_formats(document, super()._parse_mpd_formats(document, *args, **kwargs))
@@ -128,7 +287,7 @@ def configure(engine, source_url):
                     ) or ''
                     if not page:
                         continue
-                    if 'permission to view' in page.lower() or 'video unavailable' in page.lower() or 'log in' in page.lower():
+                    if facebook_auth_signal(page):
                         self._last_embed_permission_denied = True
                     formats = []
                     hd_match = re.search(r'"hd_src"\s*:\s*"([^"]+)"', page) or re.search(r'hd_src:"([^"]+)"', page) or \
@@ -143,43 +302,14 @@ def configure(engine, source_url):
                         if doc is not None:
                             formats.extend(self._parse_mpd_formats(doc))
 
-                    if hd_match:
-                        hd_url = unescape_string(hd_match.group(1))
-                        if hd_url.startswith('http'):
-                            formats.append({
-                                'format_id': 'hd',
-                                'url': hd_url,
-                                'ext': 'mp4',
-                                'height': 720,
-                                'width': 1280,
-                                'vcodec': 'h264',
-                                'acodec': 'aac',
-                                'protocol': 'https',
-                                'mediaflow_source_quality_label': '720p',
-                            })
-                    if sd_match:
-                        sd_url = unescape_string(sd_match.group(1))
-                        if sd_url.startswith('http'):
-                            formats.append({
-                                'format_id': 'sd',
-                                'url': sd_url,
-                                'ext': 'mp4',
-                                'height': 480,
-                                'width': 854,
-                                'vcodec': 'h264',
-                                'acodec': 'aac',
-                                'protocol': 'https',
-                                'mediaflow_source_quality_label': '480p',
-                            })
+                    for match, format_id in ((hd_match, 'hd'), (sd_match, 'sd')):
+                        progressive = _progressive_format(match, format_id)
+                        if progressive:
+                            formats.append(progressive)
 
                     if formats:
-                        title_match = re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', page)
-                        title = html.unescape(title_match.group(1)) if title_match else f'Facebook Video {video_id}'
-                        return {
-                            'id': video_id,
-                            'title': title,
-                            'formats': formats,
-                        }
+                        return {'id': video_id, **parse_facebook_page_metadata(page, video_id),
+                                'formats': formats}
                 except Exception:
                     continue
             return None
@@ -197,41 +327,25 @@ def configure(engine, source_url):
                     }
                 ) or ''
                 if page:
-                    formats = []
                     og_match = re.search(r'<meta\s+property=["\']og:video(?::secure_url)?["\']\s+content=["\']([^"\']+)["\']', page)
-                    if og_match:
-                        u = unescape_string(og_match.group(1))
-                        if u.startswith('http'):
-                            formats.append({
-                                'format_id': 'sd',
-                                'url': u,
-                                'ext': 'mp4',
-                                'height': 480,
-                                'width': 854,
-                                'vcodec': 'h264',
-                                'acodec': 'aac',
-                                'protocol': 'https',
-                                'mediaflow_source_quality_label': '480p',
-                            })
-                    if formats:
-                        title_match = re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\']([^"\']+)["\']', page)
-                        title = html.unescape(title_match.group(1)) if title_match else f'Facebook Video {video_id}'
-                        return {
-                            'id': video_id,
-                            'title': title,
-                            'formats': formats,
-                        }
+                    progressive = _progressive_format(og_match, 'sd')
+                    if progressive:
+                        return {'id': video_id, **parse_facebook_page_metadata(page, video_id),
+                                'formats': [progressive]}
             except Exception:
                 pass
             return None
 
         def _extract_from_url(self, url, video_id):
             self._last_embed_permission_denied = False
+            self._mediaflow_video_id = str(video_id)
+            self._mediaflow_page_metadata = None
             super_exc = None
             try:
                 res = super()._extract_from_url(url, video_id)
                 if res and res.get('formats'):
-                    return res
+                    return _merge_facebook_page_metadata(
+                        res, getattr(self, '_mediaflow_page_metadata', None), video_id)
             except ExtractorError as exc:
                 super_exc = exc
             except Exception as exc:
@@ -251,11 +365,8 @@ def configure(engine, source_url):
             if reel_page:
                 extra_formats = self._extract_from_data_extra(reel_page, video_id)
                 if extra_formats:
-                    return {
-                        'id': video_id,
-                        'title': f'Facebook Video {video_id}',
-                        'formats': extra_formats,
-                    }
+                    return {'id': video_id, **parse_facebook_page_metadata(reel_page, video_id),
+                            'formats': extra_formats}
 
             # Try Tier 3: Mobile Web
             mobile_res = self._extract_from_mobile(video_id)
@@ -263,20 +374,9 @@ def configure(engine, source_url):
                 return mobile_res
 
             # If all tiers failed, detect if authentication is required or session expired
-            lower_reel = reel_page.lower()
             login_signals = (
                 getattr(self, '_last_embed_permission_denied', False) or
-                'usecaaloggedoutdialog' in lower_reel or
-                'usecometloginform' in lower_reel or
-                'permission to view' in lower_reel or
-                'caa_login' in lower_reel or
-                'login_data' in lower_reel or
-                '/login.php' in lower_reel or
-                '/checkpoint/' in lower_reel or
-                '>you must log in to continue' in lower_reel or
-                'id="login_form"' in lower_reel or
-                'id="loginbutton"' in lower_reel or
-                'canonical" href="https://www.facebook.com/watch/' in lower_reel
+                facebook_auth_signal(reel_page)
             )
 
             has_session = False
@@ -287,7 +387,7 @@ def configure(engine, source_url):
                 pass
 
             if has_session:
-                if login_signals or (super_exc and any(k in str(super_exc).lower() for k in ('login', 'log in', 'cookie', 'credentials', 'sign in'))):
+                if login_signals or (super_exc and facebook_auth_signal(super_exc)):
                     try:
                         from java import jclass
                         jclass('com.zdownloader.app.engine.FacebookSessionManager').markSessionExpired()
@@ -298,7 +398,7 @@ def configure(engine, source_url):
                     raise super_exc
                 raise ExtractorError('Cannot parse data')
             else:
-                if login_signals or (super_exc and any(k in str(super_exc).lower() for k in ('login', 'log in', 'cookie', 'credentials', 'sign in', 'authentication'))):
+                if login_signals or (super_exc and facebook_auth_signal(super_exc)):
                     raise ExtractorError('This video requires authentication. Please log in to Facebook.', expected=True)
                 if super_exc:
                     raise super_exc

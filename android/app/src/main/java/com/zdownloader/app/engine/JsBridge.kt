@@ -62,9 +62,9 @@ object JsBridge {
         if (!FacebookScraper.isFacebookUrl(url)) return "[]"
         if (!FacebookSessionManager.hasActiveSession()) return "[]"
         val cm = runCatching { android.webkit.CookieManager.getInstance() }.getOrNull() ?: return "[]"
-        val cookieMap = mutableMapOf<String, String>()
-        listOf("https://www.facebook.com", "https://m.facebook.com").forEach { u ->
-            val cookieStr = cm.getCookie(u)
+        val result = org.json.JSONArray()
+        listOf("facebook.com", "www.facebook.com", "m.facebook.com", "web.facebook.com").forEach { host ->
+            val cookieStr = runCatching { cm.getCookie("https://$host") }.getOrNull()
             if (!cookieStr.isNullOrBlank()) {
                 cookieStr.split(";").forEach { part ->
                     val eq = part.indexOf('=')
@@ -72,15 +72,12 @@ object JsBridge {
                         val name = part.substring(0, eq).trim()
                         val value = part.substring(eq + 1).trim()
                         if (name.isNotEmpty() && value.isNotEmpty()) {
-                            cookieMap[name] = value
+                            result.put(org.json.JSONObject().put("name", name).put("value", value)
+                                .put("domain", host).put("hostOnly", true))
                         }
                     }
                 }
             }
-        }
-        val result = org.json.JSONArray()
-        for ((name, value) in cookieMap) {
-            result.put(org.json.JSONObject().put("name", name).put("value", value).put("domain", ".facebook.com"))
         }
         return result.toString()
     }

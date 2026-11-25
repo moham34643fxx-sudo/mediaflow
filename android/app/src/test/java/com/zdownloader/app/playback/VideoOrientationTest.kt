@@ -29,6 +29,20 @@ class VideoOrientationTest {
             VideoOrientation.requestedOrientation(VideoOrientationMode.SMART,null))
     }
 
+    @Test fun automaticAxisUsesEffectiveDisplayDimensionsAfterRotationMetadata() {
+        val portraitShort=VideoOrientation.displayAspect(1080,1920,1f,0)
+        val rotatedPortrait=VideoOrientation.displayAspect(1920,1080,1f,90)
+        val rotatedLandscape=VideoOrientation.displayAspect(1080,1920,1f,90)
+        assertEquals(VideoOrientationMode.PORTRAIT,VideoOrientation.preferredAxis(portraitShort))
+        assertEquals(VideoOrientationMode.PORTRAIT,VideoOrientation.preferredAxis(rotatedPortrait))
+        assertEquals(VideoOrientationMode.LANDSCAPE,VideoOrientation.preferredAxis(rotatedLandscape))
+        assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
+            VideoOrientation.requestedOrientation(VideoOrientationMode.SMART,rotatedPortrait))
+        assertEquals(VideoOrientationMode.SMART,VideoOrientationMode.default())
+        assertEquals(VideoOrientationMode.SMART,VideoOrientationMode.default(autoRotate=true))
+        assertEquals(VideoOrientationMode.FOLLOW_DEVICE,VideoOrientationMode.default(autoRotate=false))
+    }
+
     @Test fun manualModesOverrideSmartAndFollowDeviceDoesNotForceAnAxis() {
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,
             VideoOrientation.requestedOrientation(VideoOrientationMode.PORTRAIT,16f/9f))
@@ -39,5 +53,20 @@ class VideoOrientationTest {
         assertEquals(Configuration.ORIENTATION_PORTRAIT,
             VideoOrientation.expectedConfiguration(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT))
         assertNull(VideoOrientation.expectedConfiguration(ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR))
+    }
+
+    @Test fun quickRotateTogglesOppositeTheSelectedOrCurrentDisplayAxis() {
+        assertEquals(VideoOrientationMode.PORTRAIT,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.SMART,Configuration.ORIENTATION_LANDSCAPE,16f/9f))
+        assertEquals(VideoOrientationMode.LANDSCAPE,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.SMART,Configuration.ORIENTATION_PORTRAIT,9f/16f))
+        assertEquals(VideoOrientationMode.PORTRAIT,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.LANDSCAPE,Configuration.ORIENTATION_PORTRAIT,9f/16f))
+        assertEquals(VideoOrientationMode.LANDSCAPE,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.PORTRAIT,Configuration.ORIENTATION_LANDSCAPE,16f/9f))
+        assertEquals(VideoOrientationMode.PORTRAIT,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.FOLLOW_DEVICE,Configuration.ORIENTATION_UNDEFINED,16f/9f))
+        assertEquals(VideoOrientationMode.LANDSCAPE,
+            VideoOrientation.nextToggleMode(VideoOrientationMode.FOLLOW_DEVICE,Configuration.ORIENTATION_UNDEFINED,null))
     }
 }

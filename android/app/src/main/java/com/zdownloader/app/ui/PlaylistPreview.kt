@@ -43,7 +43,7 @@ import kotlinx.coroutines.withContext
 import com.zdownloader.app.ui.spectrumStringResource as text
 
 @OptIn(ExperimentalLayoutApi::class)
-@Composable fun PlaylistPreview(controller:PlaylistController,single:()->Unit,close:()->Unit,queued:()->Unit) {
+@Composable fun PlaylistPreview(controller:PlaylistController,single:()->Unit,close:()->Unit,queued:()->Unit,selectQuality:(String)->Unit) {
     SecondaryNavigationOverlay()
     val state by controller.state.collectAsStateWithLifecycle()
     var audio by rememberSaveable(state.sessionId) {mutableStateOf(state.initialPolicy.audio)}
@@ -68,6 +68,7 @@ import com.zdownloader.app.ui.spectrumStringResource as text
     BackHandler {if(!state.saving) close()}
     val enabled=!state.saving&&!state.persisted
     val sizes=state.sizes.takeIf {state.sizePolicy==policy}.orEmpty()
+    val rowContext=remember(state.selected,enabled,sizes,policy) {PlaylistEntryContext(state.selected,enabled,sizes,policy)}
     val selectedEntries=remember(state.page,state.selected,state.duplicates,skipExisting) {
         state.page?.items.orEmpty().filter {it.key in state.selected&&(!skipExisting||it.key !in state.duplicates.matchingCompleted&&it.key !in state.duplicates.matchingActive)}
             .let {if(skipExisting) it.distinctBy(MediaIdentity::playlistKey) else it}
@@ -75,6 +76,9 @@ import com.zdownloader.app.ui.spectrumStringResource as text
     val selectedSize=remember(selectedEntries,sizes,policy) {SizeCoverage.of(selectedEntries.map {entry->
         (sizes[entry.key] ?: SizeForecast(policy.durationOutput(entry.duration),null,null)).output
     })}
+    val currentPage=state.page
+    val seasonGroups=remember(currentPage?.items) {currentPage?.items.orEmpty().filter {it.seasonNumber!=null}.groupBy {it.seasonNumber!!}.toSortedMap()}
+    val groupedKeys=remember(seasonGroups) {seasonGroups.values.flatten().mapTo(mutableSetOf()) {it.key}}
     Surface(Modifier.fillMaxSize().background(mediaFlowBackground()).testTag("playlist_preview"),color=Color.Transparent,contentColor=MaterialTheme.colorScheme.onSurface) {
       Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         Row(Modifier.fillMaxWidth().padding(horizontal=16.dp).heightIn(min=64.dp),verticalAlignment=Alignment.CenterVertically) {
@@ -89,9 +93,14 @@ import com.zdownloader.app.ui.spectrumStringResource as text
             }
         } else {
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("playlist_list"),contentPadding=PaddingValues(20.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
-            val page=state.page
+            val page=currentPage
             item { FlowPanel(accent=MaterialTheme.colorScheme.tertiary) {
-                FlowEyebrow(text(R.string.pl_title),FlowIcons.Playlist)
+                 val collectionLabel=when(page?.collectionType) {
+                     "topcinema_series"->text(R.string.pl_series)
+                     "topcinema_season"->text(R.string.pl_season_title,page.seasonNumber?:page.items.firstNotNullOfOrNull {it.seasonNumber}?:0)
+                     else->text(R.string.pl_title)
+                 }
+                 FlowEyebrow(collectionLabel,FlowIcons.Playlist)
                 page?.thumbnail?.let {url->AsyncImage(ImageRequest.Builder(LocalContext.current).data(url).size(320,180).build(),null,Modifier.widthIn(max=320.dp).fillMaxWidth().height(120.dp))}
                 Text(page?.title ?: text(R.string.pl_title),style=MaterialTheme.typography.headlineSmall)
                 page?.creator?.let {Text(it,style=MaterialTheme.typography.bodyMedium)}
@@ -102,6 +111,10 @@ import com.zdownloader.app.ui.spectrumStringResource as text
                 OutputSizeSummary(selectedSize,Modifier.testTag("playlist_expected_size"))
                 if(state.sizing) Text(text(R.string.media_size_scanning,selectedSize.measured,selectedSize.count),style=MaterialTheme.typography.bodySmall,modifier=Modifier.testTag("playlist_size_loading"))
                 Text(page?.total?.let {spectrumPluralStringResource(R.plurals.pl_known_total,it,it)} ?: text(R.string.pl_unknown_total),style=MaterialTheme.typography.bodySmall)
+                page?.unverifiedSeasons.orEmpty().forEach {warning->
+                    Text(text(R.string.pl_unverified_season,warning.seasonNumber?.toString()?:text(R.string.pl_unknown_season),warning.title.orEmpty()),
+                        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
+                }
             } }
             if(state.loading) item {Column {FlowLoadingIndicator();Text(text(R.string.pl_discovering));TextButton(controller::cancelDiscovery) {Text(text(R.string.cancel))}}}
             state.error?.let {error->item {Text(text(errorResource(error)),color=MaterialTheme.colorScheme.error)}}
@@ -149,25 +162,26 @@ import com.zdownloader.app.ui.spectrumStringResource as text
                 }
                 Row(verticalAlignment=Alignment.CenterVertically) {Checkbox(numbered,{numbered=it},enabled=enabled);Text(text(R.string.pl_numbering))}
             }
-             items(page?.items.orEmpty(),key={it.key}) {entry->
-                val chosen=entry.key in state.selected
-                val fill by animateColorAsState(if(chosen) MaterialTheme.colorScheme.primaryContainer.copy(alpha=.35f) else MaterialTheme.colorScheme.surface,tween(FlowMotion.Fast),label="playlistSelection")
-                Surface(shape=RoundedCornerShape(22.dp),color=fill,contentColor=MaterialTheme.colorScheme.onSurface,border=BorderStroke(1.dp,if(chosen) MaterialTheme.colorScheme.primary.copy(alpha=.25f) else MaterialTheme.colorScheme.outlineVariant)) {
-                    Row(Modifier.fillMaxWidth().padding(8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                        Checkbox(entry.key in state.selected,{controller.select(entry.key,it)},enabled=enabled&&entry.selectable,modifier=Modifier.testTag("playlist_item_${entry.position}"))
-                        entry.thumbnail?.let {url->AsyncImage(ImageRequest.Builder(LocalContext.current).data(url).size(128).build(),null,Modifier.size(48.dp))}
-                        Column(Modifier.weight(1f)) {
-                            Text("${entry.position}. ${entry.title ?: text(R.string.pl_item,entry.position)}",maxLines=2,overflow=TextOverflow.Ellipsis)
-                            entry.duration?.let {Text(duration(it),style=MaterialTheme.typography.bodySmall)}
-                            val forecast=sizes[entry.key] ?: SizeForecast(policy.durationOutput(entry.duration),null,null)
-                            Text(if(forecast.error==ErrorCode.FORMAT_UNAVAILABLE) text(R.string.media_size_quality_unavailable) else sizeLabel(forecast.output),style=MaterialTheme.typography.labelMedium,modifier=Modifier.testTag("playlist_item_size_${entry.position}"))
-                            if(!audio&&forecast.quality!=null) Text(qualityCategoryName(forecast.quality),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                            if(entry.reason!=null) Text(text(if(entry.collection) R.string.pl_collection else R.string.pl_unavailable),style=MaterialTheme.typography.bodySmall)
-                            if(entry.collection&&entry.url!=null) TextButton({controller.open(entry.url)},enabled=enabled) {Text(text(R.string.open))}
-                        }
-                    }
-                }
-            }
+             seasonGroups.forEach {(season,entries)->
+                 item(key="playlist-season-$season") {
+                     val selectable=entries.filter {it.selectable}
+                     val selectedCount=selectable.count {it.key in state.selected}
+                     Row(Modifier.fillMaxWidth().padding(horizontal=4.dp,vertical=4.dp),verticalAlignment=Alignment.CenterVertically) {
+                         Checkbox(selectedCount==selectable.size&&selectable.isNotEmpty(),{controller.selectSeason(season,it)},
+                             enabled=enabled&&selectable.isNotEmpty(),modifier=Modifier.testTag("playlist_season_$season"))
+                         Column(Modifier.weight(1f)) {
+                             Text(text(R.string.pl_season_group,season,entries.count {it.episodeNumber!=null}),style=MaterialTheme.typography.titleMedium)
+                             Text(text(R.string.pl_season_selection,selectedCount,selectable.size),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                         }
+                     }
+                 }
+                 items(entries,key={it.key}) {entry->
+                     PlaylistEntryRow(entry,rowContext,controller,selectQuality)
+                 }
+             }
+             items(page?.items.orEmpty().filter {it.key !in groupedKeys},key={it.key}) {entry->
+                 PlaylistEntryRow(entry,rowContext,controller,selectQuality)
+             }
             if(page?.items?.isEmpty()==true) item {Text(text(R.string.pl_empty))}
             if(page?.hasMore==true&&page.items.size<5000) item {OutlinedButton(controller::loadMore,enabled=enabled&&!state.loading,modifier=Modifier.fillMaxWidth().testTag("playlist_load_more")) {Text(text(R.string.pl_load_more))}}
         }
@@ -185,6 +199,44 @@ import com.zdownloader.app.ui.spectrumStringResource as text
         OutlinedTextField(first,{first=it.filter(Char::isDigit).take(7)},label={Text(text(R.string.pl_from))})
         OutlinedTextField(last,{last=it.filter(Char::isDigit).take(7)},label={Text(text(R.string.pl_to))})
     }},confirmButton={TextButton({controller.range(first.toIntOrNull() ?: 0,last.toIntOrNull() ?: 0);range=false}) {Text(text(R.string.ok))}})
+}
+
+private data class PlaylistEntryContext(
+    val selected:Set<String>,
+    val enabled:Boolean,
+    val sizes:Map<String,SizeForecast>,
+    val policy:PlaylistPolicy
+)
+
+@Composable private fun PlaylistEntryRow(
+    entry:PlaylistEntry,
+    context:PlaylistEntryContext,
+    controller:PlaylistController,
+    selectQuality:(String)->Unit
+) {
+    val chosen=entry.key in context.selected
+    val enabled=context.enabled
+    val fill by animateColorAsState(if(chosen) MaterialTheme.colorScheme.primaryContainer.copy(alpha=.35f) else MaterialTheme.colorScheme.surface,tween(FlowMotion.Fast),label="playlistSelection")
+    Surface(shape=RoundedCornerShape(22.dp),color=fill,contentColor=MaterialTheme.colorScheme.onSurface,
+        border=BorderStroke(1.dp,if(chosen) MaterialTheme.colorScheme.primary.copy(alpha=.25f) else MaterialTheme.colorScheme.outlineVariant)) {
+        Row(Modifier.fillMaxWidth().padding(8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+            Checkbox(chosen,{controller.select(entry.key,it)},enabled=enabled&&entry.selectable,modifier=Modifier.testTag("playlist_item_${entry.position}"))
+            entry.thumbnail?.let {url->AsyncImage(ImageRequest.Builder(LocalContext.current).data(url).size(128).build(),null,Modifier.size(48.dp))}
+            Column(Modifier.weight(1f)) {
+                entry.episodeNumber?.let {Text(text(R.string.pl_episode_number,it),style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.tertiary)}
+                Text("${entry.position}. ${entry.title ?: text(R.string.pl_item,entry.position)}",maxLines=2,overflow=TextOverflow.Ellipsis)
+                entry.duration?.let {Text(duration(it),style=MaterialTheme.typography.bodySmall)}
+                val forecast=context.sizes[entry.key] ?: SizeForecast(context.policy.durationOutput(entry.duration),null,null)
+                Text(if(forecast.error==ErrorCode.FORMAT_UNAVAILABLE) text(R.string.media_size_quality_unavailable) else sizeLabel(forecast.output),style=MaterialTheme.typography.labelMedium,modifier=Modifier.testTag("playlist_item_size_${entry.position}"))
+                if(!context.policy.audio&&forecast.quality!=null) Text(qualityCategoryName(forecast.quality),style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                if(entry.reason!=null) Text(text(if(entry.collection) R.string.pl_collection else R.string.pl_unavailable),style=MaterialTheme.typography.bodySmall)
+                if(entry.collection&&entry.url!=null) TextButton({controller.open(entry.url)},enabled=enabled) {Text(text(R.string.open))}
+                if(entry.episodeNumber!=null&&entry.selectable&&entry.url!=null) TextButton(
+                    {selectQuality(entry.url)},enabled=enabled,modifier=Modifier.testTag("playlist_item_quality_${entry.position}")
+                ) {Text(text(R.string.pl_episode_quality))}
+            }
+        }
+    }
 }
 
 @Composable internal fun OutputSizeSummary(coverage:SizeCoverage,modifier:Modifier=Modifier) {

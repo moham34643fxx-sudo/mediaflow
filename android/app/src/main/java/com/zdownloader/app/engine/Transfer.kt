@@ -55,15 +55,9 @@ class TransferControl {
         .proxySelector(AndroidNetworkBridge.selector())
         .eventListenerFactory { it.request().tag(NetworkDiagnostics.Trace::class.java) ?: NetworkDiagnostics.Trace() }
         .dns(object : Dns { override fun lookup(hostname: String): List<InetAddress> {
-            val addresses = try {
-                InetAddress.getAllByName(hostname).sortedBy { it !is java.net.Inet4Address }
-            } catch(e: Exception) {
-                runCatching { android.util.Log.e("ZAnalysis", "Dns.lookup failed for $hostname: $e") }
-                throw e
-            }
+            val addresses = InetAddress.getAllByName(hostname).sortedBy { it !is java.net.Inet4Address }
             val proxied = hostname in AndroidNetworkBridge.proxyHosts.get().orEmpty()
             if (addresses.isEmpty() || (!proxied && addresses.any { !UrlPolicy.publicAddress(it) })) {
-                runCatching { android.util.Log.e("ZAnalysis", "Dns.lookup policy rejected for $hostname: $addresses (proxied=$proxied)") }
                 throw PolicyAddressException()
             }
             return addresses

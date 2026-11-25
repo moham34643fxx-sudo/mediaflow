@@ -203,7 +203,7 @@ internal class ProgressiveFinalCopyStudy(private val context:Context,private val
         check(uri.scheme=="content"&&uri.authority=="media"&&ContentUris.parseId(uri)>0&&ContentUris.parseId(uri)!=97218L)
         return requireNotNull(context.contentResolver.query(uri,arrayOf(MediaStore.MediaColumns.DISPLAY_NAME,MediaStore.MediaColumns.IS_PENDING),null,null,null)).use {
             check(it.count==1&&it.moveToFirst());val pending=it.getInt(1)
-            check(it.getString(0)==if(pending==1) ".$id.pending.mp4" else "$id.mp4");pending
+            check(it.getString(0)==if(pending==1) "mediaflow-$id.pending.mp4" else "$id.mp4");pending
         }
     }
     private fun save() {File(directory,"final-copy-result.json").writeText(report.toString(2))}

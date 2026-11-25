@@ -24,6 +24,7 @@ class QuickSharePrecisionTimingTest {
         val url=args.getString("analysisUrl")
             ?: "https://storage.googleapis.com/shaka-demo-assets/angel-one/dash.mpd?quick-share-precision=${System.nanoTime()}"
         val runName=args.getString("evidenceRun") ?: "manual"
+        val openMore=args.getString("openMore")!="false"
         app.extractor.clearMetadataCache()
         AnalysisTrace.clear()
         val intent=Intent(app,ShareReceiverActivity::class.java)
@@ -37,7 +38,7 @@ class QuickSharePrecisionTimingTest {
             await(15_000) {traceFor(activeModel.state.value.traceId)?.has("sheet_drawn")==true}
             // Match the user's immediate More Options action while keeping the
             // one-shot measurement independent of Compose test-harness timing.
-            scenario.onActivity {ViewModelProvider(it)[QuickShareViewModel::class.java].expand()}
+            if(openMore) scenario.onActivity {activeModel.expand()}
             await(90_000) {
                 traceFor(activeModel.state.value.traceId)?.let {row->
                     row.has("intent_received")&&row.has("sheet_drawn")&&row.has("extraction_start")&&
@@ -56,10 +57,13 @@ class QuickSharePrecisionTimingTest {
             val elapsed=JSONObject()
             stages.forEach {stage->elapsed.put(stage,row.getLong(stage)-t0)}
             val media=activeModel.state.value.media
+            val sources=media?.let(::selectableQuickShareVideoSources).orEmpty()
+            val groups=media?.let {QuickShareCatalog.selectableGroups(it.qualityGroups(),sources)}.orEmpty()
             val result=JSONObject().put("run",runName).put("clock","elapsedRealtime")
+                .put("requested_more",openMore).put("first_selectable_checkpoint","enabled format row draw")
                 .put("elapsed_ms_from_T0",elapsed)
-                .put("video_source_count",media?.videoOptions()?.size ?: 0)
-                .put("quality_tiers",JSONArray(media?.qualityGroups()?.map {it.resolution} ?: emptyList<Int?>()))
+                .put("video_source_count",sources.size)
+                .put("quality_tiers",JSONArray(groups.map {it.resolution}))
                 .put("trace",row)
             val output=File(app.getExternalFilesDir(null),"quick-share-precision/$runName.json")
             output.parentFile?.mkdirs()

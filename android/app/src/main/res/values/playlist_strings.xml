@@ -56,6 +56,14 @@
     <string name="pl_batch_notice">Downloading playlist</string>
     <string name="pl_audio_playlist">Audio Playlist</string>
     <string name="pl_video_playlist">Video Playlist</string>
+    <string name="pl_series">Series</string>
+    <string name="pl_season_title">Season %1$d</string>
+    <string name="pl_season_group">Season %1$d · %2$d episodes</string>
+    <string name="pl_season_selection">%1$d of %2$d selected</string>
+    <string name="pl_episode_number">Episode %1$d</string>
+    <string name="pl_episode_quality">Choose quality</string>
+    <string name="pl_unknown_season">unknown</string>
+    <string name="pl_unverified_season">Season %1$s could not be verified (%2$s); no episodes were added.</string>
     <string name="pl_progress_step">Completed %1$d of %2$d — downloading item %3$d</string>
     <string name="pl_progress_complete">Playlist complete (%1$d items)</string>
     <string name="pl_pause_all">Pause Playlist</string>

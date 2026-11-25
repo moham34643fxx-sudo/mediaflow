@@ -134,8 +134,7 @@ import kotlinx.coroutines.withTimeoutOrNull
     val configuration=LocalConfiguration.current
     val autoRotate=connection.repository.boolean("auto_rotate",true)
     val defaultOrientation=VideoOrientationMode.default(autoRotate)
-    // A manual choice belongs to this item only. Keep it across configuration
-    // updates, but do not restore a previous item's saved choice for a new URI.
+    // Reset per-item manual selection when either the media or default preference changes.
     var orientationKey by remember(state.current?.uri,defaultOrientation.key) {mutableStateOf(defaultOrientation.key)}
     val orientationMode=VideoOrientationMode.fromKey(orientationKey)
     var externalOrientationFallback by rememberSaveable(activity.externalRequestId) {mutableStateOf(false)}
@@ -169,39 +168,49 @@ import kotlinx.coroutines.withTimeoutOrNull
         val requestId=activity.externalRequestId ?: return@LaunchedEffect
         val media=externalResolution.media
         if(!activity.waitingForExternalVideo||externalResolution.requestId!=requestId||!externalResolution.complete||media?.video!=true) return@LaunchedEffect
-        val requested=if(externalOrientationFallback) VideoOrientationMode.FOLLOW_DEVICE
-            else defaultOrientation
-        activity.applyVideoOrientation(requested,media.displayAspect)
+        val requested=if(externalOrientationFallback) VideoOrientationMode.FOLLOW_DEVICE else defaultOrientation
+        activity.applyVideoOrientation(requested,media.displayAspect,media.uri)
         val expected=VideoOrientation.expectedConfiguration(VideoOrientation.requestedOrientation(requested,media.displayAspect))
         if(!externalOrientationFallback&&expected!=null&&configuration.orientation!=expected) {
             kotlinx.coroutines.delay(2_000)
             if(activity.resources.configuration.orientation!=expected) {
                 externalOrientationFallback=true
-                activity.applyVideoOrientation(VideoOrientationMode.FOLLOW_DEVICE,null)
+                activity.applyVideoOrientation(VideoOrientationMode.FOLLOW_DEVICE,null,media.uri)
                 return@LaunchedEffect
             }
         }
         if(state.current?.uri==media.uri&&(expected==null||externalOrientationFallback||activity.resources.configuration.orientation==expected))
             activity.waitingForExternalVideo=false
     }
-    LaunchedEffect(state.current?.uri,state.current?.video,state.videoDisplayAspect,state.extras.getBoolean("audio_only"),
+    DisposableEffect(state.current?.uri,state.current?.video,state.videoDisplayAspect,state.extras.getBoolean("audio_only"),
         orientationMode,activity.pip,activity.waitingForExternalVideo) {
+        val media=state.current
+        val isVideo=media?.video==true&&!state.extras.getBoolean("audio_only")
         if(!activity.pip&&!activity.waitingForExternalVideo) {
-            val media=state.current
-            val isVideo=media?.video==true&&!state.extras.getBoolean("audio_only")
             activity.applyVideoOrientation(if(isVideo) orientationMode else VideoOrientationMode.FOLLOW_DEVICE,
-                if(isVideo) state.videoDisplayAspect ?: media?.displayAspect else null)
+                if(isVideo) state.videoDisplayAspect ?: media.displayAspect else null,state.current?.uri)
         }
+        onDispose {}
     }
     SideEffect {if(state.current?.video==true&&!state.extras.getBoolean("audio_only")&&state.playing&&!activity.pip) activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) else activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)}
     BackHandler {activity.closePlayer()}
     val openSheet:(String)->Unit={if(it=="effects") connection.command(PlaybackCommands.EFFECTS);sheet=it}
+    fun toggleOrientation() {
+        val current=connection.state.value
+        val media=current.current
+        if(activity.pip||media?.video!=true||current.extras.getBoolean("audio_only")) return
+        val aspect=current.videoDisplayAspect ?: media.displayAspect
+        val nextMode=VideoOrientation.nextToggleMode(orientationMode,configuration.orientation,aspect)
+        orientationKey=nextMode.key
+        activity.applyVideoOrientation(nextMode,aspect,media.uri)
+    }
     fun chooseOrientation(mode:VideoOrientationMode) {
         orientationKey=mode.key
+        sheet=null
         val current=connection.state.value
         val media=current.current
         if(!activity.pip&&media?.video==true&&!current.extras.getBoolean("audio_only"))
-            activity.applyVideoOrientation(mode,current.videoDisplayAspect ?: media.displayAspect)
+            activity.applyVideoOrientation(mode,current.videoDisplayAspect ?: media.displayAspect,media.uri)
     }
     if(activity.waitingForExternalVideo) {
         Box(Modifier.fillMaxSize().background(Color.Black).testTag("video_startup_gate"),contentAlignment=Alignment.Center) {
@@ -213,7 +222,8 @@ import kotlinx.coroutines.withTimeoutOrNull
             }
         }
     } else {
-        if(state.current?.video==true&&!state.extras.getBoolean("audio_only")) VideoPlayerScreen(connection,state,activity,openSheet)
+        if(state.current?.video==true&&!state.extras.getBoolean("audio_only"))
+            VideoPlayerScreen(connection,state,activity,VideoPlayerActions(openSheet,::toggleOrientation))
         else AudioPlayerScreen(connection,state,activity,openSheet)
         if(sheet!=null&&!activity.pip) ModalBottomSheet(onDismissRequest={sheet=null},containerColor=MaterialTheme.colorScheme.surfaceContainerLow,shape=RoundedCornerShape(topStart=30.dp,topEnd=30.dp),
             sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true),dragHandle={FlowSheetHandle()}) {

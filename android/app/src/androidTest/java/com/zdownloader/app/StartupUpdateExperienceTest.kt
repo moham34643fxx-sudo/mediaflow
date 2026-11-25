@@ -40,7 +40,7 @@ class StartupUpdateExperienceTest {
     private val context get() = instrument.targetContext
 
     @Before fun isolatedPackage() {
-        check(BuildConfig.DEBUG && context.packageName.endsWith(".designreview"))
+        check(BuildConfig.DEBUG && context.packageName=="com.zdownloader.app.candidate0965")
     }
 
     @Composable private fun Theme(language:String,scale:Float,content:@Composable ()->Unit) {

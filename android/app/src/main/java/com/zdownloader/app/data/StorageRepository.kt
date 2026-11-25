@@ -8,6 +8,7 @@ import android.provider.MediaStore
 import android.provider.DocumentsContract
 import androidx.documentfile.provider.DocumentFile
 import com.zdownloader.app.domain.*
+import com.zdownloader.app.engine.StorageFailureClassifier
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
@@ -16,6 +17,48 @@ import org.json.JSONObject
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+
+internal enum class MediaStoreCollection { IMAGES, AUDIO, DOWNLOADS, VIDEO }
+
+internal data class MediaOutputStorageTarget(
+    val mime:String,
+    val collection:MediaStoreCollection,
+    val folderRoot:String
+)
+
+/** Keeps the published MIME type and collection aligned with the selected output container. */
+internal object MediaOutputStoragePolicy {
+    fun mime(extension:String,audio:Boolean):String=when(extension) {
+        "jpg","jpeg"->"image/jpeg"
+        "png"->"image/png"
+        "webp"->"image/webp"
+        "mp4","m4a"->if(audio) "audio/mp4" else "video/mp4"
+        "webm"->if(audio) "audio/webm" else "video/webm"
+        "mka","mkv"->if(audio) "audio/x-matroska" else "video/x-matroska"
+        "mp3"->"audio/mpeg"
+        "aac"->"audio/aac"
+        "wav"->if(audio) "audio/wav" else "application/octet-stream"
+        "opus","ogg"->"audio/ogg"
+        "flac"->"audio/flac"
+        else->"application/octet-stream"
+    }
+
+    fun target(extension:String,audioOnly:Boolean,imageOnly:Boolean):MediaOutputStorageTarget {
+        val collection=when {
+            imageOnly->MediaStoreCollection.IMAGES
+            audioOnly&&extension=="webm"->MediaStoreCollection.DOWNLOADS
+            audioOnly->MediaStoreCollection.AUDIO
+            else->MediaStoreCollection.VIDEO
+        }
+        val folderRoot=when(collection) {
+            MediaStoreCollection.IMAGES->"Pictures/MediaFlow"
+            MediaStoreCollection.AUDIO->"Music/MediaFlow"
+            MediaStoreCollection.DOWNLOADS->"Download/MediaFlow"
+            MediaStoreCollection.VIDEO->"Movies/MediaFlow"
+        }
+        return MediaOutputStorageTarget(mime(extension,audioOnly),collection,folderRoot)
+    }
+}
 
 @Singleton class StorageRepository @Inject constructor(@ApplicationContext private val context: Context, private val dao: DownloadDao,private val files:MediaFiles) {
     constructor(context:Context,dao:DownloadDao):this(context,dao,MediaFiles(context,dao))
@@ -30,6 +73,8 @@ import javax.inject.Singleton
     private data class PendingMedia(val uri:Uri,val name:String,val pending:Boolean)
     private data class PendingDocument(val uri:Uri,val name:String)
     private data class PublicationDigest(val bytes:Long,val sha256:String)
+
+    private fun pendingMediaPrefix(id:String)="mediaflow-$id.pending."
 
     private fun mediaRecord(uri:Uri):PendingMedia? {
         val cursor=context.contentResolver.query(uri,arrayOf(MediaStore.MediaColumns.DISPLAY_NAME,MediaStore.MediaColumns.IS_PENDING),null,null,null)
@@ -53,14 +98,16 @@ import javax.inject.Singleton
         // Files queries omit pending rows unless explicitly included, even for their owner.
         @Suppress("DEPRECATION")
         val collection=MediaStore.setIncludePending(MediaStore.Files.getContentUri("external"))
+        // Keep recovery compatible with both the old name and MediaProvider's normalized form.
+        val prefixes=listOf(pendingMediaPrefix(id),".$id.pending.","_.$id.pending.")
         val cursor=context.contentResolver.query(collection,arrayOf(MediaStore.MediaColumns._ID,MediaStore.MediaColumns.DISPLAY_NAME,MediaStore.MediaColumns.IS_PENDING),
-            "${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?",arrayOf(".$id.pending%"),null)
+            prefixes.joinToString(" OR ") {"${MediaStore.MediaColumns.DISPLAY_NAME} LIKE ?"},prefixes.map {"$it%"}.toTypedArray(),null)
             ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
         return cursor.use {
             buildList {
                 while(it.moveToNext()) {
                     val name=it.getString(1) ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
-                    if(name.startsWith(".$id.pending")) add(PendingMedia(android.content.ContentUris.withAppendedId(collection,it.getLong(0)),name,it.getInt(2)==1))
+                    if(prefixes.any(name::startsWith)) add(PendingMedia(android.content.ContentUris.withAppendedId(collection,it.getLong(0)),name,it.getInt(2)==1))
                 }
             }
         }
@@ -162,7 +209,7 @@ import javax.inject.Singleton
         if(uri.scheme!="content"||uri.authority!="media"||android.content.ContentUris.parseId(uri)<=0)
             throw MediaException(ErrorCode.FILE_WRITE_FAILED)
         val pending=mediaRecord(uri) ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
-        if(!pending.pending||pending.name!=".${entity.id}.pending.${selection.output}"||dao.get(entity.id)?.pendingUri!=uri.toString())
+        if(!pending.pending||pending.name!=pendingMediaPrefix(entity.id)+selection.output||dao.get(entity.id)?.pendingUri!=uri.toString())
             throw MediaException(ErrorCode.FILE_WRITE_FAILED)
     }
 
@@ -280,29 +327,46 @@ import javax.inject.Singleton
         else directory.deleteRecursively()
         Unit
     }
-    fun mime(ext: String, audio: Boolean) = when(ext) { "jpg","jpeg"->"image/jpeg";"png"->"image/png";"webp"->"image/webp";"mp4","m4a" -> if (audio) "audio/mp4" else "video/mp4"; "webm" -> if(audio) "audio/webm" else "video/webm"; "mkv" -> "video/x-matroska"; "mp3" -> "audio/mpeg"; "aac" -> "audio/aac"; "opus","ogg" -> "audio/ogg"; "flac" -> "audio/flac"; else -> "application/octet-stream" }
+    fun mime(ext:String,audio:Boolean)=MediaOutputStoragePolicy.mime(ext,audio)
     suspend fun commit(entity: DownloadEntity, file: File, selection: Selection, control: com.zdownloader.app.engine.TransferControl): Uri = withContext(Dispatchers.IO) {
         val sourceLease=com.zdownloader.app.engine.NativeWork.acquire(file.absoluteFile.parentFile!!)
         var publicationLocked=false
+        var publicationPhase="preflight"
         try {
         publicationLock.lock();publicationLocked=true
         val validationApproval=control.awaitPublicationValidation
         control.check()
         if(validationApproval!=null&&!entity.destination.isNullOrBlank()) throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
         val resolver = context.contentResolver
+        publicationPhase="stale_publication_cleanup"
         cleanupPendingLocked(entity.id)
-        val type = mime(selection.output, selection.audioOnly)
-        val tree = entity.destination?.takeIf { it.isNotBlank() }?.let {
-            DocumentFile.fromTreeUri(context,Uri.parse(it))?.takeIf { folder -> folder.isDirectory && folder.canWrite() }
-                ?: throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
+        val storageTarget=MediaOutputStoragePolicy.target(selection.output,selection.audioOnly,selection.imageOnly)
+        val type=storageTarget.mime
+        val tree = entity.destination?.takeIf { it.isNotBlank() }?.let { value ->
+            val destination=Uri.parse(value)
+            if(!DocumentsContract.isTreeUri(destination)) throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
+            val grants=android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            if(context.checkUriPermission(destination,android.os.Process.myPid(),android.os.Process.myUid(),grants)!=android.content.pm.PackageManager.PERMISSION_GRANTED)
+                throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
+            val folder=try {DocumentFile.fromTreeUri(context,destination)} catch(_:SecurityException) {
+                throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
+            } ?: throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
+            val isDirectory=try {folder.isDirectory} catch(_:SecurityException) {
+                throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
+            }
+            val canWrite=try {folder.canWrite()} catch(_:SecurityException) {
+                throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
+            }
+            if(!isDirectory||!canWrite) throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
+            folder
         }
-        var doc: DocumentFile?=null
         var uri:Uri?=null
         val state=JSONObject().put("destination",entity.destination).put("finalName",entity.filename)
             .put("validationPending",validationApproval!=null)
         try {
         // Journal before provider creation; pending names carry the stable download id.
         withContext(NonCancellable) {
+        publicationPhase="journal_prepare"
         persist(entity.id,state)
         dao.pending(entity.id,RECOVERY_PENDING_PREFIX+entity.id)
         if (tree != null) {
@@ -311,20 +375,26 @@ import javax.inject.Singleton
             while(tree.findFile(name) != null) { name = entity.filename.substringBeforeLast('.') + " ($i)." + selection.output; i++ }
             state.put("finalName",name)
             persist(entity.id,state)
-            doc = tree.createFile(type,".${entity.id}.pending") ?: throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
-            uri = doc!!.uri
+            publicationPhase="saf_create"
+            // DocumentFile.createFile collapses provider exceptions (including ENOSPC) to null.
+            uri = DocumentsContract.createDocument(resolver,tree.uri,type,".${entity.id}.pending")
+                ?: throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
             dao.rename(entity.id, name)
         } else {
-            if (Build.VERSION.SDK_INT < 29) throw MediaException(ErrorCode.STORAGE_PERMISSION_ERROR)
-            doc = null
+            if (Build.VERSION.SDK_INT < 29) throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
             // MediaProvider rejects audio/webm in the Audio collection even when
             // the complete WebM has a valid audio-only stream. Downloads accepts
             // its truthful MIME without changing the container, codec or bytes.
-            val audioWebm=selection.audioOnly&&selection.output=="webm"
-            val collection=when {selection.imageOnly->MediaStore.Images.Media.EXTERNAL_CONTENT_URI;audioWebm->MediaStore.Downloads.EXTERNAL_CONTENT_URI;selection.audioOnly->MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;else->MediaStore.Video.Media.EXTERNAL_CONTENT_URI}
-            val folderRoot=when {selection.imageOnly->"Pictures/MediaFlow";audioWebm->"Download/MediaFlow";selection.audioOnly->"Music/MediaFlow";else->"Movies/MediaFlow"}
+            val collection=when(storageTarget.collection) {
+                MediaStoreCollection.IMAGES->MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+                MediaStoreCollection.AUDIO->MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+                MediaStoreCollection.DOWNLOADS->MediaStore.Downloads.EXTERNAL_CONTENT_URI
+                MediaStoreCollection.VIDEO->MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            }
+            val folderRoot=storageTarget.folderRoot
             val values = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, ".${entity.id}.pending.${selection.output}")
+                // IS_PENDING hides the row; a leading dot can be rewritten by MediaProvider.
+                put(MediaStore.MediaColumns.DISPLAY_NAME, pendingMediaPrefix(entity.id)+selection.output)
                 put(MediaStore.MediaColumns.MIME_TYPE,type)
                 put(MediaStore.MediaColumns.RELATIVE_PATH,entity.relativeFolder?.let {folder->
                     "$folderRoot/"+FileNames.sanitize(folder)+"/"
@@ -332,14 +402,19 @@ import javax.inject.Singleton
                 put(MediaStore.MediaColumns.IS_PENDING,1)
                 if(!selection.audioOnly) put(MediaStore.Video.Media.DATE_TAKEN,System.currentTimeMillis())
             }
-            uri = resolver.insert(collection,values) ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
+            publicationPhase="mediastore_insert"
+            uri = resolver.insert(collection,values) ?: throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
         }
         state.put("uri",uri.toString());persist(entity.id,state)
             dao.pending(entity.id,uri.toString())
-        }
+            }
             val target=requireNotNull(uri)
-            if(validationApproval!=null) requirePendingMediaOwner(entity,selection,target)
+            if(validationApproval!=null) {
+                publicationPhase="pending_owner_check"
+                requirePendingMediaOwner(entity,selection,target)
+            }
             val exportStartAt=android.os.SystemClock.elapsedRealtime()
+            publicationPhase="output_copy"
             val sourceHash=java.security.MessageDigest.getInstance("SHA-256")
             resolver.openOutputStream(target,"w")?.use { sink -> file.inputStream().use { source ->
                 val buffer = ByteArray(1024 * 1024); var copied = 0L
@@ -347,7 +422,7 @@ import javax.inject.Singleton
                 sink.flush()
                 if(tree==null && sink is java.io.FileOutputStream) sink.fd.sync()
                 if(copied != file.length()) throw MediaException(ErrorCode.FILE_WRITE_FAILED)
-            } } ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
+            } } ?: throw MediaException(if(tree!=null) ErrorCode.STORAGE_DESTINATION_UNAVAILABLE else ErrorCode.FILE_WRITE_FAILED)
             val copyDurationMs=android.os.SystemClock.elapsedRealtime()-exportStartAt
             control.check()
             val sourceDigest=sourceHash.digest()
@@ -358,6 +433,7 @@ import javax.inject.Singleton
             state.put("bytes",file.length()).put("sha256",sourceDigest.joinToString("") {"%02x".format(it)});persist(entity.id,state)
             // Fast export verification: verify destination size directly via kernel statSize
             // eliminating redundant multi-megabyte readback pass from flash storage
+            publicationPhase="output_size_verify"
             val verifyStartedAt=android.os.SystemClock.elapsedRealtime()
             val statSize = resolver.openFileDescriptor(target,"r")?.use { descriptor ->
                 val size = if(descriptor.statSize >= 0) descriptor.statSize else {
@@ -385,21 +461,23 @@ import javax.inject.Singleton
                 try {com.zdownloader.app.engine.withControlCancellation(control) {validationApproval()}}
                 finally {withContext(NonCancellable) {publicationLock.lock();publicationLocked=true}}
                 control.check()
+                publicationPhase="pending_owner_check"
                 requirePendingMediaOwner(entity,selection,target)
                 state.put("validationPending",false);persist(entity.id,state)
                 com.zdownloader.app.engine.AnalysisTrace.checkpoint(entity.id,"publication_validation_approved")
             }
             withContext(NonCancellable) {
-            val document=doc
-            if(document != null) {
+            if(tree != null) {
+                publicationPhase="saf_rename"
                 val name = dao.get(entity.id)?.filename ?: throw CancellationException("History removed")
-                val renamed=DocumentsContract.renameDocument(resolver,document.uri,name) ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
+                val renamed=DocumentsContract.renameDocument(resolver,target,name) ?: throw MediaException(ErrorCode.STORAGE_DESTINATION_UNAVAILABLE)
                 uri=renamed;state.put("uri",renamed.toString());persist(entity.id,state);dao.pending(entity.id,renamed.toString())
                 val actualName=documentRecord(renamed)?.name ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
                 state.put("finalName",actualName);persist(entity.id,state)
                 dao.rename(entity.id,actualName)
             }
             else {
+                publicationPhase="mediastore_publish"
                 if(resolver.update(target,ContentValues().apply { put(MediaStore.MediaColumns.DISPLAY_NAME,entity.filename);put(MediaStore.MediaColumns.IS_PENDING,0) },null,null) != 1) throw MediaException(ErrorCode.FILE_WRITE_FAILED)
                 if(selection.audioOnly&&selection.output=="webm") {
                     // The publication scan infers video/webm from the extension,
@@ -414,11 +492,13 @@ import javax.inject.Singleton
             }
             control.check()
             val finished = requireNotNull(uri)
+            publicationPhase="publication_finalize"
             resolver.openFileDescriptor(finished,"r")?.use {descriptor->if(descriptor.statSize>=0 && descriptor.statSize!=file.length()) throw MediaException(ErrorCode.FILE_WRITE_FAILED)} ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
             if(tree==null) resolver.query(finished,arrayOf(MediaStore.MediaColumns.IS_PENDING),null,null,null)?.use {cursor->
                 if(!cursor.moveToFirst() || cursor.getInt(0)!=0) throw MediaException(ErrorCode.FILE_WRITE_FAILED)
             } ?: throw MediaException(ErrorCode.FILE_WRITE_FAILED)
             // Keep a journal URI until completion is durable. Recovery removes unfinished publications.
+            publicationPhase="database_complete"
             if(dao.complete(entity.id,finished.toString(),file.length(),System.currentTimeMillis()) != 1) throw CancellationException("Transfer cancelled during finalization")
             journal(entity.id).delete()
             finished
@@ -428,6 +508,24 @@ import javax.inject.Singleton
             }
             throw e
         }
+        } catch(e: Exception) {
+            if(e is CancellationException) throw e
+            val failure=e as? MediaException ?: MediaException(
+                StorageFailureClassifier.classify(e) ?: ErrorCode.FILE_WRITE_FAILED
+            ).apply {initCause(e)}
+            runCatching {
+                val terminal=StorageFailureClassifier.terminalCause(e)
+                val internalFree=runCatching {android.os.StatFs(context.filesDir.path).availableBytes}.getOrNull()
+                val externalFree=runCatching {context.getExternalFilesDir(null)?.let {android.os.StatFs(it.path).availableBytes}}.getOrNull()
+                com.zdownloader.app.engine.NetworkDiagnostics.record("storage","publication_failure",failure.code,operation=entity.id,
+                    details=org.json.JSONObject().put("publication_phase",publicationPhase)
+                        .put("exception_type",StorageFailureClassifier.safeType(e))
+                        .put("cause_type",StorageFailureClassifier.safeType(terminal))
+                        .put("custom_destination",!entity.destination.isNullOrBlank()).put("android_api",Build.VERSION.SDK_INT)
+                        .put("source_output_bytes",file.length()).put("internal_available_bytes",internalFree)
+                        .put("external_available_bytes",externalFree))
+            }
+            throw failure
         } finally {
             if(publicationLocked) publicationLock.unlock()
             sourceLease.release()

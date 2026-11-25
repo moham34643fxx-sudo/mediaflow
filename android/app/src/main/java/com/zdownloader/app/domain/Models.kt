@@ -8,13 +8,21 @@ enum class DownloadStatus { PENDING, ANALYZING, AWAITING_SELECTION, QUEUED, WAIT
 val supportedMediaProtocols=setOf("https","http","m3u8_native","m3u8","http_dash_segments","dash")
 enum class ErrorCode(val recoverable: Boolean = false) {
     INVALID_URL, PLAYLIST_DETECTED, BATCH_LIMIT_EXCEEDED, URL_POLICY_REJECTED, UNSUPPORTED_PLATFORM, VIDEO_NOT_FOUND, PRIVATE_CONTENT, AUTHENTICATION_REQUIRED,
-    DRM_PROTECTED, GEO_RESTRICTED, RATE_LIMITED(true), NETWORK_UNAVAILABLE(true), NETWORK_UNVALIDATED(true), CAPTIVE_PORTAL(true), NETWORK_TIMEOUT(true),
+    DRM_PROTECTED, GEO_RESTRICTED, BOT_DETECTED, RATE_LIMITED(true), NETWORK_UNAVAILABLE(true), NETWORK_UNVALIDATED(true), CAPTIVE_PORTAL(true), NETWORK_TIMEOUT(true),
     DNS_FAILED(true), CONNECTION_REFUSED(true), CONNECTION_FAILED(true), CONNECT_TIMEOUT(true), READ_TIMEOUT(true), TLS_TIMEOUT(true), TLS_FAILED, HTTP_FORBIDDEN, MEDIA_URL_EXPIRED, EXTRACTION_TIMEOUT(true),
     WIFI_REQUIRED(true), SCHEDULING_FAILED, START_DELAYED,
-    HTTP_ERROR, SERVER_UNAVAILABLE(true), EXTRACTION_FAILED, ENGINE_BUSY(true), FORMAT_UNAVAILABLE, INSUFFICIENT_STORAGE, STORAGE_PERMISSION_ERROR,
+    HTTP_ERROR, SERVER_UNAVAILABLE(true), EXTRACTION_FAILED, ENGINE_BUSY(true), FORMAT_UNAVAILABLE, INSUFFICIENT_STORAGE, STORAGE_PERMISSION_ERROR, STORAGE_DESTINATION_UNAVAILABLE,
     DOWNLOAD_INTERRUPTED(true), SOURCE_CORRUPT(true), ENCODER_UNAVAILABLE, DECODER_UNAVAILABLE, MERGE_FAILED, CONVERSION_FAILED, OUTPUT_VALIDATION_FAILED, MEDIA_METADATA_MISMATCH, FILE_WRITE_FAILED, INTERNAL_ENGINE_ERROR,
     LIVE_STREAM_DETECTED, QUALITY_UNAVAILABLE, FILE_IN_USE, FILE_NAME_CONFLICT;
     companion object { fun parse(value: String?) = entries.find { it.name == value } ?: INTERNAL_ENGINE_ERROR }
+}
+/** Explicit audio choices shared by request validation and both format surfaces. */
+internal object AudioOutputFormats {
+    val picker=listOf("original","mp3","m4a","aac","flac","opus")
+    val quickShare=listOf("mp3","m4a","aac","opus","flac","original")
+    private val supported=picker.toSet()
+
+    fun supports(output:String)=output in supported
 }
 class MediaException(val code: ErrorCode, val retryAfterMillis: Long? = null, val validationCheck:String?=null) : Exception(code.name)
 
@@ -284,7 +292,7 @@ data class Selection(val primary: Format, val secondary: Format? = null, val aud
         fun audio(media: Media, output: String, selectedSource: Format? = null, bitrate:Int=192): Selection {
             val options=media.audioOptions()
             if(selectedSource!=null&&selectedSource !in options) throw MediaException(ErrorCode.FORMAT_UNAVAILABLE)
-            if(output !in listOf("original","mp3","m4a","aac","flac","opus")) throw MediaException(ErrorCode.FORMAT_UNAVAILABLE)
+            if(!AudioOutputFormats.supports(output)) throw MediaException(ErrorCode.FORMAT_UNAVAILABLE)
             val rank=compareBy<Format> {it.languagePreference ?: 0.0}
                 .thenBy {it.protocol !in setOf("m3u8","m3u8_native")}
                 .thenBy {it.audioBitrate ?: if(it.streamOnly) it.bitrate ?: 0.0 else 0.0}

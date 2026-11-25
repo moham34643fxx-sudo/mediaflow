@@ -86,6 +86,7 @@ def register_request(request_id):
     event.dns_ms = 0.0
     event.requests = 0
     event.redirects = 0
+    event.transport_sequence = 0
     event.metadata = True
     event.metadata_bytes = 0
     with _lock:
@@ -152,15 +153,8 @@ def pooled_metadata_open(self, http_class, request, **kwargs):
         bridge.close()
         check(event)
     remaining = min(request.timeout, event.deadline - time.monotonic())
-    if not hasattr(event, 'transport_requests'):
-        event.transport_requests = []
-    operation = f'{event.request_id}:http:{len(event.transport_requests)}'
-    import hashlib
-    parsed = urlsplit(request.full_url)
-    if len(event.transport_requests) < 64:
-        event.transport_requests.append({'operation': operation, 'host': parsed.hostname,
-                                        'path_sha256': hashlib.sha256(parsed.path.encode()).hexdigest()[:16],
-                                        'method': request.get_method()})
+    operation = f'{event.request_id}:http:{event.transport_sequence}'
+    event.transport_sequence += 1
     response = open_response(bridge, request, {'timeout_ms': max(1, int(remaining * 1000)), 'operation': operation})
     try:
         check(event)
@@ -306,6 +300,15 @@ def analyze_quality_audit(url, request_id='quality-audit'):
     return analyze(url, request_id, quality_audit=True)
 
 
+def _is_facebook_source(url):
+    try:
+        host = (urlsplit(url).hostname or '').lower().rstrip('.')
+    except (TypeError, ValueError):
+        return False
+    return any(host == domain or host.endswith('.' + domain)
+               for domain in ('facebook.com', 'fb.watch', 'fbcdn.net', 'fbsbx.com'))
+
+
 def analyze(url, request_id='test', force_web=False, quality_audit=False):
     started = time.monotonic()
     event = threading.Event()
@@ -333,6 +336,8 @@ def analyze(url, request_id='test', force_web=False, quality_audit=False):
             configure_instagram(engine, validate_url)
             from twitter_media import configure as configure_twitter
             configure_twitter(engine, url, validate_url)
+            from topcinema_media import configure as configure_topcinema
+            configure_topcinema(engine, url, validate_url)
             event.cookiejar = engine.cookiejar
             initialized = time.monotonic()
             checkpoint(request_id, 'ytdlp_extract_start')
@@ -440,25 +445,22 @@ def analyze(url, request_id='test', force_web=False, quality_audit=False):
                                 'js_challenges': android_jsc.stats(), **audit,
                                'timings_ms': {'engine_setup': round((initialized-started)*1000),
                                               'extraction': round((extracted-initialized)*1000),
-                                               'normalization': round((time.monotonic()-extracted)*1000),
-                                               'network_headers_inclusive': round(event.network_ms),
-                                                'dns_inclusive': round(event.dns_ms),
-                                                'transport_requests': getattr(event, 'transport_requests', []),
-                                                'requests': event.requests - event.manifest_handoff.reused,
+                                                 'normalization': round((time.monotonic()-extracted)*1000),
+                                                'network_headers_inclusive': round(event.network_ms),
+                                                 'dns_inclusive': round(event.dns_ms),
+                                                 'requests': event.requests - event.manifest_handoff.reused,
                                                 'redirects': event.redirects,
                                                 **event.manifest_handoff.timings()}}, ensure_ascii=False)
     except Exception as exc:
-        code, stage = classify(exc)
+        code, stage = classify(exc, platform='facebook' if _is_facebook_source(url) else None)
         if isinstance(exc, InterruptedError): code = 'DOWNLOAD_INTERRUPTED'
         try:
             from java import jclass
-            import traceback
-            tb = traceback.format_exc()
-            jclass('android.util.Log').e('ZAnalysis', f'zextractor.analyze failed: code={code}, stage={stage}, exc={type(exc).__name__}: {exc}\n{tb}')
+            jclass('android.util.Log').e('ZAnalysis', f'zextractor.analyze failed: code={code}, stage={stage}, exc={type(exc).__name__}')
         except Exception:
             pass
         return json.dumps({'error': code, 'stage': stage, 'diagnostic': type(exc).__name__,
-                           'message': str(exc),
+                           'exception_chain': exception_facts(exc),
                            **({'quality_audit': {'warningCodes': sorted(getattr(event, 'quality_warnings', ()))}} if quality_audit else {}),
                            'js_challenges': android_jsc.stats(),
                            'timings_ms': {'total': round((time.monotonic()-started)*1000),
@@ -491,7 +493,6 @@ def playlist(url, request_id, offset=0, limit=100):
                 'normalization': elapsed(normalization_started, normalization_finished),
                 'network_headers_inclusive': round(getattr(event, 'network_ms', 0)),
                 'dns_inclusive': round(getattr(event, 'dns_ms', 0)),
-                'transport_requests': getattr(event, 'transport_requests', []),
                 'requests': getattr(event, 'requests', 0),
                 'redirects': getattr(event, 'redirects', 0)}
     try:
@@ -509,6 +510,8 @@ def playlist(url, request_id, offset=0, limit=100):
             android_jsc.configure(engine)
             from instagram_media import configure as configure_instagram
             configure_instagram(engine, validate_url)
+            from topcinema_media import configure as configure_topcinema
+            configure_topcinema(engine, url, validate_url)
             event.cookiejar = engine.cookiejar
             extraction_started = time.monotonic()
             checkpoint(request_id, 'playlist_extract_started')
@@ -522,7 +525,7 @@ def playlist(url, request_id, offset=0, limit=100):
             checkpoint(request_id, 'playlist_page_ready')
             return json.dumps(result, ensure_ascii=False)
     except Exception as exc:
-        code, stage = classify(exc)
+        code, stage = classify(exc, platform='facebook' if _is_facebook_source(url) else None)
         if isinstance(exc, InterruptedError): code = 'DOWNLOAD_INTERRUPTED'
         checkpoint(request_id, 'playlist_failed')
         return json.dumps({'error': code, 'stage': stage, 'timings_ms': timings()})
@@ -533,12 +536,14 @@ def playlist(url, request_id, offset=0, limit=100):
         with _lock: _requests.pop(request_id, None)
 def download_stream(format_json, path, request_id, callback, fragment_concurrency=0, initial_bytes=0):
     event = threading.Event()
+    media_url = None
     try:
         event = register_request(request_id)
         # A media transfer may legitimately outlast the metadata deadline.
         event.deadline = float('inf')
         event.metadata = False
         fmt = json.loads(format_json)
+        media_url = fmt.get('url')
         validate_url(fmt['url'])
         initial_bytes = max(0, int(initial_bytes or 0))
         first_new_byte_reported = False
@@ -586,7 +591,10 @@ def download_stream(format_json, path, request_id, callback, fragment_concurrenc
         check(event)
         return json.dumps({'ok': True})
     except Exception as exc:
-        code, stage = classify(exc, 'HTTP_ERROR')
+        code, stage = classify(
+            exc, 'HTTP_ERROR',
+            platform='facebook' if _is_facebook_source(media_url) else None
+        )
         frames = [{'frame': f.name, 'line': f.lineno} for f in traceback.extract_tb(exc.__traceback__, limit=6)]
         return json.dumps({'error': 'DOWNLOAD_INTERRUPTED' if event.is_set() else code,
                            'stage': stage, 'diagnostic': type(exc).__name__, 'exception_chain': exception_facts(exc), 'trace': frames})

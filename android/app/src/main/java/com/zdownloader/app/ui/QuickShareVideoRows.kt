@@ -34,7 +34,7 @@ internal object QuickShareVideoRows {
 
     fun expanded(groups:List<QualityGroup>,effectiveChoice:QuickShareChoice?,expandedKeys:Set<String>):List<QuickShareVideoTierRow> {
         val selectedId=effectiveChoice?.takeUnless {it.audio}?.formatId
-        return groups.sortedWith(compareBy<QualityGroup> {it.resolution ?: Int.MAX_VALUE}.thenBy {it.recommended.ext!="mp4"})
+        return groups.sortedWith(compareByDescending<QualityGroup> {it.resolution ?: Int.MIN_VALUE}.thenBy {it.recommended.ext!="mp4"})
             .map {group->
                 val selected=group.candidates.any {it.id==selectedId}
                 val choice=if(selected) requireNotNull(effectiveChoice) else QuickShareChoice(false,group.recommended.id)
@@ -58,11 +58,14 @@ internal object QuickShareVideoRows {
 
 internal data class QuickShareVisibleSections(val video:Boolean,val audio:Boolean,val modeControl:Boolean)
 
-/** Expanded Quick Share is a video OR audio-only picker, never a combined source list. */
+/** Resolve the active media type for the details tabs without hiding a playable only type. */
 internal object QuickShareFormatSections {
-    fun resolve(expanded:Boolean,section:String,hasVideo:Boolean,hasAudio:Boolean,selectedAudio:Boolean):QuickShareVisibleSections {
-        if(!expanded) return QuickShareVisibleSections(video=true,audio=true,modeControl=false)
-        val audioMode=section=="audio" || (section=="all"&&selectedAudio) || (!hasVideo&&hasAudio)
+    fun resolve(section:String,hasVideo:Boolean,hasAudio:Boolean,selectedAudio:Boolean):QuickShareVisibleSections {
+        val audioMode=when {
+            !hasVideo&&hasAudio->true
+            !hasAudio&&hasVideo->false
+            else->section=="audio"||(section=="all"&&selectedAudio)
+        }
         return QuickShareVisibleSections(video=!audioMode,audio=audioMode,modeControl=hasVideo&&hasAudio)
     }
 }

@@ -20,7 +20,7 @@ import java.util.*;
 
 /** Independent test UID survives target replacement. All installer consent is real system UI. */
 public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
-    private static final String APP = "com.zdownloader.app";
+    private String appPackage() { return getTargetContext().getPackageName(); }
     private static final Set<String> INSTALLERS = new HashSet<>(Arrays.asList(
         "com.android.packageinstaller", "com.google.android.packageinstaller",
         "com.android.permissioncontroller", "com.google.android.permissioncontroller",
@@ -58,7 +58,7 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
             // Every wakeup, including failed unlocks and screenshots, is enclosed by sleep 223.
             if (!postOnly) try {
                 wake();
-                shell("am start -W -n com.zdownloader.app/.MainActivity");
+                shell("am start -W -n " + appPackage() + "/.MainActivity");
                 navigateToUpdates();
                 capture("ready-app-ui");
                 // A previous installer consent can be waiting on Play Protect's final
@@ -68,7 +68,7 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
                     while (version() != toCode && SystemClock.elapsedRealtime() < completedBy) SystemClock.sleep(200);
                 }
                 if (version() != toCode) {
-                awaitClick(APP, 15000, "تثبيت التحديث", "Install update");
+                awaitClick(appPackage(), 15000, "تثبيت التحديث", "Install update");
                 long deadline = SystemClock.elapsedRealtime() + 90000;
                 boolean permissionHandled = false;
                 while (true) {
@@ -132,7 +132,7 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
             try {
                 wake();
                 if (report.optBoolean("playProtectPromptResolved") && !restartedAfterScan) restartAfterScan();
-                else shell("am start -W -n com.zdownloader.app/.MainActivity");
+                else shell("am start -W -n " + appPackage() + "/.MainActivity");
                 navigateToUpdates();
                 deadline = SystemClock.elapsedRealtime() + 20000;
                 while (true) {
@@ -144,7 +144,7 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
                         continue;
                     }
                     String text = allText(root);
-                    if (APP.equals(packageOf(root)) && (text.contains("تم تثبيت التحديث بنجاح") || text.contains("Update installed successfully"))) break;
+                    if (appPackage().equals(packageOf(root)) && (text.contains("تم تثبيت التحديث بنجاح") || text.contains("Update installed successfully"))) break;
                     if (SystemClock.elapsedRealtime() > deadline) throw new AssertionError("Installed success state not visible in actual App updates UI");
                     SystemClock.sleep(250);
                 }
@@ -239,19 +239,19 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
 
     private void restartAfterScan() throws Exception {
         if (!restartedAfterScan) {
-            shell("am start -W -n com.zdownloader.app/.MainActivity");
+            shell("am start -W -n " + appPackage() + "/.MainActivity");
             restartedAfterScan = true;
             report.put("mainRestartedAfterScan", true);
         }
     }
     private long version() throws Exception {
         // Shell query avoids package-visibility and PackageManager cache effects in the independent UID.
-        java.util.regex.Matcher match = java.util.regex.Pattern.compile("versionCode=(\\d+)").matcher(shell("dumpsys package " + APP));
+        java.util.regex.Matcher match = java.util.regex.Pattern.compile("versionCode=(\\d+)").matcher(shell("dumpsys package " + appPackage()));
         if (!match.find()) throw new AssertionError("Installed target identity unavailable");
         return Long.parseLong(match.group(1));
     }
     private String versionName() throws Exception {
-        java.util.regex.Matcher match = java.util.regex.Pattern.compile("(?m)^\\s*versionName=([^\\r\\n]+)").matcher(shell("dumpsys package " + APP));
+        java.util.regex.Matcher match = java.util.regex.Pattern.compile("(?m)^\\s*versionName=([^\\r\\n]+)").matcher(shell("dumpsys package " + appPackage()));
         if (!match.find()) throw new AssertionError("Installed target version name unavailable");
         return match.group(1).trim();
     }
@@ -274,7 +274,7 @@ public class UpdateUpgradeDriverInstrumentation extends Instrumentation {
                 deadline = SystemClock.elapsedRealtime() + 25000;
                 continue;
             }
-            if (APP.equals(packageOf(root))) {
+            if (appPackage().equals(packageOf(root))) {
                 String text = allText(root);
                 if (text.contains("الإصدار المثبت:") || text.contains("Installed version:")) return;
                 if (clickExact(root, "تحديث التطبيق", "App updates")) { SystemClock.sleep(300); continue; }

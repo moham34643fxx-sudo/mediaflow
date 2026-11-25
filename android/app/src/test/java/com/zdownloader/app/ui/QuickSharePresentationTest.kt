@@ -80,6 +80,68 @@ class QuickSharePresentationTest {
         assertEquals(source().formats.map {it.id}.toSet(),preview.videoSources.map {it.id}.toSet())
     }
 
+    @Test fun expiredRawVideoIsNotPublishedAsASelectableQuickShareSource():Unit=runBlocking {
+        val stale=Format.parse(JSONObject(source().formats.first().payload)
+            .put("format_id","expired")
+            .put("url","https://example.com/expired.mp4?expire=${System.currentTimeMillis()/1000-60}"))
+        val available=source().formats.last()
+        val media=source().copy(formats=listOf(stale,available))
+
+        val presentation=QuickSharePresentation.prepare(media)
+
+        assertEquals(listOf(available.id),presentation.videoSources.map {it.id})
+        assertNull(presentation.selection(QuickShareChoice(false,stale.id)))
+        assertNotNull(presentation.selection(QuickShareChoice(false,available.id)))
+    }
+
+    @Test fun verifiedTopCinemaVariantsKeepExactDimensionsAndAscendByQuality():Unit=runBlocking {
+        val dimensions=listOf(1920 to 800,1280 to 532,852 to 356,428 to 176)
+        val formats=dimensions.mapIndexed {index,(width,height)->Format.parse(JSONObject()
+            .put("format_id","hls-$index").put("url","https://example.com/hls-$index.m3u8")
+            .put("ext","mp4").put("protocol","m3u8_native").put("width",width).put("height",height)
+            .put("fps",24).put("vcodec","avc1").put("acodec","aac"))}
+        val media=Media("https://topcinemaa.one/fixture/watch/","fixture","Fixture",
+            "TopCinema",null,null,60.0,formats)
+        val preview=QuickSharePresentation.prepare(media)
+        assertEquals(listOf(176,356,532,800),preview.groups.map {it.dimensions.edge})
+        assertEquals(dimensions.reversed(),preview.groups.map {it.dimensions.width to it.dimensions.height})
+        assertEquals(listOf(24.0,24.0,24.0,24.0),preview.groups.map {it.recommended.fps})
+        assertEquals(formats.map {it.id}.toSet(),preview.videoSources.map {it.id}.toSet())
+    }
+
+    @Test fun portraitGeometryGroupsLogicalLabelsButDoesNotMergeDifferentAspectRatios():Unit=runBlocking {
+        val base=source().formats.first()
+        fun format(id:String,w:Int,h:Int,label:String)=base.copy(id=id,width=w,height=h,sourceQualityLabel=label)
+        val high=format("higher",1080,1920,"480p")
+        val sameA=format("dash-long-representation-a",720,1280,"240p")
+        val sameB=format("dash-long-representation-b",720,1280,"720p")
+        val square=format("square",720,720,"1080p")
+        val low=format("lower",360,640,"2160p")
+        val landscape=format("landscape",1280,720,"360p")
+        val media=source().copy(formats=listOf(high,sameA,low,square,sameB,landscape))
+
+        val groups=QuickSharePresentation.prepare(media).groups
+
+        assertEquals(listOf("360x640","720x720","720x1280","1280x720","1080x1920"),groups.map {it.dimensions.key})
+        assertEquals(listOf(sameB.id,sameA.id),groups[2].candidates.map {it.id})
+        assertEquals(media.formats.map {it.id}.sorted(),groups.flatMap {it.candidates}.map {it.id}.sorted())
+    }
+
+    @Test fun partialOrUnverifiedDimensionsNeverBorrowTheSourceLabelOrAnotherStreamsGeometry():Unit=runBlocking {
+        val verified=source().formats.first()
+        val partial=verified.copy(id="partial",width=null,height=720)
+        val widthOnly=verified.copy(id="width-only",width=720,height=null,sourceQualityLabel="1080p")
+        val unverified=Format.parse(JSONObject(verified.payload)
+            .put("format_id","dash-2160p-1280x720").put("format_note","1920x1080")
+            .put("mediaflow_dimensions","unverified_label").put("mediaflow_source_quality_label","2160p")
+            .put("width",1280).put("height",720).put("filesize",1_000_000_000))
+
+        val groups=QuickSharePresentation.prepare(source().copy(formats=listOf(unverified,widthOnly,partial,verified))).groups
+
+        assertEquals(listOf("480x270","height-720","unknown"),groups.map {it.dimensions.key})
+        assertEquals(setOf(unverified.id,widthOnly.id),groups.last().candidates.map {it.id}.toSet())
+    }
+
     @Test fun expandedPickerKeepsCodecContainerAndBitrateAlternativesSelectable():Unit=runBlocking {
         val base=source().formats.first {it.height==720}
         fun variant(id:String,codec:String,ext:String,rate:Int)=Format.parse(JSONObject(base.payload)
@@ -94,13 +156,10 @@ class QuickSharePresentationTest {
             QuickShareChoice(false,format.id,it).resolve(media)!=null
         }) {
             val choice=QuickShareChoice(false,format.id,container)
-            val tier=QuickShareVideoRows.expanded(preview.groups,choice,emptySet()).single {it.selected}
-            assertFalse(tier.expanded)
-            val rows=QuickShareVideoRows.variants(tier.group,choice)
-            assertEquals(choice,rows.single {it.selected}.choice)
+            assertEquals(choice,preview.groups.single().selectedChoice(choice))
             assertEquals(choice.resolve(media),preview.selection(choice))
         }
-        assertTrue(preview.variantFields.getValue("av1").contains(QuickShareVariantDetails.Field.CODEC))
-        assertTrue(preview.variantFields.getValue("vp9-webm").contains(QuickShareVariantDetails.Field.CONTAINER))
+        assertTrue(preview.variantFields.getValue("vp9-webm").contains(QuickShareVariantDetails.Field.BITRATE))
+        assertNull(preview.groups.single().selectedChoice(QuickShareChoice(false,"missing")))
     }
 }

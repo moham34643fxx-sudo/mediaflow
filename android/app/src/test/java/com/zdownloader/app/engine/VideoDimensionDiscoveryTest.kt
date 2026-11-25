@@ -1,6 +1,11 @@
 package com.zdownloader.app.engine
 
 import com.zdownloader.app.domain.*
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
@@ -54,5 +59,41 @@ class VideoDimensionDiscoveryTest {
         assertNull(VideoDimensionDiscovery.measuredPrefix(source("sd"),prefix("avc1").copyOf(32)))
         assertNull(VideoDimensionDiscovery.measuredPrefix(source("sd"),prefix("encv")))
         assertNull(VideoDimensionDiscovery.measuredPrefix(source("sd"),byteArrayOf()))
+    }
+
+    @Test fun publishesFastGeometryWhileAnotherSourceIsBlockedAndRetriesOnlyTheFailure()=runBlocking {
+        val media=Media("https://example.com/watch","id","Title","Source",null,null,10.0,
+            listOf(source("ready",320,176),source("sd"),source("hd")))
+        val unblock=CompletableDeferred<Unit>()
+        val partial=CompletableDeferred<VideoDimensionProgress>()
+        val confirmed=async {VideoDimensionDiscovery.inspect(media,setOf("sd","hd"),onProgress={partial.complete(it)}) {format->
+            if(format.id=="hd") {unblock.await();return@inspect null}
+            VideoDimensionDiscovery.merge(format,source("measured",854,480))
+        }}
+        val first=withTimeout(2_000) {partial.await()}
+        assertEquals(setOf("hd"),first.pendingIds)
+        assertTrue(first.failedIds.isEmpty())
+        assertEquals(listOf(176,480,null),first.media.formats.map(::verifiedQualityEdge))
+        assertFalse(confirmed.isCompleted)
+        unblock.complete(Unit)
+        val incomplete=confirmed.await()
+        assertEquals(setOf("hd"),incomplete.failedIds)
+        val inspected=mutableListOf<String>()
+        val retried=VideoDimensionDiscovery.inspect(incomplete.media,incomplete.failedIds) {format->
+            inspected+=format.id
+            VideoDimensionDiscovery.merge(format,source("measured",1280,720))
+        }
+        assertEquals(listOf("hd"),inspected)
+        assertEquals(listOf(176,480,720),retried.media.formats.map(::verifiedQualityEdge))
+        assertTrue(retried.failedIds.isEmpty())
+    }
+
+    @Test fun deadlineReportsAnUnfinishedCheckWithoutRemovingPlayableSources()=runBlocking {
+        val media=Media("https://example.com/watch","id","Title","Source",null,null,10.0,
+            listOf(source("ready",320,176),source("sd")))
+        val result=VideoDimensionDiscovery.inspect(media,setOf("sd"),timeoutMillis=50) {awaitCancellation()}
+        assertEquals(setOf("sd"),result.failedIds)
+        assertTrue(result.pendingIds.isEmpty())
+        assertEquals(media,result.media)
     }
 }

@@ -1,5 +1,6 @@
 <resources>
     <string name="share_compact_preference_hint">Choose a preference now. We use the best available quality within your limit.</string>
+    <string name="share_overview_formats_heading">Available formats</string>
     <string name="share_preference_mp3_title">MP3</string>
     <string name="share_preference_mp3_description">Audio only</string>
     <string name="share_preference_360_title">360p</string>
@@ -8,7 +9,18 @@
     <string name="share_preference_480_description">Good quality, moderate file size.</string>
     <string name="share_preference_720_title">720p</string>
     <string name="share_preference_720_description">Higher quality, clearer video.</string>
-    <string name="share_more_description">Explore all available formats and qualities.</string>
+    <string name="share_overview_more">More formats</string>
+    <string name="share_overview_selected_format">Selected: %1$s</string>
+    <string name="share_overview_basic_quality">Basic clarity for small screens.</string>
+    <string name="share_overview_high_quality">Sharper detail for larger screens.</string>
+    <string name="quick_share_title">Quick Share</string>
+    <string name="share_download_preferences">Download preferences</string>
+    <string name="share_more_description">See all formats and sources.</string>
+    <string name="share_more_sources">More servers</string>
+    <string name="share_fewer_sources">Fewer servers</string>
+    <string name="share_checking_sources">Checking additional sources</string>
+    <string name="share_sources_partial">Some sources could not be checked. You can still use the available sources.</string>
+    <string name="share_no_more_sources">No additional sources found.</string>
     <string name="share_source_tier">Source tier: %1$s</string>
     <string name="share_video_rate">%1$s kb/s</string>
     <string name="share_frame_rate">%1$s fps</string>

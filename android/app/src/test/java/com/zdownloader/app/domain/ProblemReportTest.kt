@@ -1,11 +1,16 @@
 package com.zdownloader.app.domain
 
+import com.zdownloader.app.ui.reportProblemFor
 import org.junit.Assert.*
 import org.junit.Test
 import java.net.URI
 import java.net.URLDecoder
 
 class ProblemReportTest {
+    @Test fun extractionBotChallengeDefaultsToAnAnalysisReport() {
+        assertEquals(ReportProblem.ANALYSIS, reportProblemFor(ErrorCode.BOT_DETECTED.name))
+    }
+
     @Test fun reportUsesCorrectRecipientAndRoundTripsReviewedArabicText() {
         val report=ProblemReport("https://example.com/watch?v=123",ReportProblem.UNSUPPORTED,"الرابط يعمل في المتصفح", "UNSUPPORTED_URL")
         val uri=URI(report.whatsAppUrl("0.9.34"))

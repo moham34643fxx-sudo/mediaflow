@@ -27,11 +27,11 @@ class QuickShareVideoRowsTest {
         assertTrue(tier.expanded);assertEquals(choice,compact.choice);assertEquals(choice,tier.choice);assertEquals(choice,expanded.choice)
     }
 
-    @Test fun expandedTierRowsAreAscendingAndExposeEverySourceOnlyWhenExpanded() {
+    @Test fun expandedTierRowsAreDescendingAndExposeEverySourceOnlyWhenExpanded() {
         val source=media(video("big",1080),video("small-a",360),video("small-b",360))
         val groups=QuickShareCatalog.verifiedGroups(source)
         val collapsed=QuickShareVideoRows.expanded(groups,null,emptySet())
-        assertEquals(listOf(360,1080),collapsed.map {it.group.resolution})
+        assertEquals(listOf(1080,360),collapsed.map {it.group.resolution})
         assertEquals(2,collapsed.size)
         assertTrue(collapsed.none {it.expanded})
 
@@ -50,23 +50,23 @@ class QuickShareVideoRowsTest {
             video("720-b",720),video("unknown",720).copy(width=null,height=null))
         val tiers=QuickShareVideoRows.expanded(source.qualityGroups(),null,emptySet())
 
-        assertEquals(listOf(360,720,1080,null),tiers.map {it.group.resolution})
+        assertEquals(listOf(1080,720,360,null),tiers.map {it.group.resolution})
         assertEquals(4,tiers.map {it.key}.distinct().size)
         assertEquals(2,tiers.single {it.group.resolution==720}.group.candidates.size)
         assertEquals("unknown",tiers.last().group.candidates.single().id)
     }
 
-    @Test fun expandedQuickShareShowsOneExplicitMediaModeAndPreservesCompactBothModes() {
-        assertEquals(QuickShareVisibleSections(true,true,false),
-            QuickShareFormatSections.resolve(false,"all",true,true,false))
+    @Test fun quickShareUsesOneMediaModeAndDefaultsToAnAvailableSection() {
         assertEquals(QuickShareVisibleSections(true,false,true),
-            QuickShareFormatSections.resolve(true,"video",true,true,false))
+            QuickShareFormatSections.resolve("all",true,true,false))
         assertEquals(QuickShareVisibleSections(false,true,true),
-            QuickShareFormatSections.resolve(true,"audio",true,true,false))
+            QuickShareFormatSections.resolve("audio",true,true,false))
         assertEquals(QuickShareVisibleSections(false,true,true),
-            QuickShareFormatSections.resolve(true,"all",true,true,true))
+            QuickShareFormatSections.resolve("all",true,true,true))
         assertEquals(QuickShareVisibleSections(false,true,false),
-            QuickShareFormatSections.resolve(true,"video",false,true,false))
+            QuickShareFormatSections.resolve("video",false,true,false))
+        assertEquals(QuickShareVisibleSections(true,false,false),
+            QuickShareFormatSections.resolve("audio",true,false,true))
     }
 
     @Test fun customOutputAndAudioChoiceAreNotConfusedWithAnotherVideoTier() {

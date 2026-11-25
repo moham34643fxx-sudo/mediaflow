@@ -58,4 +58,20 @@ class DiagnosticsExportTest {
         assertEquals(-1,details.getInt("return_code"))
         assertFalse(details.has("authorization"))
     }
+
+    @Test fun storageFailureEvidenceKeepsSafePhaseAndCapacityButDropsProviderMessages() {
+        val secret="content://provider/tree/private-token"
+        val raw=JSONObject().put("stack","storage").put("stage","publication_failure").put("code","INSUFFICIENT_STORAGE")
+            .put("details",JSONObject().put("publication_phase","output_copy").put("exception_type","IOException")
+                .put("cause_type","ErrnoException").put("internal_available_bytes",1234)
+                .put("custom_destination",true).put("uri",secret).put("message","failed at $secret"))
+        val safe=DiagnosticsExport().sanitize(raw.toString())!!
+        val details=safe.getJSONObject("details")
+        assertEquals("output_copy",details.getString("publication_phase"))
+        assertEquals("ErrnoException",details.getString("cause_type"))
+        assertEquals(1234,details.getLong("internal_available_bytes"))
+        assertTrue(details.getBoolean("custom_destination"))
+        assertFalse(safe.toString().contains("private-token"))
+        assertFalse(details.has("message"))
+    }
 }

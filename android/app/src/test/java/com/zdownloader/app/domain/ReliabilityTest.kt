@@ -18,6 +18,13 @@ class ReliabilityTest {
         assertTrue(ErrorCode.SERVER_UNAVAILABLE.recoverable)
         assertFalse(ErrorCode.AUTHENTICATION_REQUIRED.recoverable)
     }
+    @Test fun retryGateHonorsRecoverabilityAndStopsAtTheConfiguredLimit() {
+        assertTrue(RetryPolicy.shouldRetry(ErrorCode.SERVER_UNAVAILABLE,0,3))
+        assertTrue(RetryPolicy.shouldRetry(ErrorCode.SOURCE_CORRUPT,2,3))
+        assertFalse(RetryPolicy.shouldRetry(ErrorCode.SERVER_UNAVAILABLE,3,3))
+        assertFalse(RetryPolicy.shouldRetry(ErrorCode.FILE_WRITE_FAILED,0,3))
+        assertFalse(RetryPolicy.shouldRetry(ErrorCode.INSUFFICIENT_STORAGE,0,3))
+    }
     @Test fun decoderAndMetadataFailuresAreNotTransportCorruptionRetries() {
         assertFalse(ErrorCode.DECODER_UNAVAILABLE.recoverable)
         assertFalse(ErrorCode.MEDIA_METADATA_MISMATCH.recoverable)

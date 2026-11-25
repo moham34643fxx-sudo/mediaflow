@@ -12,14 +12,25 @@ class FormatLoadingPresentationTest {
         .put("filesize",bytes).put("vbr",rate))
     private fun media(vararg formats:Format)=Media("https://example.com/watch","fixture","Fixture","Generic",null,null,10.0,formats.toList())
 
-    @Test fun placeholdersExistOnlyForActuallyPendingExpandedDiscovery() {
+    @Test fun initialPlaceholderDisappearsWhenTheFirstCatalogIsPresented() {
         val pending=QuickShareState(sourceUrl="https://example.com/watch",expanded=true,analyzing=true,discoveringFormats=true)
-        assertEquals(3,FormatLoadingPresentation.pendingRows(pending))
-        assertEquals(1,FormatLoadingPresentation.pendingRows(pending.copy(media=media(format("known")))))
-        assertEquals(0,FormatLoadingPresentation.pendingRows(pending.copy(expanded=false)))
+        val delivered=pending.copy(media=media(format("known")))
+        assertEquals(1,FormatLoadingPresentation.pendingRows(pending))
+        assertEquals(1,FormatLoadingPresentation.pendingRows(pending.copy(expanded=false)))
+        assertEquals(1,FormatLoadingPresentation.pendingRows(delivered,presented=false))
+        assertEquals(0,FormatLoadingPresentation.pendingRows(delivered))
         assertEquals(0,FormatLoadingPresentation.pendingRows(pending.copy(discoveringFormats=false)))
         assertEquals(0,FormatLoadingPresentation.pendingRows(pending.copy(error=ErrorCode.EXTRACTION_FAILED)))
         assertEquals(0,FormatLoadingPresentation.pendingRows(pending.copy(sourceUrl=null)))
+    }
+
+    @Test fun moreShowsOnlyOutstandingVideoChecksNotFailuresOrSizes() {
+        val checking=QuickShareState(expanded=true,discoveringFormats=true,pendingDimensionIds=setOf("unknown"))
+        assertTrue(FormatLoadingPresentation.morePending(checking,showVideo=true))
+        assertFalse(FormatLoadingPresentation.morePending(checking,showVideo=false))
+        assertFalse(FormatLoadingPresentation.morePending(checking.copy(expanded=false),showVideo=true))
+        assertFalse(FormatLoadingPresentation.morePending(checking.copy(
+            pendingDimensionIds=emptySet(),failedDimensionIds=setOf("unknown"),pendingSizeIds=setOf("known")),showVideo=true))
     }
 
     @Test fun lateRowsAndNewSizeMetadataUseTheSameStrictCatalogSort() {

@@ -126,7 +126,7 @@ class OriginalImagePipelineTest {
         for((id,uri) in created) {
             check(ContentUris.parseId(uri)!=97218L)
             val name=app.contentResolver.query(uri,arrayOf(MediaStore.MediaColumns.DISPLAY_NAME),null,null,null)!!.use {if(it.moveToFirst()) it.getString(0) else null}
-            if(name!=null) {check(name.startsWith(id)||name.startsWith(".$id.pending"));check(app.contentResolver.delete(uri,null,null)==1)}
+            if(name!=null) {check(name.startsWith(id)||name.startsWith("mediaflow-$id.pending."));check(app.contentResolver.delete(uri,null,null)==1)}
         }
         if(::database.isInitialized) database.close()
         if(::home.isInitialized) {check(!NativeWork.busy(home));check(home.deleteRecursively())}

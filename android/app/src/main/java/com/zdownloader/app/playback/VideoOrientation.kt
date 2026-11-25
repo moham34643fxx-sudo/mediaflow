@@ -12,7 +12,8 @@ internal enum class VideoOrientationMode(val key:String,val label:Int) {
 
     companion object {
         fun fromKey(value:String?)=entries.firstOrNull {it.key==value} ?: SMART
-        fun default(autoRotate:Boolean)=if(autoRotate) SMART else FOLLOW_DEVICE
+        fun default()=SMART
+        fun default(autoRotate:Boolean)=if(autoRotate) default() else FOLLOW_DEVICE
     }
 }
 
@@ -20,6 +21,13 @@ internal enum class VideoOrientationMode(val key:String,val label:Int) {
 internal object VideoOrientation {
     private const val LANDSCAPE_THRESHOLD=1.08f
     private const val PORTRAIT_THRESHOLD=1f/LANDSCAPE_THRESHOLD
+
+    fun preferredAxis(aspect:Float?):VideoOrientationMode?=when {
+        aspect==null||!aspect.isFinite()->null
+        aspect>=LANDSCAPE_THRESHOLD->VideoOrientationMode.LANDSCAPE
+        aspect<=PORTRAIT_THRESHOLD->VideoOrientationMode.PORTRAIT
+        else->null
+    }
 
     fun displayAspect(width:Int,height:Int,pixelWidthHeightRatio:Float=1f,rotationDegrees:Int=0):Float? {
         if(width<=0||height<=0||!pixelWidthHeightRatio.isFinite()||pixelWidthHeightRatio !in .1f..10f) return null
@@ -42,12 +50,7 @@ internal object VideoOrientation {
             VideoOrientationMode.PORTRAIT->VideoOrientationMode.PORTRAIT
             VideoOrientationMode.LANDSCAPE->VideoOrientationMode.LANDSCAPE
             VideoOrientationMode.FOLLOW_DEVICE->VideoOrientationMode.FOLLOW_DEVICE
-            VideoOrientationMode.SMART->when {
-                aspect==null||!aspect.isFinite()->VideoOrientationMode.FOLLOW_DEVICE
-                aspect>=LANDSCAPE_THRESHOLD->VideoOrientationMode.LANDSCAPE
-                aspect<=PORTRAIT_THRESHOLD->VideoOrientationMode.PORTRAIT
-                else->VideoOrientationMode.FOLLOW_DEVICE
-            }
+            VideoOrientationMode.SMART->preferredAxis(aspect) ?: VideoOrientationMode.FOLLOW_DEVICE
         }
         return when(axis) {
             VideoOrientationMode.PORTRAIT->ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
@@ -64,5 +67,19 @@ internal object VideoOrientation {
         ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
         ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE->Configuration.ORIENTATION_LANDSCAPE
         else->null
+    }
+
+    fun nextToggleMode(mode:VideoOrientationMode,currentOrientation:Int,aspect:Float?):VideoOrientationMode {
+        val currentAxis=when(mode) {
+            VideoOrientationMode.PORTRAIT->VideoOrientationMode.PORTRAIT
+            VideoOrientationMode.LANDSCAPE->VideoOrientationMode.LANDSCAPE
+            else->when(currentOrientation) {
+                Configuration.ORIENTATION_PORTRAIT->VideoOrientationMode.PORTRAIT
+                Configuration.ORIENTATION_LANDSCAPE->VideoOrientationMode.LANDSCAPE
+                else->preferredAxis(aspect) ?: VideoOrientationMode.PORTRAIT
+            }
+        }
+        return if(currentAxis==VideoOrientationMode.LANDSCAPE) VideoOrientationMode.PORTRAIT
+            else VideoOrientationMode.LANDSCAPE
     }
 }

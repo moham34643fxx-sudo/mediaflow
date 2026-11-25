@@ -418,7 +418,7 @@ class AffectedVideoLiveAcceptanceTest {
     }
 
     companion object {
-        private const val REVIEW_PACKAGE = "com.zdownloader.app.designreview"
+        private const val REVIEW_PACKAGE = "com.zdownloader.app.candidate0965"
         private fun token(value: String) = value.replace(Regex("[^A-Za-z0-9_.:+-]"), "_").take(160)
     }
 }

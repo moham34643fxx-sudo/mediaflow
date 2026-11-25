@@ -60,10 +60,18 @@ class PlaybackIntegrationTest {
         try {withTimeout(timeout) {while(!main(condition)) delay(50)}}
         catch(error:TimeoutCancellationException) {
             val diagnostic=main {JSONObject().put("phase",phase).put("step",connection.diagnostic).put("error",connection.state.value.error).put("queue_items",connection.state.value.queue.size).put("ready",connection.state.value.ready).put("playing",connection.state.value.playing).put("position",connection.state.value.position).put("service_active",PlaybackRuntime.active).put("tracks",JSONArray().apply {connection.state.value.tracks.groups.forEach {group->for(i in 0 until group.length) put(JSONObject().put("type",group.type).put("id",group.getTrackFormat(i).id).put("label",group.getTrackFormat(i).label).put("selected",group.isTrackSelected(i)))}})}
-              .put("current",connection.state.value.current?.let {media->JSONObject().put("video",media.video).put("width",media.videoWidth).put("height",media.videoHeight)
-                  .put("pixel_ratio",media.pixelWidthHeightRatio).put("rotation",media.rotationDegrees).put("display_aspect",media.displayAspect)})
-              .put("requested_orientation",playerActivity()?.requestedOrientation).put("configuration_orientation",playerActivity()?.resources?.configuration?.orientation)
+               .put("current",connection.state.value.current?.let {media->JSONObject().put("video",media.video).put("width",media.videoWidth).put("height",media.videoHeight)
+                   .put("pixel_ratio",media.pixelWidthHeightRatio).put("rotation",media.rotationDegrees).put("display_aspect",media.displayAspect)})
+               .put("requested_orientation",playerActivity()?.requestedOrientation).put("configuration_orientation",playerActivity()?.resources?.configuration?.orientation)
               .put("repeat",connection.state.value.repeat).put("duration",connection.state.value.duration).put("connected",connection.player.value!=null).put("pip",playerActivity()?.isInPictureInPictureMode)
+              .apply {
+                  connection.player.value?.let {player->
+                      put("controller_state",player.playbackState)
+                      put("play_when_ready",player.playWhenReady)
+                      put("suppression_reason",player.playbackSuppressionReason)
+                      put("player_error_code",player.playerError?.errorCode)
+                  }
+              }
              File(evidence,"player-timeout.json").writeText(diagnostic.toString(2));capture("timeout")
             throw AssertionError("Player condition timed out: $diagnostic",error)
         }
@@ -559,17 +567,23 @@ class PlaybackIntegrationTest {
         phase="automatic landscape"
         waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE}
         showVideoControls()
-        phase="manual portrait"
+        main {connection.seek(4000)}
+        waitFor {connection.state.value.position in 3900..5000&&connection.state.value.ready}
+        main {connection.player.value!!.play()}
+        val beforeRotation=main {connection.state.value}
+        phase="instant rotate to portrait"
         compose.onNodeWithTag("player_orientation_control").performClick()
-        compose.onNodeWithTag("player_orientation_portrait").performClick()
-        compose.onNodeWithTag("player_orientation_portrait").assertIsSelected()
         assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,playerActivity()?.requestedOrientation)
         waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT}
-        compose.onNodeWithTag("player_orientation_landscape").performClick()
-        compose.onNodeWithTag("player_orientation_landscape").assertIsSelected()
+        waitFor {connection.state.value.current?.uri==beforeRotation.current?.uri&&connection.state.value.playing&&connection.state.value.position>=beforeRotation.position}
+        assertTrue("External subtitle selection survives orientation change",
+            main {connection.state.value.tracks.groups.any {it.type==C.TRACK_TYPE_TEXT&&it.isSelected}})
+        phase="instant rotate to landscape"
+        showVideoControls()
+        compose.onNodeWithTag("player_orientation_control").performClick()
         assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,playerActivity()?.requestedOrientation)
-        phase="manual landscape"
         waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE}
+        waitFor {connection.state.value.current?.uri==beforeRotation.current?.uri&&connection.state.value.playing}
         capture("video-fullscreen-landscape")
         phase="automatic controls hide"
         compose.waitUntil(10000) {compose.onAllNodesWithTag("player_tracks").fetchSemanticsNodes().isEmpty()}
@@ -591,12 +605,18 @@ class PlaybackIntegrationTest {
         assertTrue("Brightness gesture updates this window",main {playerActivity()!!.window.attributes.screenBrightness}>.5f)
         phase="rotated portrait container"
         val portrait=publish(fixture.getValue("portrait-MP4"),true);start(portrait,open=true)
-        showVideoControls()
-        compose.onNodeWithTag("player_orientation_control").performClick()
-        compose.onNodeWithTag("player_orientation_smart").assertIsSelected()
         waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT}
         assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,playerActivity()?.requestedOrientation)
         waitFor {connection.state.value.ready};capture("portrait-video")
+        showVideoControls()
+        phase="portrait direct rotation and return"
+        compose.onNodeWithTag("player_orientation_control").performClick()
+        assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,playerActivity()?.requestedOrientation)
+        waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_LANDSCAPE}
+        showVideoControls()
+        compose.onNodeWithTag("player_orientation_control").performClick()
+        assertEquals(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT,playerActivity()?.requestedOrientation)
+        waitFor {playerActivity()?.resources?.configuration?.orientation==android.content.res.Configuration.ORIENTATION_PORTRAIT}
         File(evidence,"player-video-features.json").writeText(JSONObject().put("multiple_audio_tracks",true).put("embedded_subtitle_track",true).put("external_srt_selected",true).put("landscape_rotation",true).put("portrait_container_played",true).put("double_tap_and_swipe_seek",true).put("volume_brightness_gestures",true).put("pip_coverage","separate lifecycle tests").toString(2))
     }
     @Test fun independentMusicLibraryFavoritesAlbumsArtistsAndPersistentPlaylists()=runBlocking {
@@ -696,6 +716,7 @@ class PlaybackIntegrationTest {
 
             suspend fun showCase(name:String,media:PlaybackMedia,width:Int,height:Int,fontScale:Float,language:String,
                                  hasArtwork:Boolean,queue:List<PlaybackMedia> = listOf(media)) {
+                phase="audio-layout-$name"
                 settings.text("language",language)
                 shell("settings put system font_scale $fontScale")
                 shell("wm size ${width*2}x${height*2}")
@@ -722,6 +743,7 @@ class PlaybackIntegrationTest {
             }
 
             showCase("short-no-art",short,360,780,1.0f,"en",false,listOf(short,queueNext))
+            phase="audio-layout-transport-controls"
             val afterPause=main {connection.state.value.position}
             compose.onNodeWithTag("player_play_pause",useUnmergedTree=true).assertIsDisplayed().performClick()
             waitFor { !connection.state.value.playing }
@@ -749,7 +771,8 @@ class PlaybackIntegrationTest {
             val packageInfo=app.packageManager.getPackageInfo(app.packageName,0)
             File(evidence,"player-fixed-layout-${testName.methodName}.json").writeText(JSONObject().put("package",app.packageName)
                 .put("version_name",packageInfo.versionName).put("version_code",androidx.core.content.pm.PackageInfoCompat.getLongVersionCode(packageInfo))
-                .put("device","HONOR 600 / AFAM026331002472").put("cases",cases).put("all_essential_controls_inside_viewport",true)
+                .put("device","${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}").put("api",android.os.Build.VERSION.SDK_INT)
+                .put("cases",cases).put("all_essential_controls_inside_viewport",true)
                 .put("full_player_vertical_scroll_action",false).toString(2))
         } finally {
             shell(if(oldSize==null) "wm size reset" else "wm size $oldSize");shell(if(oldDensity==null) "wm density reset" else "wm density $oldDensity")

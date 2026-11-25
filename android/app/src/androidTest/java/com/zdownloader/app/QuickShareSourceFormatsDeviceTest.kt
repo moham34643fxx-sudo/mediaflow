@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zdownloader.app.domain.*
+import com.zdownloader.app.ui.QuickShareDimensions
 import com.zdownloader.app.ui.QuickShareViewModel
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
@@ -79,7 +80,8 @@ class QuickShareSourceFormatsDeviceTest {
         ActivityScenario.launch<ShareReceiverActivity>(intent).use {scenario->
             lateinit var model:QuickShareViewModel
             scenario.onActivity {model=ViewModelProvider(it)[QuickShareViewModel::class.java]}
-            compose.waitUntil(15_000) {compose.onAllNodesWithTag("share_preference_720").fetchSemanticsNodes().isNotEmpty()}
+            compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_preferences"))
+            compose.onNodeWithTag("share_preferences").performClick()
             compose.onNodeWithTag("share_preference_720").performScrollTo().performClick()
             compose.waitUntil(90_000) {model.state.value.media!=null&&!model.state.value.analyzing}
             val media=requireNotNull(model.state.value.media)
@@ -90,7 +92,7 @@ class QuickShareSourceFormatsDeviceTest {
                 compose.onNodeWithTag("${tag}_title",useUnmergedTree=true).assertTextEquals("${height}p")
                 val selection=VideoPreferenceSelection.ready(media,height)
                 if(selection==null||selection.outputSize==null)
-                    compose.onNodeWithTag("${tag}_size",useUnmergedTree=true).assertTextEquals("")
+                    compose.onNodeWithTag("${tag}_size",useUnmergedTree=true).assertDoesNotExist()
                 sizes.put(JSONObject().put("preference",height).put("resolved_id",selection?.primary?.id)
                     .put("bytes",selection?.outputSize?.bytes))
             }
@@ -109,20 +111,19 @@ class QuickShareSourceFormatsDeviceTest {
                 compose.onNodeWithTag(tag).assertIsDisplayed().assertIsEnabled().performClick().assertIsSelected()
                 assertEquals(source.id,model.state.value.choice?.formatId)
                 assertEquals(source.id,model.state.value.selection?.primary?.id)
-                if(tag.startsWith("share_video_variant_"))
-                    compose.onNodeWithTag("${tag}_title",useUnmergedTree=true).assertTextContains(source.ext.uppercase(),substring=true)
-                else {
-                    val tierTitle=QuickShareCatalog.numericVideoQuality(source)?.let {"${it}p"}
-                        ?: app.getString(R.string.share_unknown_quality)
-                    compose.onNodeWithTag("${tag}_title",useUnmergedTree=true).assertTextEquals(tierTitle)
-                }
-                if(source.width!=null&&source.height!=null) compose.onNodeWithTag("${tag}_description",useUnmergedTree=true)
-                    .assertTextContains("${source.width}×${source.height}",substring=true)
-                val peers=sources.filter {qualityLabel(it)==qualityLabel(source)}
-                val rates=peers.map {it.videoBitrate ?: it.bitrate}.distinct()
-                if(rates.size>1) (source.videoBitrate ?: source.bitrate)?.let {rate->
-                    compose.onNodeWithTag("${tag}_description",useUnmergedTree=true)
-                        .assertTextContains(java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString(),substring=true)
+                val dimensions=QuickShareDimensions.from(source)
+                if(tag.startsWith("share_video_variant_")) {
+                    val details=compose.onNodeWithTag("${tag}_description",useUnmergedTree=true)
+                    details.assertTextContains(source.ext.uppercase(),substring=true)
+                    val rates=sources.filter {QuickShareDimensions.from(it)==dimensions}
+                        .map {it.videoBitrate ?: it.bitrate}.distinct()
+                    if(rates.size>1) (source.videoBitrate ?: source.bitrate)?.let {rate->
+                        details.assertTextContains(java.math.BigDecimal.valueOf(rate).stripTrailingZeros().toPlainString(),substring=true)
+                    }
+                } else {
+                    val title=compose.onNodeWithTag("${tag}_title",useUnmergedTree=true)
+                    if(dimensions.width!=null) title.assertTextContains("${dimensions.width}×${dimensions.height}",substring=true)
+                    else if(dimensions.height!=null) title.assertTextContains("${dimensions.height}p",substring=true)
                 }
                 rows.put(JSONObject().put("id",source.id).put("width",source.width).put("height",source.height)
                     .put("rate",source.videoBitrate ?: source.bitrate).put("bytes",QuickShareCatalog.videoDisplaySize(media,source)?.bytes))

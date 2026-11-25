@@ -5,12 +5,17 @@ import android.net.Uri
 import androidx.test.platform.app.InstrumentationRegistry
 import com.zdownloader.app.data.DownloadEntity
 import com.zdownloader.app.domain.*
+import com.zdownloader.app.engine.LameEncoder
 import com.zdownloader.app.engine.TransferControl
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 class StorageContractTest {
     private val syntheticJournalId=Regex("""journal-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}""")
@@ -167,11 +172,9 @@ class StorageContractTest {
     }
     @Test fun safCommitRenameAndHistoryRemovalPreserveCorrectUriAndFile() = runBlocking {
         val app=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as ZApplication
-        val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
         val id=java.util.UUID.randomUUID().toString()
         val tree=DocumentsContract.buildTreeDocumentUri("com.zdownloader.app.test.documents","root")
-        app.startActivity(android.content.Intent().setComponent(android.content.ComponentName("com.zdownloader.app.test","com.zdownloader.app.TestDocumentsGrantActivity")).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-        kotlinx.coroutines.withTimeout(5000) {while(app.checkUriPermission(tree,android.os.Process.myPid(),android.os.Process.myUid(),android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)!=android.content.pm.PackageManager.PERMISSION_GRANTED) kotlinx.coroutines.delay(25)}
+        setDocumentsGrant(app,revoke=false)
         val format=Format("storage-fixture","mp4",null,null,"h264","aac",4,null,"https","{}")
         val selection=Selection(format)
         val row=DownloadEntity(id,"https://example.com/storage-fixture","Storage fixture","Test",null,null,selection.json(),"اختبار.mp4",tree.toString(),id)
@@ -193,7 +196,15 @@ class StorageContractTest {
             app.contentResolver.openInputStream(finalUri)!!.use { assertEquals(4,it.readBytes().size) }
             DocumentsContract.deleteDocument(app.contentResolver,finalUri)
             Unit
-        } finally { app.repository.cancel(id);app.repository.remove(id);app.storage.removeTemporary(id);automation.dropShellPermissionIdentity() }
+        } finally {
+            try {
+                app.repository.cancel(id)
+                app.repository.remove(id)
+                app.storage.removeTemporary(id)
+            } finally {
+                setDocumentsGrant(app,revoke=true)
+            }
+        }
     }
 
     @Test fun mediaStoreFinalOutputIsAdoptedExactlyOnceAfterInterruptedCompletion()=runBlocking {
@@ -264,6 +275,111 @@ class StorageContractTest {
         } finally {
             finalUri?.let {runCatching {DocumentsContract.deleteDocument(app.contentResolver,it)}}
             journal.delete();app.repository.dao.removeHistory(id)
+        }
+    }
+
+    @Test fun nativeMp3EncoderSeparatesUnavailableOutputFromUnavailableInput() {
+        val app=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as ZApplication
+        val home=File(app.filesDir,"storage-classification-${UUID.randomUUID()}").apply {check(mkdirs())}
+        val pcm=File(home,"tone.pcm")
+        val samples=ByteBuffer.allocate(44100*2).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(44100) {index->samples.putShort((kotlin.math.sin(index*2*Math.PI*440/44100)*5000).toInt().toShort())}
+        pcm.writeBytes(samples.array())
+        try {
+            val missingParent=File(home,"missing-output-parent/tone.mp3")
+            assertEquals("ENOENT from the MP3 destination is not an unexpected write failure",-7,
+                LameEncoder.encodeEx(pcm.path,missingParent.path,128,44100,1,AtomicBoolean(false)))
+            val pipe=android.os.ParcelFileDescriptor.createPipe()
+            pipe[0].use {input->pipe[1].use {
+                assertEquals("The pipe encoder must preserve the output-open errno",-7,
+                    LameEncoder.encodePipe(input.fd,missingParent.path,128,44100,1,AtomicBoolean(false)))
+            }}
+            val missingInput=File(home,"missing-input.pcm")
+            val original=byteArrayOf(1,2,3)
+            val output=File(home,"existing.mp3").apply {writeBytes(original)}
+            assertEquals("An input-open failure belongs to processing, not storage",-5,
+                LameEncoder.encodeEx(missingInput.path,output.path,128,44100,1,AtomicBoolean(false)))
+            assertArrayEquals("An unopened output must not be removed on input failure",original,output.readBytes())
+        } finally {check(home.deleteRecursively())}
+    }
+
+    @Test fun actualMp3FixturePublishesToMediaStoreOnScopedStorage()=runBlocking {
+        val app=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as ZApplication
+        check(android.os.Build.VERSION.SDK_INT>=29) {"The default MediaStore destination requires Android 10 or later"}
+        val id=UUID.randomUUID().toString()
+        val directory=app.storage.temporary(id)
+        val pcm=File(directory,"tone.pcm")
+        val encoded=File(directory,"tone.mp3")
+        val samples=ByteBuffer.allocate(44100*2).order(ByteOrder.LITTLE_ENDIAN)
+        repeat(44100) {index->samples.putShort((kotlin.math.sin(index*2*Math.PI*440/44100)*5000).toInt().toShort())}
+        pcm.writeBytes(samples.array())
+        var uri:Uri?=null
+        try {
+            assertEquals(0,LameEncoder.encodeEx(pcm.path,encoded.path,128,44100,1,AtomicBoolean(false)))
+            assertTrue(encoded.isFile&&encoded.length()>0)
+            val format=Format("fixture-mp3","mp3",null,null,"none","mp3",encoded.length(),128.0,"https","{}")
+            val selection=Selection(format,audioOnly=true,output="mp3",bitrate=128)
+            val row=DownloadEntity(id,"https://example.com/storage-fixture","MP3 storage fixture","test",null,1.0,
+                selection.json(),"MediaFlow-$id.mp3",null,id)
+            app.repository.dao.insert(row)
+            assertEquals(1,app.repository.dao.claim(id))
+            assertEquals(1,app.repository.dao.processing(id))
+
+            uri=app.storage.commit(row,encoded,selection,TransferControl())
+
+            app.contentResolver.openInputStream(uri!!)!!.use {assertArrayEquals(encoded.readBytes(),it.readBytes())}
+            app.contentResolver.query(uri!!,arrayOf(android.provider.MediaStore.MediaColumns.IS_PENDING),null,null,null)!!.use {cursor->
+                assertTrue(cursor.moveToFirst());assertEquals(0,cursor.getInt(0))
+            }
+            val completed=app.repository.dao.get(id)!!
+            assertEquals("COMPLETED",completed.status)
+            assertEquals(encoded.length(),completed.outputSize)
+            assertEquals(uri.toString(),completed.uri)
+        } finally {
+            uri?.let {runCatching {app.contentResolver.delete(it,null,null)}}
+            app.repository.dao.get(id)?.let {row->
+                if(row.status !in setOf("COMPLETED","FAILED","CANCELLED","PAUSED","INTERRUPTED")) app.repository.dao.cancel(id)
+                runCatching {app.storage.cleanupPending(id)}
+                runCatching {app.repository.dao.removeHistory(id)}
+            }
+            app.storage.removeTemporary(id)
+        }
+    }
+
+    @Test fun unavailableCustomDestinationCanRetryWithoutDiscardingValidatedOutput()=runBlocking {
+        val app=InstrumentationRegistry.getInstrumentation().targetContext.applicationContext as ZApplication
+        val id=UUID.randomUUID().toString()
+        val tree=DocumentsContract.buildTreeDocumentUri("com.zdownloader.app.test.documents","root").toString()
+        val staged=File(app.storage.temporary(id),"validated-output.mp3").apply {writeBytes(byteArrayOf(9,8,7,6,5,4))}
+        val original=DownloadEntity(id,"https://example.com/retry-storage","Retry storage","test",null,1.0,"{}",
+            "retry.mp3",tree,id,status="FAILED",bytes=staged.length(),error=ErrorCode.STORAGE_DESTINATION_UNAVAILABLE.name,checkpoint="VALIDATED")
+        val blockedId=UUID.randomUUID().toString()
+        val blocked=DownloadEntity(blockedId,"https://example.com/retry-storage-pending","Retry blocked storage","test",null,1.0,"{}",
+            "blocked.mp3",tree,blockedId,status="FAILED",pendingUri="content://media/external/audio/media/987654321",
+            error=ErrorCode.STORAGE_DESTINATION_UNAVAILABLE.name)
+        val unrelatedId=UUID.randomUUID().toString()
+        val unrelated=DownloadEntity(unrelatedId,"https://example.com/retry-storage-write","Retry write error","test",null,1.0,"{}",
+            "write-error.mp3",tree,unrelatedId,status="FAILED",error=ErrorCode.FILE_WRITE_FAILED.name)
+        try {
+            app.repository.dao.insert(original);app.repository.dao.insert(blocked);app.repository.dao.insert(unrelated)
+            assertEquals(1,app.repository.dao.retryInDefaultDestination(id))
+            assertEquals(0,app.repository.dao.retryInDefaultDestination(blockedId))
+            assertEquals(0,app.repository.dao.retryInDefaultDestination(unrelatedId))
+            val changed=app.repository.dao.get(id)!!
+            assertNull(changed.destination)
+            assertEquals("VALIDATED",changed.checkpoint)
+            assertEquals("FAILED",changed.status)
+            assertArrayEquals(byteArrayOf(9,8,7,6,5,4),staged.readBytes())
+            app.repository.dao.resume(id)
+            assertEquals("RESUMING",app.repository.dao.get(id)!!.status)
+            assertEquals("VALIDATED",app.repository.dao.get(id)!!.checkpoint)
+            assertEquals(tree,app.repository.dao.get(blockedId)!!.destination)
+        } finally {
+            for(rowId in listOf(id,blockedId,unrelatedId)) {
+                runCatching {app.repository.dao.state(rowId,"FAILED")}
+                runCatching {app.repository.dao.removeHistory(rowId)}
+                app.storage.removeTemporary(rowId)
+            }
         }
     }
 }

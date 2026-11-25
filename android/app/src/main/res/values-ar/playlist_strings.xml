@@ -56,6 +56,14 @@
     <string name="pl_batch_notice">جارٍ تنزيل قائمة التشغيل</string>
     <string name="pl_audio_playlist">قائمة صوتية</string>
     <string name="pl_video_playlist">قائمة فيديو</string>
+    <string name="pl_series">مسلسل</string>
+    <string name="pl_season_title">الموسم %1$d</string>
+    <string name="pl_season_group">الموسم %1$d · %2$d حلقات</string>
+    <string name="pl_season_selection">تم تحديد %1$d من %2$d</string>
+    <string name="pl_episode_number">الحلقة %1$d</string>
+    <string name="pl_episode_quality">اختيار الجودة</string>
+    <string name="pl_unknown_season">غير معروف</string>
+    <string name="pl_unverified_season">تعذّر التحقق من الموسم %1$s (%2$s)؛ لم تُضف أي حلقات منه.</string>
     <string name="pl_progress_step">اكتمل %1$d من %2$d — جارٍ تحميل العنصر %3$d</string>
     <string name="pl_progress_complete">اكتملت القائمة (%1$d عنصر)</string>
     <string name="pl_pause_all">إيقاف القائمة</string>

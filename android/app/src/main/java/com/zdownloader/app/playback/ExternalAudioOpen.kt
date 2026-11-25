@@ -10,7 +10,7 @@ import java.io.File
 /** External opens use the same local-only player. No network or arbitrary private-file bridge. */
 internal object ExternalAudioOpen {
     val mimeTypes=setOf("audio/mpeg","audio/mp3","audio/x-mpeg","audio/mp4","audio/x-m4a","audio/aac","audio/aacp",
-        "audio/flac","audio/x-flac","audio/wav","audio/x-wav","audio/vnd.wave","audio/ogg","application/ogg","audio/opus","audio/vorbis")
+        "audio/flac","audio/x-flac","audio/wav","audio/x-wav","audio/vnd.wave","audio/ogg","application/ogg","audio/opus","audio/vorbis","audio/x-matroska")
     fun acceptsMime(value:String?)=value?.substringBefore(';')?.trim()?.lowercase(java.util.Locale.ROOT) in mimeTypes
     fun acceptsIntent(context:Context,intent:Intent):Boolean {
         if(intent.action!=Intent.ACTION_VIEW) return false

@@ -13,7 +13,7 @@ import java.io.File
 class UnratedVideoDiscoveryTest {
     @Test fun inspectUnratedSourceHeaders():Unit=runBlocking {
         val instrument=InstrumentationRegistry.getInstrumentation()
-        check(instrument.targetContext.packageName=="com.zdownloader.app.designreview")
+        check(instrument.targetContext.packageName=="com.zdownloader.app.candidate0965")
         val app=instrument.targetContext.applicationContext as ZApplication
         val url=checkNotNull(InstrumentationRegistry.getArguments().getString("probeSource"))
         val report=JSONObject().put("passed",false)

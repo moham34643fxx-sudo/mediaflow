@@ -111,13 +111,13 @@ class StatusStorageTest {
             } finally {prefs.edit().remove("import_files").commit()}
         };Unit
     }
-    private fun tree(id:String)=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.AUTH,id)
+    private fun tree(id:String)=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.authority(instrumentation.context),id)
     private val wa get()=tree(StatusFixtureProvider.WA)
     private val wb get()=tree(StatusFixtureProvider.WB)
     private suspend fun grant(revoke:Boolean=false) {
         // Start the test-provider owner from the system foreground path. Starting
         // an Activity from the target's background Context is OEM-policy dependent.
-        val launch="am start -W -n com.zdownloader.app.test/com.zdownloader.app.StatusFixtureGrantActivity --ez revoke $revoke"
+        val launch="am start -W -n ${instrumentation.context.packageName}/com.zdownloader.app.StatusFixtureGrantActivity --ez revoke $revoke --es targetPackage ${app.packageName}"
         android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(launch))
             .bufferedReader().use {output->check(!output.readText().contains("Error:")) {"Fixture grant Activity failed to launch"}}
         withTimeout(5000) {while(permissions.readable(wa)==revoke) delay(25)}

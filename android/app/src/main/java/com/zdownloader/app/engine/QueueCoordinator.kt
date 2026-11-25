@@ -23,6 +23,10 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
 
 @Singleton class QueueCoordinator @Inject constructor(@param:ApplicationContext private val context: Context, private val dao: DownloadDao, private val settings: SettingsRepository, private val transfer: Transfer, private val processor: Processor, private val storage: StorageRepository, private val notifications: DownloadNotifications, private val extractor: Extractor) {
     companion object {
+        internal fun shouldDownloadTracks(checkpoint:String)=checkpoint=="DOWNLOAD"
+        internal fun shouldReuseProcessedOutput(checkpoint:String,outputExists:Boolean)=
+            outputExists&&checkpoint in setOf("MERGED","VALIDATED")
+
         internal fun shouldRefreshSelection(
             checkpoint: String,
             justResolved: Boolean,
@@ -285,7 +289,11 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
                 selection = refresh(entity, selection, control)
                 refreshed = true
             }
-            if(selection.size != null && selection.size!! > android.os.StatFs(context.filesDir.path).availableBytes/2) throw MediaException(ErrorCode.INSUFFICIENT_STORAGE)
+            val output = File(dir,"output.${selection.output}")
+            val reuseOutput=shouldReuseProcessedOutput(entity.checkpoint,output.isFile)
+            // A publication retry needs only the staged output, not space to acquire its source again.
+            if(!reuseOutput && selection.size?.let {it>android.os.StatFs(context.filesDir.path).availableBytes/2}==true)
+                throw MediaException(ErrorCode.INSUFFICIENT_STORAGE)
             val primary = File(dir,"primary.${selection.primary.ext}")
             val secondary = selection.secondary?.let { File(dir,"secondary.${it.ext}") }
             // A sequential playlist usually has one network-active child even
@@ -449,7 +457,7 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
                 }
             }
             try {
-                try { if(entity.checkpoint=="DOWNLOAD") downloadTracks() } catch(e: MediaException) {
+                try { if(shouldDownloadTracks(entity.checkpoint)) downloadTracks() } catch(e: MediaException) {
                     if(e.code !in listOf(ErrorCode.AUTHENTICATION_REQUIRED,ErrorCode.HTTP_FORBIDDEN,ErrorCode.MEDIA_URL_EXPIRED) || refreshed) throw e
                     selection=refresh(entity,selection,control)
                     refreshed=true
@@ -470,7 +478,7 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
             val subtitleFile=selection.subtitle?.let {track->
                 require(!selection.audioOnly&&selection.output in setOf("mp4","mkv"))
                 val target=File(dir,"subtitle.${track.extension}")
-                if(entity.checkpoint !in setOf("MERGED","VALIDATED")||!File(dir,"output.${selection.output}").isFile) {
+                if(!reuseOutput) {
                     transfer.stream(Format.parse(org.json.JSONObject(track.payload)),target,entity.id,control) {bytes,_->if(bytes>2*1024*1024) throw MediaException(ErrorCode.FORMAT_UNAVAILABLE)}
                     if(target.length()>2*1024*1024) throw MediaException(ErrorCode.FORMAT_UNAVAILABLE)
                 }
@@ -486,7 +494,6 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
                  if(dao.processingStage(entity.id,stage)!=1) throw CancellationException("Transfer state changed")
                  notifications.processing(entity,stage)
              }
-            val output = File(dir,"output.${selection.output}")
             val committed = coroutineScope {
             val publicationApproved=CompletableDeferred<Unit>()
             var pendingExport:Deferred<android.net.Uri>?=null
@@ -506,7 +513,7 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
              }
              try {
              // Avoid optional network/image work when the encoder will not consume a cover.
-             val needsCover=selection.audioOnly&&selection.output=="mp3"&&selection.convertAudio&&selection.embedMetadata&&!entity.thumbnail.isNullOrBlank()
+              val needsCover=!reuseOutput&&selection.audioOnly&&selection.output=="mp3"&&selection.convertAudio&&selection.embedMetadata&&!entity.thumbnail.isNullOrBlank()
              AnalysisTrace.value(entity.id,"cover_required",needsCover)
              AnalysisTrace.checkpoint(entity.id,"cover_retrieval_started")
              val thumbTemp = try {if (needsCover) {
@@ -551,7 +558,7 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
              try {
                  try {
                      AnalysisTrace.checkpoint(entity.id,"processor_requested")
-                    if(entity.checkpoint in listOf("MERGED","VALIDATED") && output.isFile) processor.resumeValidation(output,selection,control,entity.duration,primary)
+                     if(reuseOutput) processor.resumeValidation(output,selection,control,entity.duration,primary)
                     else processor.process(primary,secondary,output,selection,control,entity.duration,entity.title,subtitleFile,thumbTemp)
                     if(dao.validated(entity.id)!=1) throw CancellationException("Transfer state changed")
                     AnalysisTrace.checkpoint(entity.id,"output_validated")
@@ -648,7 +655,13 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
             }
         } catch(e: Exception) {
             if(control.stopped.get()) { dao.interrupt(entity.id); settledStopNotice(entity.id);recoverOrFail(entity,ErrorCode.DOWNLOAD_INTERRUPTED);return }
-             val code = when(e) { is MediaException -> e.code; is SecurityException -> ErrorCode.STORAGE_PERMISSION_ERROR; is java.io.IOException -> if(e.message.orEmpty().contains("ENOSPC",true)) ErrorCode.INSUFFICIENT_STORAGE else ErrorCode.FILE_WRITE_FAILED; else -> ErrorCode.INTERNAL_ENGINE_ERROR }
+             val code = when(e) {
+                 is MediaException -> e.code
+                 else -> StorageFailureClassifier.classify(e) ?: when(e) {
+                     is java.io.IOException -> ErrorCode.FILE_WRITE_FAILED
+                     else -> ErrorCode.INTERNAL_ENGINE_ERROR
+                 }
+             }
             adaptive.failure(code,SystemClock.elapsedRealtime())
             recoverOrFail(entity,code,(e as? MediaException)?.retryAfterMillis,e.javaClass.simpleName)
         } finally {
@@ -685,7 +698,7 @@ private data class ProgressUpdate(val bytes: Long, val total: Long?, val speed: 
             return
         }
         val retryLimit=latest.request?.let {runCatching {DownloadRequest.parse(it).retries}.getOrNull()} ?: settings.current().retries
-        val canRetry=code.recoverable&&latest.retries<retryLimit
+        val canRetry=RetryPolicy.shouldRetry(code,latest.retries,retryLimit)
         val next=System.currentTimeMillis()+maxOf(RetryPolicy.delayMillis(latest.retries,retryAfter),if(code==ErrorCode.RATE_LIMITED) 60_000L else 0L)
         val changed=if(canRetry) dao.retryLater(entity.id,next,code.name) else dao.fail(entity.id,code.name)
         if(code==ErrorCode.RATE_LIMITED&&changed==1&&latest.batchId!=null) {

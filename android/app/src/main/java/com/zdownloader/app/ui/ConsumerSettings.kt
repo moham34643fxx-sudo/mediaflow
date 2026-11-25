@@ -207,7 +207,7 @@ private data class NotificationAccess(
 }
 
 @Composable private fun InformationPage(page:String,back:()->Unit,navigate:(String)->Unit) {
-    if(page=="about") {AboutScreen(back) {navigate("privacy")};return}
+    if(page=="about") {AboutScreen(back,{navigate("privacy")},{navigate("licenses")});return}
     val context=LocalContext.current
     var notices by remember {mutableStateOf("")}
     LaunchedEffect(page) {if(page=="licenses") notices=withContext(Dispatchers.IO) {

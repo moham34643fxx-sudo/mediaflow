@@ -75,6 +75,10 @@ data class UiState(val text: String = "", val analyzing: Boolean = false, val me
             }
         }
     }
+    fun analyzePlaylistItem(url:String) {
+        input(url)
+        analyze(forceSingle=true)
+    }
     fun cancelAnalysis() { retainedSubmission=null; extractor.cancel(request); request="";analysis?.cancel(); mutable.update { it.copy(analyzing=false,analysisPreview=null,media=if(it.analyzing) null else it.media) } }
     fun playlist() {
         cancelAnalysis();playlists.open(ui.value.text)
@@ -153,6 +157,13 @@ data class UiState(val text: String = "", val analyzing: Boolean = false, val me
                 height=request?.height?.takeIf {it in listOf(360,480,720,1080)} ?: 720,
                 fallback=if(request?.height==0) QualityFallback.BEST else QualityFallback.AT_MOST,bitrate=request?.bitrate ?: 192))
         } else SubmissionHandoff.run {repository.prepareForSubmission(id); scheduler.startFromUser(id)}
+    }
+    fun retryInDefaultDestination(id:String)=act {
+        SubmissionHandoff.run {
+            repository.retryInDefaultDestination(id)
+            repository.prepareForSubmission(id)
+            scheduler.startFromUser(id)
+        }
     }
     fun cancel(id: String) = act { repository.cancel(id);planned.cancel(id) }
     fun remove(id: String) = act { repository.remove(id) }

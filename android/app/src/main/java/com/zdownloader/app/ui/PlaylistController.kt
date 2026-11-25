@@ -77,7 +77,7 @@ class PlaylistController(private val scope:CoroutineScope,private val extractor:
         mutable.update {it.copy(loading=true,ambiguous=false,error=null)}
         job=scope.launch {
             try {
-                val page=PlaylistPage.parse(extractor.playlist(url,token,offset,limit=20),url)
+                val page=PlaylistPage.parse(extractor.playlist(url,token,offset,limit=if(PlaylistUrls.isTopCinemaCollection(url)) 100 else 20),url)
                 ensureActive()
                 AnalysisTrace.mark(token,"playlist_page_ready")
                 if(request==token) mutable.update {old->
@@ -91,6 +91,15 @@ class PlaylistController(private val scope:CoroutineScope,private val extractor:
         }
     }
     fun select(key:String,checked:Boolean) {if(!state.value.saving&&!state.value.persisted) mutable.update {it.copy(selected=if(checked) it.selected+key else it.selected-key)}}
+    fun selectSeason(season:Int,checked:Boolean) {
+        mutable.update {current->
+            if(current.saving||current.persisted) current
+            else {
+                val keys=current.page?.items.orEmpty().filter {it.seasonNumber==season&&it.selectable}.map {it.key}.toSet()
+                current.copy(selected=if(checked) current.selected+keys else current.selected-keys)
+            }
+        }
+    }
     fun selectAll(all:Boolean) {if(!state.value.saving&&!state.value.persisted) mutable.update {it.copy(selected=if(all) it.page?.items.orEmpty().filter {e->e.selectable}.map {e->e.key}.toSet() else emptySet())}}
     fun range(first:Int,last:Int) {if(first>0&&last>=first&&!state.value.persisted) mutable.update {it.copy(selected=it.page?.items.orEmpty().filter {e->e.selectable&&e.position in first..last}.map {e->e.key}.toSet())}}
     fun cancelDiscovery() {extractor.cancel(request);request="";job?.cancel();duplicateJob?.cancel();++sizeRequest;sizeJob?.cancel();mutable.update {it.copy(loading=false,checkingDuplicates=false,sizing=false)}}

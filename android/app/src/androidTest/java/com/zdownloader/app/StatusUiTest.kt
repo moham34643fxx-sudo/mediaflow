@@ -47,7 +47,7 @@ class StatusUiTest {
             // Removing preferences is no longer a permission-denied fixture:
             // production can correctly reuse the user's existing real SAF grant.
             // Point only at an ungranted synthetic tree, never revoke that grant.
-            prefs.edit().putString("whatsapp","content://com.zdownloader.app.test.statusdocs/tree/denied-fixture").remove("business").commit()
+            prefs.edit().putString("whatsapp","content://${StatusFixtureProvider.authority(instrumentation.context)}/tree/denied-fixture").remove("business").commit()
             runBlocking {settings.text("language","ar")};open()
             waitTag("status_choose_folder");compose.onNodeWithTag("status_choose_folder").performScrollTo().assertIsDisplayed()
             capture("permission-ar")
@@ -68,14 +68,15 @@ class StatusUiTest {
     }
     @Test fun controlledPhotoVideoFilteringPreviewAndSaveFromSettings() {
         val old=runBlocking {settings.current()};val saved=prefs.all.toMap()
-        val tree=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.AUTH,StatusFixtureProvider.WA)
+        val tree=DocumentsContract.buildTreeDocumentUri(StatusFixtureProvider.authority(instrumentation.context),StatusFixtureProvider.WA)
         val permissions=StatusPermissions(app,settings)
         val scanner=StatusMediaScanner(app,permissions)
         val store=StatusStore(app)
         val sources=mutableListOf<Uri>();val outputs=mutableSetOf<Uri>()
         try {
             prefs.edit().clear().commit()
-            app.startActivity(Intent().setComponent(ComponentName("com.zdownloader.app.test","com.zdownloader.app.StatusFixtureGrantActivity")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            app.startActivity(Intent().setComponent(ComponentName(instrumentation.context.packageName,StatusFixtureGrantActivity::class.java.name))
+                .putExtra("targetPackage",app.packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
             runBlocking {withTimeout(5000) {while(!permissions.readable(tree)) delay(25)}}
             runBlocking {settings.text("language","ar");settings.text("destination","");permissions.choose(StatusSource.WHATSAPP,tree)}
             val image=Bitmap.createBitmap(160,120,Bitmap.Config.ARGB_8888).let {bitmap->

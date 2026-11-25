@@ -10,8 +10,15 @@ class ExternalAudioPolicyTest {
         assertFalse(ExternalAudioOpen.acceptsMime("video/mp4"))
     }
     @Test fun onlyRegisteredAudioContainersAreAccepted() {
-        for(mime in listOf("audio/mpeg","audio/mp4","audio/flac","audio/wav","audio/ogg","audio/opus")) assertTrue(ExternalAudioOpen.acceptsMime(mime))
+        for(mime in listOf("audio/mpeg","audio/mp4","audio/flac","audio/wav","audio/ogg","audio/opus","audio/x-matroska")) assertTrue(ExternalAudioOpen.acceptsMime(mime))
         for(mime in listOf("video/mp4","text/plain","application/octet-stream","audio/not-a-real-format")) assertFalse(ExternalAudioOpen.acceptsMime(mime))
+    }
+    @Test fun internalAudioUsesTheFullPlayerButExternalAudioKeepsTheFloatingPreview() {
+        assertEquals(PlaybackOpenDestination.FULL_SCREEN_PLAYER,PlaybackOpenPolicy.destination(audio=true,external=false))
+        assertEquals(PlaybackOpenDestination.FULL_SCREEN_PLAYER,PlaybackOpenPolicy.destination(audio=false,external=false))
+        assertTrue(ExternalAudioOpen.acceptsMime("audio/x-matroska"))
+        assertEquals(PlaybackOpenDestination.EXTERNAL_FLOATING_PREVIEW,PlaybackOpenPolicy.destination(audio=true,external=true))
+        assertEquals(PlaybackOpenDestination.FULL_SCREEN_PLAYER,PlaybackOpenPolicy.destination(audio=false,external=true))
     }
     @Test fun malformedAndNetworkUrisNeverEnterLocalPlayback() {
         for(uri in listOf("https://example.com/a.mp3","file:///data/data/com.zdownloader.app/private","content://user:pass@provider/a","content://provider:123/a","content://provider/a#fragment")) assertFalse(LocalPlaybackPolicy.accepts(uri))

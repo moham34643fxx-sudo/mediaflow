@@ -13,8 +13,15 @@ JNIEXPORT jstring JNICALL Java_com_zdownloader_app_engine_LameEncoder_version(JN
     return (*env)->NewStringUTF(env,get_lame_version());
 }
 
-/* Bounded local PCM chunks; cancellation never waits for a whole media file. */
-static int io_error(void) { return errno == ENOSPC ? -3 : -4; }
+/* Bounded local PCM chunks; cancellation never waits for a whole media file.
+ * Return separate input and destination failures so callers don't label a
+ * decoder/pipe read problem as a failed save. */
+static int output_io_error(void) {
+    if(errno == ENOSPC || errno == EDQUOT) return -3;
+    if(errno == EACCES || errno == EPERM) return -6;
+    if(errno == ENOENT || errno == ENODEV || errno == ENOTDIR || errno == EROFS || errno == ESTALE) return -7;
+    return -4;
+}
 static jint encode_impl(JNIEnv *env,jstring input,jstring output,jint bitrate,jint sampleRate,jint channels,jobject stopped) {
     if(!input || !output || !stopped) return -1;
     if(bitrate!=0 && (bitrate<32 || bitrate>320)) return -1;
@@ -30,12 +37,16 @@ static jint encode_impl(JNIEnv *env,jstring input,jstring output,jint bitrate,ji
     }
     (*env)->ReleaseStringUTFChars(env,input,src);
     (*env)->ReleaseStringUTFChars(env,output,dst);
-    FILE *in=fopen(srcCopy,"rb"), *out=fopen(dstCopy,"wb+");
-    lame_t encoder=lame_init();
     int result=-1;
-    if(!in || !out) {result=io_error();goto done;}
+    FILE *in=NULL, *out=NULL;
+    lame_t encoder=NULL;
+    in=fopen(srcCopy,"rb");
+    if(!in) {result=-5;goto done;}
+    out=fopen(dstCopy,"wb+");
+    if(!out) {result=output_io_error();goto done;}
+    encoder=lame_init();
     if(!encoder) goto done;
-    if(fseek(in,0,SEEK_END)!=0) {result=-4;goto done;}
+    if(fseek(in,0,SEEK_END)!=0) {result=-5;goto done;}
     long inputBytes=ftell(in);
     if(inputBytes<=0 || inputBytes % (sizeof(short)*channels)!=0) goto done;
     rewind(in);
@@ -58,23 +69,23 @@ static jint encode_impl(JNIEnv *env,jstring input,jstring output,jint bitrate,ji
         if(channels==1) bytes=lame_encode_buffer(encoder,pcm,pcm,(int)count,mp3,sizeof(mp3));
         else bytes=lame_encode_buffer_interleaved(encoder,pcm,(int)count,mp3,sizeof(mp3));
         if(bytes<0) goto done;
-        if(bytes>0 && fwrite(mp3,1,(size_t)bytes,out)!=(size_t)bytes) {result=io_error();goto done;}
+        if(bytes>0 && fwrite(mp3,1,(size_t)bytes,out)!=(size_t)bytes) {result=output_io_error();goto done;}
     }
-    if(ferror(in)) {result=-4;goto done;}
+    if(ferror(in)) {result=-5;goto done;}
     int bytes=lame_encode_flush(encoder,mp3,sizeof(mp3));
     if(bytes<0) goto done;
-    if(bytes>0 && fwrite(mp3,1,(size_t)bytes,out)!=(size_t)bytes) {result=io_error();goto done;}
+    if(bytes>0 && fwrite(mp3,1,(size_t)bytes,out)!=(size_t)bytes) {result=output_io_error();goto done;}
     lame_mp3_tags_fid(encoder,out);
-    result=ferror(out) || fflush(out)!=0 ? io_error() : 0;
+    result=ferror(out) || fflush(out)!=0 ? output_io_error() : 0;
     }
-done:
+ done:
     if(in) fclose(in);
-    if(out) { if(fclose(out)!=0 && result==0) result=io_error(); }
-    if(encoder) lame_close(encoder);
-    if(result!=0) {
+    if(out) {
+        if(fclose(out)!=0 && result==0) result=output_io_error();
         // Never leave a partial MP3 masquerading as complete; caller also deletes on failure.
-        remove(dstCopy);
+        if(result!=0) remove(dstCopy);
     }
+    if(encoder) lame_close(encoder);
     return result;
 }
 
@@ -100,11 +111,12 @@ JNIEXPORT jint JNICALL Java_com_zdownloader_app_engine_LameEncoder_encodePipe(JN
     struct stat info;
     if(fstat(inputFd,&info)!=0 || !S_ISFIFO(info.st_mode)) return -1;
     in=dup(inputFd);
-    if(in<0) return io_error();
+    if(in<0) return -5;
     int flags=fcntl(in,F_GETFL);
-    if(flags<0 || fcntl(in,F_SETFL,flags|O_NONBLOCK)<0) {result=io_error();goto pipe_done;}
-    out=fopen(path,"wb+");encoder=lame_init();
-    if(!out) {result=io_error();goto pipe_done;}
+    if(flags<0 || fcntl(in,F_SETFL,flags|O_NONBLOCK)<0) {result=-5;goto pipe_done;}
+    out=fopen(path,"wb+");
+    if(!out) {result=output_io_error();goto pipe_done;}
+    encoder=lame_init();
     if(!encoder) goto pipe_done;
     if(lame_set_in_samplerate(encoder,sampleRate)<0 || lame_set_out_samplerate(encoder,sampleRate)<0 ||
        lame_set_num_channels(encoder,channels)<0 || lame_set_mode(encoder,channels==1?MONO:JOINT_STEREO)<0 || lame_set_quality(encoder,2)<0) goto pipe_done;
@@ -123,17 +135,17 @@ JNIEXPORT jint JNICALL Java_com_zdownloader_app_engine_LameEncoder_encodePipe(JN
             struct pollfd wait={.fd=in,.events=POLLIN};
             int ready=poll(&wait,1,100);
             if(ready==0) continue;
-            if(ready<0) {if(errno==EINTR) continue;result=io_error();goto pipe_done;}
-            if(wait.revents&(POLLERR|POLLNVAL)) {result=-4;goto pipe_done;}
+            if(ready<0) {if(errno==EINTR) continue;result=-5;goto pipe_done;}
+            if(wait.revents&(POLLERR|POLLNVAL)) {result=-5;goto pipe_done;}
             ssize_t readBytes=read(in,((unsigned char*)pcm)+carry,4096*unit-carry);
-            if(readBytes<0) {if(errno==EINTR || errno==EAGAIN) continue;result=io_error();goto pipe_done;}
+            if(readBytes<0) {if(errno==EINTR || errno==EAGAIN) continue;result=-5;goto pipe_done;}
             if(readBytes==0) break;
             size_t bytes=carry+(size_t)readBytes;size_t count=bytes/unit;carry=bytes%unit;
             if(count>0) {
                 int encoded=channels==1?lame_encode_buffer(encoder,pcm,pcm,(int)count,mp3,sizeof(mp3)):
                     lame_encode_buffer_interleaved(encoder,pcm,(int)count,mp3,sizeof(mp3));
                 if(encoded<0) goto pipe_done;
-                if(encoded>0 && fwrite(mp3,1,(size_t)encoded,out)!=(size_t)encoded) {result=io_error();goto pipe_done;}
+                if(encoded>0 && fwrite(mp3,1,(size_t)encoded,out)!=(size_t)encoded) {result=output_io_error();goto pipe_done;}
                 frames+=count;
             }
             if(carry>0) memmove(pcm,((unsigned char*)pcm)+bytes-carry,carry);
@@ -142,14 +154,16 @@ JNIEXPORT jint JNICALL Java_com_zdownloader_app_engine_LameEncoder_encodePipe(JN
         if((*env)->CallBooleanMethod(env,stopped,get) || (*env)->ExceptionCheck(env)) {(*env)->ExceptionClear(env);result=-2;goto pipe_done;}
         int encoded=lame_encode_flush(encoder,mp3,sizeof(mp3));
         if(encoded<0) goto pipe_done;
-        if(encoded>0 && fwrite(mp3,1,(size_t)encoded,out)!=(size_t)encoded) {result=io_error();goto pipe_done;}
+        if(encoded>0 && fwrite(mp3,1,(size_t)encoded,out)!=(size_t)encoded) {result=output_io_error();goto pipe_done;}
         lame_mp3_tags_fid(encoder,out);
-        result=ferror(out) || fflush(out)!=0 ? io_error():0;
+        result=ferror(out) || fflush(out)!=0 ? output_io_error():0;
     }
-pipe_done:
+ pipe_done:
     if(in>=0) close(in);
-    if(out && fclose(out)!=0 && result==0) result=io_error();
+    if(out) {
+        if(fclose(out)!=0 && result==0) result=output_io_error();
+        if(result!=0) remove(path);
+    }
     if(encoder) lame_close(encoder);
-    if(result!=0) remove(path);
     return result;
 }

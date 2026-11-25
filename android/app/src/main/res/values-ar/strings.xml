@@ -28,7 +28,6 @@
     <string name="design_update_checks">يتحقق التطبيق من الحزمة وبصمة الملف وشهادة التوقيع قبل التثبيت.</string>
     <string name="design_update_last_checked">آخر تحقق %1$s</string>
     <string name="design_update_transfer_hint">يمكنك مغادرة هذه الصفحة. يظل تحديث التطبيق منفصلاً عن تنزيلات وسائطك.</string>
-    <string name="audio_popup_full_player">فتح المشغّل الكامل</string>
     <string name="audio_popup_artwork">غلاف الألبوم</string>
     <string name="audio_popup_open_in_app">فتح في MediaFlow</string>
     <string name="audio_popup_seek">موضع الصوت</string>
@@ -125,12 +124,15 @@
     <string name="default_folder">مجلد تنزيلات التطبيق الافتراضي</string><string name="custom_folder">المجلد المحدد (SAF)</string><string name="choose_folder">اختيار مجلد الحفظ</string><string name="legacy_folder">على Android 7–9، اختر مجلدًا قبل التنزيل.</string><string name="keep_both">يتم الاحتفاظ بالملفات المكررة بأسماء مختلفة.</string>
     <plurals name="batch_title"><item quantity="zero">لم يتم اكتشاف روابط</item><item quantity="one">تم اكتشاف رابط واحد</item><item quantity="two">تم اكتشاف رابطين</item><item quantity="few">تم اكتشاف %1$d روابط</item><item quantity="many">تم اكتشاف %1$d رابطًا</item><item quantity="other">تم اكتشاف %1$d رابط</item></plurals><string name="select_all">تحديد الكل</string><string name="deselect_all">إلغاء تحديد الكل</string><string name="remove">إزالة</string><string name="batch_quality">أقصى جودة لهذه المجموعة؛ تُستخدم الصيغ المتاحة لكل عنصر.</string><string name="enqueue_selected">تنزيل المحدد</string><plurals name="batch_failed"><item quantity="zero">لم تتعذر إضافة أي عناصر. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="one">تعذرت إضافة عنصر واحد. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="two">تعذرت إضافة عنصرين. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="few">تعذرت إضافة %1$d عناصر. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="many">تعذرت إضافة %1$d عنصرًا. تستمر العناصر الأخرى بصورة مستقلة.</item><item quantity="other">تعذرت إضافة %1$d عنصر. تستمر العناصر الأخرى بصورة مستقلة.</item></plurals>
     <string name="all">الكل</string><string name="active">النشطة</string><string name="queued">بالانتظار</string><string name="completed">مكتمل</string><string name="failed">فشل</string><string name="cancelled">ملغى</string><string name="paused">متوقف مؤقتًا</string><string name="pausing">جارٍ الإيقاف…</string><string name="interrupted">انقطع</string><string name="downloading">جارٍ التنزيل</string><string name="processing">جارٍ معالجة الوسائط</string><string name="waiting_network">بانتظار الاتصال أو إعادة المحاولة</string><string name="continue_queue">متابعة التنزيلات المعلقة</string><plurals name="selected_count"><item quantity="zero">لم يتم تحديد أي عناصر</item><item quantity="one">تم تحديد عنصر واحد</item><item quantity="two">تم تحديد عنصرين</item><item quantity="few">تم تحديد %1$d عناصر</item><item quantity="many">تم تحديد %1$d عنصرًا</item><item quantity="other">تم تحديد %1$d عنصر</item></plurals><string name="pause">إيقاف مؤقت</string><string name="resume">استئناف</string><string name="cancel">إلغاء</string><string name="retry">إعادة المحاولة</string><string name="remaining">المتبقي نحو %1$s</string><string name="details">التفاصيل</string><string name="remove_history">إزالة من السجل</string><string name="play">تشغيل</string><string name="open">فتح</string><string name="share">مشاركة</string><string name="rename">إعادة تسمية</string><string name="delete">حذف الملف</string><string name="delete_confirm">هل تريد حذف الملف المنزّل وسجله؟ لا يمكن التراجع عن هذا الإجراء.</string><string name="library_empty">ستظهر وسائطك المحفوظة هنا</string><string name="file_missing">الملف غير موجود أو لا يوجد تطبيق متوافق لفتحه.</string><string name="playback_error">الملف غير موجود أو تعذر تشغيل ترميزه على هذا الجهاز.</string><string name="close">إغلاق</string><string name="save">حفظ</string><string name="ok">حسنًا</string><string name="problem">تعذر إكمال هذا الإجراء</string>
-    <string name="general">عام</string><string name="language">اللغة</string><string name="theme">المظهر</string><string name="system">النظام</string><string name="dark">داكن</string><string name="light">فاتح</string><string name="concurrency">أقصى عدد تنزيلات متزامنة</string><string name="wifi_only">Wi-Fi فقط</string><string name="automatic_retry">عدد المحاولات التلقائية (0 للتعطيل)</string><string name="filename_template">قالب الاسم ({title}، {ext})</string><string name="notifications">الإشعارات</string><string name="notification_permission">السماح بإشعارات التنزيل</string><string name="background_limits">قد يوقف Android العمل بسبب قيود البطارية أو الإيقاف الإجباري. ارجع إلى التطبيق لمتابعة العمل المعلق.</string><string name="storage">التخزين</string><string name="clear_temp">مسح الملفات المؤقتة المكتملة</string><string name="cache_hint">يتم الاحتفاظ بالملفات المتوقفة والقابلة للاستئناف.</string><string name="engine">محرك الوسائط</string><string name="diagnostic">فحص إصدارات المحرك</string><string name="engine_updates">تُحدّث المحركات عبر تحديثات التطبيق. لا يتم تنزيل شيفرة تنفيذية غير موثوقة.</string><string name="about">حول التطبيق</string><string name="privacy">محلي أولًا • دون حسابات أو إعلانات أو تتبع. تُرسل الروابط فقط إلى مصادر الوسائط.</string><string name="licenses">مفتوح المصدر: yt-dlp وEJS — Unlicense؛ FFmpeg min — LGPL-3.0؛ QuickJS-KT وAndroidX وOkHttp — Apache-2.0. المراجع في THIRD_PARTY_NOTICES.md.</string>
+    <string name="general">عام</string><string name="language">اللغة</string><string name="theme">المظهر</string><string name="system">النظام</string><string name="dark">داكن</string><string name="light">فاتح</string><string name="concurrency">أقصى عدد تنزيلات متزامنة</string><string name="wifi_only">Wi-Fi فقط</string><string name="automatic_retry">عدد المحاولات التلقائية (0 للتعطيل)</string><string name="filename_template">قالب الاسم ({title}، {ext})</string><string name="notifications">الإشعارات</string><string name="notification_permission">السماح بإشعارات التنزيل</string><string name="background_limits">قد يوقف Android العمل بسبب قيود البطارية أو الإيقاف الإجباري. ارجع إلى التطبيق لمتابعة العمل المعلق.</string><string name="storage">التخزين</string><string name="clear_temp">مسح الملفات المؤقتة المكتملة</string><string name="cache_hint">يتم الاحتفاظ بالملفات المتوقفة والقابلة للاستئناف.</string><string name="engine">محرك الوسائط</string><string name="diagnostic">فحص إصدارات المحرك</string><string name="engine_updates">تُحدّث المحركات عبر تحديثات التطبيق. لا يتم تنزيل شيفرة تنفيذية غير موثوقة.</string><string name="about">حول التطبيق</string><string name="privacy">محلي أولًا • دون حسابات أو إعلانات أو تتبع. تُرسل الروابط فقط إلى مصادر الوسائط.</string><string name="licenses">مفتوح المصدر: yt-dlp وEJS — Unlicense؛ adblock-rust — MPL-2.0؛ EasyList وEasyPrivacy — GPL-3.0-or-later أو CC BY-SA 3.0؛ FFmpeg min — LGPL-3.0؛ QuickJS-KT وAndroidX وOkHttp — Apache-2.0. المراجع في THIRD_PARTY_NOTICES.md.</string>
     <string name="error_invalid_url">الرابط غير صحيح أو غير مكتمل. تأكد من نسخ رابط HTTPS العام كاملًا وحاول مجددًا. لا تُقبل العناوين المحلية أو البروتوكولات غير الآمنة.</string>
     <string name="error_unsupported">هذا الرابط غير مدعوم حاليًا في MediaFlow. يمكنك الإبلاغ عنه لمساعدتنا على مراجعته.</string>
     <string name="error_server_unavailable">توجد مشكلة مؤقتة في خادم الموقع. حاول مجددًا لاحقًا.</string>
     <string name="error_not_found">المحتوى محذوف أو غير متاح حاليًا. تحقق من فتح الرابط في المتصفح.</string>
+    <string name="error_bot_detected">طلب المصدر التحقق من أن الطلب ليس آليًا. انتظر ثم حاول مجددًا لاحقًا.</string>
     <string name="error_private">هذا المحتوى خاص ولا يمكن الوصول إليه.</string><string name="error_auth">يتطلب هذا المحتوى جلسة مسجّلة الدخول.</string><string name="error_drm">الوسائط محمية بواسطة DRM ولا يمكن تنزيلها.</string><string name="error_geo">هذه الوسائط غير متاحة في منطقتك.</string><string name="error_rate">يحد المصدر من الطلبات. حاول لاحقًا.</string><string name="error_network">بانتظار الاتصال. تحقق من الإنترنت.</string><string name="error_timeout">انتهت مهلة الاتصال. حاول مجددًا.</string><string name="error_http">رفض خادم الوسائط الطلب أو قطع الاتصال.</string><string name="error_extraction">تعذر تحليل الوسائط. ربما تغيّر الموقع المصدر.</string><string name="error_format">الصيغة المحددة أو المسار المطلوب غير متاح.</string><string name="error_quality_unavailable">الجودة المحددة غير متاحة لهذا المحتوى من المصدر.</string><string name="error_space">المساحة غير كافية. وفر مساحة وأعد المحاولة.</string><string name="error_storage">تعذرت الكتابة في هذا المجلد. اختر مجلدًا متاحًا.</string><string name="error_interrupted">انقطع التنزيل. استأنف للمتابعة حيث يدعم المصدر ذلك.</string><string name="error_merge">تعذر دمج مسارات الوسائط أو التحقق منها.</string><string name="error_conversion">التحويل المطلوب غير متاح أو فشل.</string><string name="error_write">تعذر حفظ الملف النهائي.</string><string name="error_internal">تعذر على محرك الوسائط إكمال الطلب.</string><string name="error_live_stream">هذا المحتوى بث مباشر نشط أو عرض أول قادم. يتيح MediaFlow التنزيل بعد اكتمال البث وتوفره كتسجيل كامل.</string>
+    <string name="error_destination_unavailable">تعذر الوصول إلى وجهة الحفظ. اختر مجلدًا آخر أو أعد المحاولة في مجلد MediaFlow الافتراضي.</string>
+    <string name="retry_default_destination">أعد المحاولة في مجلد MediaFlow الافتراضي</string>
     <string name="browser_title">متصفح الوسائط الداخلي</string>
     <string name="browser_hint">تصفح المواقع وحمّل مباشرة</string>
     <string name="search_or_enter_url">ابحث أو اكتب الرابط هنا…</string>
@@ -142,10 +144,42 @@
     <string name="facebook_auth_dialog_dismiss">لاحقًا</string>
     <string name="facebook_login_required">هذا الفيديو يتطلب تسجيل الدخول إلى فيسبوك.</string>
     <string name="facebook_login_action">تسجيل الدخول إلى فيسبوك</string>
-    <string name="facebook_secure_connection">تسجيل دخول فيسبوك الرسمي · اتصال HTTPS آمن</string>
+    <string name="facebook_auth_title">تسجيل الدخول إلى فيسبوك</string>
+    <string name="facebook_auth_origin_facebook">%1$s · فيسبوك HTTPS</string>
+    <string name="facebook_auth_origin_external">%1$s · موقع خارجي HTTPS</string>
+    <string name="facebook_auth_origin_insecure">%1$s · غير آمن (تم الحظر)</string>
+    <string name="facebook_auth_origin_unverified">%1$s · غير موثوق (تم الحظر)</string>
+    <string name="facebook_auth_origin_unknown">مصدر غير موثوق · تم الحظر</string>
     <string name="share_audio_formats">الصيغ الصوتية</string>
     <string name="share_video_formats">صيغ الفيديو</string>
     <string name="share_audio_original">الصوت الأصلي</string>
     <string name="share_audio_convert">تحويل</string>
     <string name="quality_not_available">الجودة غير متوفرة لهذا المحتوى</string>
+    <string name="adblock_accessibility">إعدادات حظر الإعلانات</string>
+    <string name="adblock_dialog_title">الإعلانات وأدوات التتبع</string>
+    <string name="adblock_global_toggle">حظر الإعلانات وأدوات التتبع</string>
+    <string name="adblock_site_exception">إيقاف التصفية على %1$s فقط</string>
+    <plurals name="adblock_blocked_resources">
+        <item quantity="zero">لم يتم حظر أي طلب في جلسة المتصفح</item>
+        <item quantity="one">تم حظر طلب واحد في جلسة المتصفح</item>
+        <item quantity="two">تم حظر طلبين في جلسة المتصفح</item>
+        <item quantity="few">تم حظر %1$d طلبات في جلسة المتصفح</item>
+        <item quantity="many">تم حظر %1$d طلبًا في جلسة المتصفح</item>
+        <item quantity="other">تم حظر %1$d طلب في جلسة المتصفح</item>
+    </plurals>
+    <plurals name="adblock_blocked_popups">
+        <item quantity="zero">لم يتم رفض أي طلب لفتح نافذة</item>
+        <item quantity="one">تم رفض طلب واحد لفتح نافذة</item>
+        <item quantity="two">تم رفض طلبين لفتح نافذة</item>
+        <item quantity="few">تم رفض %1$d طلبات لفتح نافذة</item>
+        <item quantity="many">تم رفض %1$d طلبًا لفتح نافذة</item>
+        <item quantity="other">تم رفض %1$d طلب لفتح نافذة</item>
+    </plurals>
+    <string name="adblock_filter_counts">جاهز: تم تحليل %1$d قاعدة للشبكة و%2$d قاعدة تجميلية</string>
+    <string name="adblock_loading">جارٍ تحميل محرك التصفية المضمّن. تمر الطلبات دون حظر حتى يصبح جاهزًا.</string>
+    <string name="adblock_unavailable">تعذر تحميل نسخة القواعد المضمّنة. يظل التصفح متاحًا دون تصفية.</string>
+    <string name="adblock_native_unavailable">التصفية الأصلية غير متاحة في هذا الإصدار للجهاز. يظل التصفح متاحًا دون تصفية.</string>
+    <string name="adblock_update_policy">يتم تحديث EasyList وEasyPrivacy في الخلفية نحو مرة أسبوعيًا عند الاتصال. تُحد أحجام القواعد وتُفحص قبل تفعيلها، وتُحفظ آخر نسخة سليمة إذا فشل التحديث.</string>
+    <string name="adblock_webview_limits">لا يكشف WebView كل الطلبات أو تفاصيلها. لا يُفلتر الانتقال المباشر إلى الصفحات. لا تُحجب طلبات الصوت والفيديو إلا إذا طابقت قاعدة حجب. لا يمكن للقوائم المُنزّلة تشغيل شيفرات أو إجراءات. قد تُطبّق القواعد التجميلية بعد بدء تحميل الصفحة في إصدارات WebView الأقدم.</string>
+    <string name="adblock_player_scriptlet_reload">أعِد تحميل صفحة YouTube بعد تغيير هذا الإعداد لتطبيقه على بيانات المشغّل. لا يمكن استعادة البيانات التي تلقتها الصفحة بالفعل دون إعادة التحميل.</string>
 </resources>

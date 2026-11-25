@@ -2,15 +2,17 @@
 import email.message
 import io
 import json
+import re
 import urllib.error
 import urllib.response
 from java import jclass
 
 
 class MetadataTransportError(OSError):
-    def __init__(self, code):
+    def __init__(self, code, safe_exception_classes=()):
         super().__init__(code)
         self.transport_code = code
+        self.safe_exception_classes = tuple(safe_exception_classes)
 
 
 def open_response(bridge, request, transport):
@@ -23,7 +25,15 @@ def open_response(bridge, request, transport):
         code = str(error.getCode())
         if code == 'METADATA_LIMIT':
             raise ValueError('METADATA_LIMIT') from error
-        raise urllib.error.URLError(MetadataTransportError(code)) from error
+        try:
+            classes = json.loads(str(error.getSafeCauseClassesJson()))
+        except (AttributeError, TypeError, ValueError):
+            classes = []
+        if not isinstance(classes, list):
+            classes = []
+        safe_classes = [name for name in classes[:12]
+                        if isinstance(name, str) and re.fullmatch(r'[A-Za-z0-9_.$]{1,120}', name)]
+        raise urllib.error.URLError(MetadataTransportError(code, safe_classes)) from error
     message = email.message.Message()
     for name, value in json.loads(str(result.getHeadersJson())):
         message[name] = value

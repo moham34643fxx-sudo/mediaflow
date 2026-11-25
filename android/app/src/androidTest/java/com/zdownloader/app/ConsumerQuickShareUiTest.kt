@@ -2,13 +2,15 @@ package com.zdownloader.app
 
 import android.content.ComponentName
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
-import com.zdownloader.app.domain.DownloadPlan
+import com.zdownloader.app.data.SettingsRepository
+import com.zdownloader.app.domain.Selection
 import com.zdownloader.app.ui.QuickShareViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -16,6 +18,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import java.util.Locale
 import java.util.UUID
 
 class ConsumerQuickShareUiTest {
@@ -24,6 +27,10 @@ class ConsumerQuickShareUiTest {
     private val app get() = instrumentation.targetContext.applicationContext as ZApplication
 
     @Test fun consumerMenuOmitsTechnicalDetailsAndSupportsSchedulingRealSelection() = runBlocking {
+        val language = SettingsRepository(app).current().language
+        val localized = app.createConfigurationContext(Configuration(app.resources.configuration).apply {
+            setLocale(Locale.forLanguageTag(language))
+        })
         val uniqueUrl = "https://www.w3schools.com/html/mov_bbb.mp4?consumer-ui=${UUID.randomUUID()}"
         val sendIntent = Intent(Intent.ACTION_SEND)
             .setComponent(ComponentName(instrumentation.targetContext, ShareReceiverActivity::class.java))
@@ -37,7 +44,7 @@ class ConsumerQuickShareUiTest {
                 compose.onNodeWithTag("share_expanded").assertIsDisplayed()
 
                 compose.onNodeWithTag("share_technical").assertDoesNotExist()
-                val technicalLabel = app.getString(R.string.technical_details)
+                val technicalLabel = localized.getString(R.string.technical_details)
                 compose.onAllNodesWithText(technicalLabel).assertCountEquals(0)
 
                 var model: QuickShareViewModel? = null
@@ -48,34 +55,39 @@ class ConsumerQuickShareUiTest {
                     model?.state?.value?.media != null && model?.state?.value?.analyzing == false
                 }
                 val media = checkNotNull(model?.state?.value?.media) { "Media failed to resolve" }
-                assertTrue("Fixture media has video formats", media.formats.isNotEmpty())
+                compose.awaitQuickShareCatalog(checkNotNull(model?.state?.value?.traceId))
 
-                val firstVideo = media.formats.first { it.video }
-                val variantTag=compose.revealQuickShareVideoSource(media,firstVideo)
-                compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag(variantTag))
-                compose.onNodeWithTag(variantTag).performClick()
+                  val qualityTag="share_video_quality_320x176"
+                 compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag(qualityTag))
+                  compose.onNodeWithTag("${qualityTag}_description",useUnmergedTree=true)
+                     .assertTextContains("320×176",substring=true)
+                 compose.onNodeWithTag(qualityTag).assertIsDisplayed().assertIsEnabled().performClick().assertIsSelected()
+                 val firstVideo=checkNotNull(model?.state?.value?.selection?.primary)
+                 assertTrue(selectableQuickShareVideoSources(media).any {it.id==firstVideo.id})
+                 compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_no_more_sources"))
+                 compose.onNodeWithTag("share_no_more_sources").assertIsDisplayed()
 
                 compose.onNodeWithTag("share_formats").performScrollToNode(hasTestTag("share_schedule"))
                 compose.onNodeWithTag("share_schedule").assertIsEnabled()
 
                 compose.onNodeWithTag("share_schedule").performClick()
                 compose.onNodeWithTag("schedule_dialog").assertIsDisplayed()
-                val inexactText = app.getString(R.string.schedule_inexact)
-                compose.onNodeWithText(inexactText).assertIsDisplayed()
+                val inexactText = localized.getString(R.string.schedule_inexact)
+                compose.onNodeWithText(inexactText).performScrollTo().assertIsDisplayed()
 
-                val cancelText = app.getString(R.string.cancel)
+                val cancelText = localized.getString(R.string.cancel)
                 compose.onNodeWithText(cancelText).performClick()
                 compose.onNodeWithTag("schedule_dialog").assertDoesNotExist()
                 val rowsBeforeSchedule = app.repository.dao.observe().first().filter { it.url == uniqueUrl }
                 assertTrue("Opening and canceling ScheduleDialog created no row", rowsBeforeSchedule.isEmpty())
 
-                // Public schedule API persistence is tested with a future timestamp;
-                // native date/time picker interaction and future background dispatch are untested boundaries.
-                val futureTime = System.currentTimeMillis() + 3600_000L
-                val plan = DownloadPlan(at = futureTime)
-                scenario.onActivity {
-                    model!!.schedule(plan)
-                }
+                val openedAfter = System.currentTimeMillis()
+                compose.onNodeWithTag("share_schedule").assertIsEnabled().performClick()
+                compose.onNodeWithTag("schedule_dialog").assertIsDisplayed()
+                val openedBefore = System.currentTimeMillis()
+                compose.onNodeWithTag("schedule_network_WIFI").performScrollTo().performClick()
+                compose.onNodeWithTag("schedule_charging").performScrollTo().performClick()
+                compose.onNodeWithTag("schedule_confirm").performClick()
 
                 compose.waitUntil(15000) {
                     runBlocking {
@@ -86,7 +98,11 @@ class ConsumerQuickShareUiTest {
                 assertEquals(1, scheduledRows.size)
                 val row = scheduledRows.first()
                 assertEquals("SCHEDULED", row.status)
-                assertEquals(futureTime, row.scheduledAt)
+                assertTrue("The date shown by the dialog defaults to one hour ahead",
+                    row.scheduledAt in (openedAfter + 3_600_000)..(openedBefore + 3_600_000))
+                assertEquals("WIFI", row.scheduleNetwork)
+                assertTrue(row.requiresCharging)
+                assertEquals(firstVideo.id, Selection.parse(row.selection).primary.id)
 
                 compose.waitUntil(10000) {
                     if (scenario.state == Lifecycle.State.DESTROYED) {

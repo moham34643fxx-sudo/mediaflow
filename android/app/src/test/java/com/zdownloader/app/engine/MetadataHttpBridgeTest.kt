@@ -45,10 +45,20 @@ class MetadataHttpBridgeTest {
     }
 
     @Test fun untrustedCertificateIsRejectedWithoutAnHttpRequest() {
-        MetadataHttpBridge(OkHttpClient()).use {untrusted->
-            try {untrusted.execute(request(),null);fail("Untrusted TLS must fail")}
-            catch(error:MetadataTransportException) {assertEquals("TLS_FAILED",error.code)}
-        }
+        NetworkDiagnostics.tlsFailureEvidenceCaptureForTests=true
+        try {
+            MetadataHttpBridge(OkHttpClient()).use {untrusted->
+                try {untrusted.execute(request(),null);fail("Untrusted TLS must fail")}
+                catch(error:MetadataTransportException) {
+                    assertEquals("TLS_FAILED",error.code)
+                    val causes=JSONArray(error.safeCauseClassesJson)
+                    assertTrue("TLS diagnostics retain a bounded cause chain",causes.length() in 1..12)
+                    assertTrue((0 until causes.length()).all {index->
+                        causes.getString(index).matches(Regex("[A-Za-z0-9_.$]{1,120}"))
+                    })
+                }
+            }
+        } finally {NetworkDiagnostics.tlsFailureEvidenceCaptureForTests=false}
         assertEquals(0,server.requestCount)
     }
 

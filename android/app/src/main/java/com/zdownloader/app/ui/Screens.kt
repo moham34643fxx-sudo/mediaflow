@@ -299,7 +299,7 @@ import androidx.compose.ui.unit.LayoutDirection
                 } else 0.dp)
             if(playlistState.visible) PlaylistPreview(model.playlists,
                 single={model.playlists.close();model.analyze(forceSingle=true)},close=model.playlists::close,
-                queued={model.playlists.close();nav.selectPrimary(PrimaryDestination.DOWNLOADS)})
+                queued={model.playlists.close();nav.selectPrimary(PrimaryDestination.DOWNLOADS)},selectQuality=model::analyzePlaylistItem)
              if(updater!=null) UpdateOffer(updater,settings.language,
                   startupReady&&primary!=null&&!keyboardVisible&&!ui.analyzing&&!ui.submitting&&ui.error==null&&ui.duplicate==null&&!playlistState.visible&&clipboard==null&&!reportOpen)
         }
@@ -756,10 +756,18 @@ private data class NavigationChrome(val expanded:Boolean,val keyboardVisible:Boo
                     else TextButton({model.pause(entity.id)}) {Text(stringResource(R.string.pause))}
                     TextButton({model.cancel(entity.id)}) {Text(stringResource(R.string.cancel))}
                 }
+                 if(entity.canRetryInDefaultDestination())
+                    TextButton({model.retryInDefaultDestination(entity.id)},Modifier.testTag("retry_default_destination_${entity.id}")) {
+                        Text(stringResource(R.string.retry_default_destination))
+                    }
             }
         }
     }
 }
+private fun DownloadEntity.canRetryInDefaultDestination() =
+    Build.VERSION.SDK_INT>=29&&status=="FAILED"&&!destination.isNullOrBlank()&&pendingUri==null&&
+        (error==ErrorCode.STORAGE_PERMISSION_ERROR.name||error==ErrorCode.STORAGE_DESTINATION_UNAVAILABLE.name)
+
 @Composable internal fun DownloadCard(entity: DownloadEntity,model: ZViewModel,play: (DownloadEntity)->Unit,checked: Boolean,select:(Boolean)->Unit) {
     var reportOpen by rememberSaveable(entity.id) {mutableStateOf(false)}
     var details by remember { mutableStateOf(false) }
@@ -850,6 +858,10 @@ private data class NavigationChrome(val expanded:Boolean,val keyboardVisible:Boo
         }
         entity.error?.takeUnless {entity.status=="COMPLETED"}?.let { Surface(color=MaterialTheme.colorScheme.error.copy(alpha=.07f),shape=RoundedCornerShape(12.dp)) {Text(stringResource(errorResource(ErrorCode.parse(it))),modifier=Modifier.fillMaxWidth().padding(12.dp),style=MaterialTheme.typography.bodySmall,color=if(entity.status=="FAILED") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)} }
         if(entity.status=="FAILED" && selection?.audioOnly==false && selection.output=="mp4" && entity.error in listOf("ENCODER_UNAVAILABLE","CONVERSION_FAILED")) TextButton(onClick={model.useMkv(entity.id)}) {Text(stringResource(R.string.save_mkv))}
+         if(entity.canRetryInDefaultDestination())
+            TextButton({model.retryInDefaultDestination(entity.id)},Modifier.testTag("retry_default_destination_${entity.id}")) {
+                Text(stringResource(R.string.retry_default_destination))
+            }
         if(entity.status=="FAILED") TextButton({reportOpen=true},Modifier.testTag("download_report_${entity.id}")) {Text(stringResource(R.string.report_action))}
     }
     ProblemReportSheet(reportOpen,entity.url,entity.error.orEmpty()) {reportOpen=false}

@@ -74,8 +74,16 @@ import kotlin.math.abs
     })
 }
 
+internal data class VideoPlayerActions(val openSheet:(String)->Unit,val rotateOrientation:()->Unit)
+
 @androidx.annotation.OptIn(markerClass=[androidx.media3.common.util.UnstableApi::class])
-@Composable internal fun VideoPlayerScreen(connection:PlaybackConnection,state:PlaybackState,activity:PlayerActivity,sheet:(String)->Unit) {
+@Composable internal fun VideoPlayerScreen(
+    connection:PlaybackConnection,
+    state:PlaybackState,
+    activity:PlayerActivity,
+    actions:VideoPlayerActions
+) {
+    val sheet=actions.openSheet
     var controls by rememberSaveable {mutableStateOf(true)}
     var transportHeight by remember {mutableIntStateOf(0)}
     val navigationBottom=WindowInsets.safeDrawing.getBottom(LocalDensity.current)
@@ -153,7 +161,8 @@ import kotlin.math.abs
                         TextButton({resize=when(resize) {AspectRatioFrameLayout.RESIZE_MODE_FIT->AspectRatioFrameLayout.RESIZE_MODE_FILL;AspectRatioFrameLayout.RESIZE_MODE_FILL->AspectRatioFrameLayout.RESIZE_MODE_ZOOM;else->AspectRatioFrameLayout.RESIZE_MODE_FIT}}) {
                             Text(text(when(resize) {AspectRatioFrameLayout.RESIZE_MODE_FILL->R.string.player_fill;AspectRatioFrameLayout.RESIZE_MODE_ZOOM->R.string.player_zoom;else->R.string.player_fit}))
                         }
-                        FlowIconButton(Icons.Outlined.ScreenRotation,text(R.string.player_orientation_control),{sheet("options")},Modifier.testTag("player_orientation_control"))
+                        FlowIconButton(Icons.Outlined.ScreenRotation,text(R.string.player_orientation_control),
+                            actions.rotateOrientation,Modifier.testTag("player_orientation_control"))
                         if(activity.pipSupported) FlowIconButton(Icons.Outlined.PictureInPictureAlt,text(R.string.player_pip),activity::enterPip,Modifier.testTag("player_pip"))
                     }
                 }
